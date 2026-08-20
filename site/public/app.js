@@ -69,7 +69,154 @@ heroFilterButtons.forEach(button => {
 const requestedHeroFilter = new URLSearchParams(window.location.search).get("audience");
 if (["boys", "girls", "all"].includes(requestedHeroFilter)) applyHeroFilter(requestedHeroFilter);
 
-document.querySelector(".dialog-close")?.addEventListener("click", () => dialog.close());
+const heroChoice = document.querySelector("[data-hero-choice]");
+const heroCart = document.querySelector("[data-hero-cart]");
+
+if (heroCart) {
+  const cartForm = heroCart.querySelector("[data-hero-cart-form]");
+  const cartCards = [...document.querySelectorAll("[data-hero-card]")];
+  const cartHeroes = cartCards.map(card => ({
+    id: card.dataset.heroId,
+    name: card.dataset.heroName,
+    weekdayPrice: Number(card.dataset.heroWeekdayPrice || 0),
+    weekendPrice: Number(card.dataset.heroWeekendPrice || 0)
+  }));
+  const state = { primaryId: "", secondaryId: "", day: "weekday" };
+  const money = value => new Intl.NumberFormat("ru-RU").format(Number(value || 0)) + " ₽";
+  const currentHero = () => cartHeroes.find(hero => hero.id === state.primaryId);
+  const secondOptions = [...cartForm.querySelectorAll("[data-cart-second-option]")];
+  const primaryName = cartForm.querySelector("[data-cart-primary-name]");
+  const primaryPrice = cartForm.querySelector("[data-cart-primary-price]");
+  const secondItem = cartForm.querySelector("[data-cart-second-item]");
+  const secondName = cartForm.querySelector("[data-cart-second-name]");
+  const secondPrice = cartForm.querySelector("[data-cart-second-price]");
+  const total = cartForm.querySelector("[data-cart-total]");
+  const summary = cartForm.querySelector("[data-cart-summary]");
+  const secondHeroPrice = Number(heroCart.dataset.secondHeroPrice || 0);
+
+  const syncSecondHeroOptions = () => {
+    secondOptions.forEach(option => {
+      const isPrimary = option.dataset.cartSecondOption === state.primaryId;
+      const isSelected = option.dataset.cartSecondOption === state.secondaryId;
+      option.hidden = isPrimary;
+      option.classList.toggle("is-selected", isSelected);
+      option.setAttribute("aria-pressed", String(isSelected));
+    });
+  };
+
+  const updateCart = () => {
+    const hero = currentHero();
+    const dayLabel = state.day === "weekend" ? "Выходные" : "Будни";
+    const basePrice = hero ? hero[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] : 0;
+    const secondHero = cartHeroes.find(item => item.id === state.secondaryId && item.id !== state.primaryId);
+    const hasSecond = Boolean(secondHero);
+
+    primaryName.textContent = hero?.name || "Выберите героя";
+    primaryPrice.textContent = hero ? money(basePrice) : "—";
+    if (secondItem) secondItem.hidden = !hasSecond;
+    if (hasSecond) {
+      secondName.textContent = secondHero.name;
+      secondPrice.textContent = `+ ${money(secondHeroPrice)}`;
+    }
+    total.textContent = hero ? money(basePrice + (hasSecond ? secondHeroPrice : 0)) : "—";
+    summary.textContent = !hero
+      ? "Выберите главного героя."
+      : !hasSecond
+        ? "Выберите второго героя для акции."
+        : `${dayLabel} · ${hasSecond ? "два героя" : "один герой"}.`;
+
+    cartForm.dataset.primaryHeroName = hero?.name || "";
+    cartForm.dataset.secondHeroName = hasSecond ? secondHero.name : "";
+    cartForm.dataset.dayLabel = dayLabel;
+    cartForm.dataset.total = String(basePrice + (hasSecond ? secondHeroPrice : 0));
+    cartForm.dataset.ready = String(Boolean(hero && hasSecond));
+    cartCards.forEach(card => card.classList.toggle("is-in-cart", card.dataset.heroId === state.primaryId));
+    syncSecondHeroOptions();
+  };
+
+  const setPrimaryHero = heroId => {
+    state.primaryId = heroId;
+    if (state.secondaryId === heroId) state.secondaryId = "";
+    updateCart();
+  };
+
+  const clearCartSelection = () => {
+    state.primaryId = "";
+    state.secondaryId = "";
+    updateCart();
+  };
+
+  const openQuickHeroLead = () => {
+    const hero = currentHero();
+    if (!hero || !dialog) return;
+    const service = `Аниматор ${hero.name}`;
+    const message = `Хочу заказать аниматора ${hero.name}.`;
+    heroChoice?.close();
+    clearCartSelection();
+    dialog.querySelector('[name="service"]').value = service;
+    dialog.querySelector('[name="message"]').value = message;
+    const comment = dialog.querySelector('[name="comment"]');
+    if (comment) comment.value = message;
+    if (!dialog.open) dialog.showModal();
+    dialog.querySelector('[name="name"]')?.focus();
+  };
+
+  const openHeroCart = () => {
+    heroChoice?.close();
+    if (!heroCart.open) heroCart.showModal();
+    secondOptions.find(option => !option.hidden)?.focus();
+  };
+
+  const openHeroChoice = heroId => {
+    setPrimaryHero(heroId);
+    const hero = currentHero();
+    if (!hero) return;
+    if (!heroChoice) {
+      openQuickHeroLead();
+      return;
+    }
+    heroChoice.querySelector("[data-choice-hero-name]").textContent = hero.name;
+    if (!heroChoice.open) heroChoice.showModal();
+    heroChoice.querySelector("[data-choice-no]")?.focus();
+  };
+
+  document.querySelectorAll("[data-add-hero]").forEach(button => {
+    button.addEventListener("click", () => {
+      openHeroChoice(button.closest("[data-hero-card]")?.dataset.heroId || "");
+    });
+  });
+  cartForm.querySelectorAll("[data-cart-day]").forEach(button => {
+    button.addEventListener("click", () => {
+      state.day = button.dataset.cartDay;
+      cartForm.querySelectorAll("[data-cart-day]").forEach(item => {
+        const selected = item === button;
+        item.classList.toggle("is-selected", selected);
+        item.setAttribute("aria-pressed", String(selected));
+      });
+      updateCart();
+    });
+  });
+  secondOptions.forEach(option => option.addEventListener("click", () => {
+    state.secondaryId = option.dataset.cartSecondOption || "";
+    updateCart();
+  }));
+  heroChoice?.querySelector("[data-choice-no]")?.addEventListener("click", openQuickHeroLead);
+  heroChoice?.querySelector("[data-choice-yes]")?.addEventListener("click", openHeroCart);
+  heroChoice?.querySelector("[data-close-hero-choice]")?.addEventListener("click", () => {
+    heroChoice.close();
+    clearCartSelection();
+  });
+  heroChoice?.addEventListener("click", event => {
+    if (event.target !== heroChoice) return;
+    heroChoice.close();
+    clearCartSelection();
+  });
+  heroCart.querySelector("[data-close-hero-cart]")?.addEventListener("click", () => heroCart.close());
+  heroCart.addEventListener("click", event => { if (event.target === heroCart) heroCart.close(); });
+  updateCart();
+}
+
+dialog?.querySelector(".dialog-close")?.addEventListener("click", () => dialog.close());
 dialog?.addEventListener("click", event => {
   if (event.target === dialog) dialog.close();
 });
@@ -112,7 +259,23 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
   form.addEventListener("submit", async event => {
     event.preventDefault();
     const status = form.querySelector(".form-status");
-    if (form.matches("[data-party-builder]")) {
+    if (form.matches("[data-hero-cart-form]")) {
+      if (form.dataset.ready !== "true") {
+        status.textContent = "Выберите главного героя и, если включили акцию, второго героя.";
+        return;
+      }
+      const secondHero = form.dataset.secondHeroName;
+      const total = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.total || 0)) + " ₽";
+      form.elements.service.value = `Аниматоры · ${form.dataset.primaryHeroName}${secondHero ? ` + ${secondHero}` : ""}`;
+      form.elements.message.value = [
+        `Главный герой: ${form.dataset.primaryHeroName}`,
+        `День: ${form.dataset.dayLabel}`,
+        secondHero ? `Второй герой по акции: ${secondHero}` : "",
+        `Итого: ${total}`
+      ].filter(Boolean).join(". ") + ".";
+      const comment = form.querySelector('[name="comment"]')?.value.trim();
+      if (comment) form.elements.message.value += ` Комментарий: ${comment}`;
+    } else if (form.matches("[data-party-builder]")) {
       const age = form.querySelector('[name="childAge"]').value;
       const format = form.querySelector('[name="partyFormat"]').value;
       if (!age || !format) {
@@ -156,7 +319,8 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
         }
       }
       window.ym?.(window.YANDEX_METRIKA_ID, "reachGoal", "form_submit");
-      if (dialog.open && form.closest("dialog")) setTimeout(() => dialog.close(), 1800);
+      const formDialog = form.closest("dialog");
+      if (formDialog?.open) setTimeout(() => formDialog.close(), 1800);
     } catch (error) {
       status.textContent = error.message;
     } finally {

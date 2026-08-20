@@ -1,0 +1,140 @@
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem clamp(1.25rem, 4vw, 4rem);
+  color: #fff8e8;
+  background: #172315;
+  font-size: 0.8rem;
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.site-footer a,
+.consent a,
+.legal-page a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.consent a,
+.legal-page a {
+  color: #004d56;
+}
+
+.consent > input {
+  flex: 0 0 auto;
+}
+
+.consent > span {
+  min-width: 0;
+}
+
+.legal-page {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2rem) 5rem;
+  color: #172315;
+}
+
+.legal-page h1 {
+  max-width: 18ch;
+  margin: 0.75rem 0 1.5rem;
+  font-size: clamp(2.1rem, 5vw, 4.5rem);
+  line-height: 0.98;
+}
+
+.legal-page h2 {
+  margin: 2.6rem 0 0.85rem;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+}
+
+.legal-page p,
+.legal-page td,
+.legal-page th,
+.legal-page dd {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.legal-page__lead {
+  max-width: 60ch;
+  margin: 0;
+  font-size: 1.2rem !important;
+}
+
+.legal-page table {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+}
+
+.legal-page th,
+.legal-page td {
+  padding: 0.85rem;
+  text-align: left;
+  vertical-align: top;
+  border: 1px solid #cbd1be;
+}
+
+.legal-page th {
+  background: #e8eddd;
+}
+
+.legal-contacts {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.35fr) 1fr;
+  gap: 0.4rem 1.25rem;
+  padding: 1rem;
+  border-left: 4px solid #e96042;
+  background: #f5f2e8;
+}
+
+.legal-contacts dt {
+  font-weight: 700;
+}
+
+.legal-contacts dd {
+  margin: 0;
+}
+
+.legal-placeholder {
+  color: #8b2e1c;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .site-footer,
+  .site-footer nav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .legal-page table,
+  .legal-page thead,
+  .legal-page tbody,
+  .legal-page tr,
+  .legal-page th,
+  .legal-page td {
+    display: block;
+  }
+
+  .legal-page th:not(:first-child) {
+    display: none;
+  }
+
+  .legal-page td {
+    border-top: 0;
+  }
+
+  .legal-contacts {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+}

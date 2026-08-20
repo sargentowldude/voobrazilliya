@@ -1,6 +1,6 @@
 {
-  "heroTitle": "Аниматор в Кемерово!",
-  "heroIntro": "Придумываем детские праздники, в которые хочется ворваться с разбега. Аниматоры, шоу и спектакли — на вашей площадке в Кемерово.",
+  "heroTitle": "Организация детских праздников в Кемерово",
+  "heroIntro": "Организация детских праздников в Кемерово: аниматоры, шоу и спектакли для дня рождения, детского сада и школы.",
   "service1Title": "Герои входят без стука",
   "service1Text": "Игровые программы для детей 3–12 лет дома и на площадке.",
   "service2Title": "Кнопки решают всё",
@@ -15,10 +15,10 @@
   "photo2PositionX": 46,
   "photo2PositionY": 43,
   "photo2Scale": 100,
-  "photoBirthday": "/uploads/1787070449414-402c39af-b0fa-4cb7-919f-89565582e314.jpg",
+  "photoBirthday": "/uploads/1787233307544-fe7c73e1-613b-4eae-80b0-77f5fa98547c.png",
   "photoBirthdayPositionX": 50,
-  "photoBirthdayPositionY": 52,
-  "photoBirthdayScale": 100,
+  "photoBirthdayPositionY": 13,
+  "photoBirthdayScale": 101,
   "photo3": "/uploads/1787080393654-42126256-090d-4f7d-bc50-1eb08833498a.png",
   "photo3PositionX": 33,
   "photo3PositionY": 15,
@@ -109,5 +109,9 @@
   "homeTheaterPhotoPositionX": 50,
   "homeTheaterPhotoPositionY": 50,
   "homeTheaterPhotoScale": 100,
-  "homeFoamPhoto": "/uploads/1787209483687-ba975987-18ce-4507-90b8-a5f590215953.png"
+  "homeFoamPhoto": "/uploads/1787209483687-ba975987-18ce-4507-90b8-a5f590215953.png",
+  "heroCartUpsellEnabled": true,
+  "heroCartSecondHeroPrice": 1800,
+  "heroCartPromoTitle": "Добавьте второго героя со скидкой",
+  "heroCartPromoDescription": "Ещё один персонаж сделает праздник ещё ярче."
 }
