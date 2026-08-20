@@ -1,0 +1,40 @@
+[
+  {
+    "id": "af0f5a27-fd4b-459c-89e5-58d5f365d426",
+    "slug": "supergeroy-na-dom-pryamo-seychas",
+    "title": "Супергерой на дом прямо сейчас",
+    "date": "2026-07-01",
+    "category": "Событие",
+    "description": "",
+    "accent": "yellow",
+    "image": "/uploads/1787075105787-0af72348-3331-4a42-bb68-abe29d93dda9.png",
+    "imagePositionX": 50,
+    "imagePositionY": 39,
+    "imageScale": 100,
+    "published": true,
+    "updatedAt": "2026-08-20T07:53:45.630Z",
+    "createdAt": "2026-08-18T17:45:05.795Z",
+    "buttonLabel": "Открыть афишу",
+    "buttonUrl": "",
+    "imageFit": "poster"
+  },
+  {
+    "id": "ba885868-3140-4dc6-942f-51d8c2270d00",
+    "slug": "teatralnoe-vystuplenie-k-vam",
+    "title": "Театральное выступление к Вам",
+    "date": "2026-09-01",
+    "category": "Событие",
+    "description": "Живой интерактивный спектакль для праздников, школ и детских садов.",
+    "accent": "red",
+    "image": "/uploads/1787076427261-b3f2156d-1bea-453a-9de8-dfb2bce9f734.jpg",
+    "imagePositionX": 50,
+    "imagePositionY": 46,
+    "imageScale": 100,
+    "published": true,
+    "updatedAt": "2026-08-18T18:07:07.268Z",
+    "createdAt": "2026-08-18T17:43:51.696Z",
+    "buttonLabel": "Открыть афишу",
+    "buttonUrl": "",
+    "imageFit": "poster"
+  }
+]

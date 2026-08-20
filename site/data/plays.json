@@ -1,0 +1,16 @@
+[
+  {
+    "id": "play-tim-sonya-laboratoriya-priklyucheniy",
+    "name": "Тим и Соня: Лаборатория приключений",
+    "age": "4+",
+    "description": "Интерактивный спектакль, где Тим и Соня зовут детей в лабораторию: исследовать, помогать героям и вместе запускать приключение.",
+    "accent": "violet",
+    "image": "/uploads/1787159474111-34b97c76-41a6-4da3-9088-07e508fb83ee.jpg",
+    "imagePositionX": 50,
+    "imagePositionY": 50,
+    "imageScale": 100,
+    "published": true,
+    "createdAt": "2026-08-19T00:00:00.000Z",
+    "updatedAt": "2026-08-19T17:14:35.249Z"
+  }
+]
