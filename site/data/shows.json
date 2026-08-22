@@ -4,14 +4,29 @@
     "slug": "azotnoe-show-kemerovo",
     "name": "Азотное шоу",
     "seoTitle": "Азотное шоу в Кемерово — заказать на праздник | ВообразилЛиЯ",
-    "seoDescription": "Заказать азотное шоу на детский праздник в Кемерово. Эффектные опыты и облака пара, стоимость программы 3500 ₽.",
-    "description": "Зрелищная научная программа с эффектными опытами, облаками пара и неожиданными превращениями. Ведущий вовлекает детей в безопасные эксперименты и превращает праздник в настоящую лабораторию впечатлений.",
+    "seoDescription": "Заказать азотное шоу на детский праздник в Кемерово. Театрализованная постановка с эффектными опытами и облаками пара, стоимость программы 3500 ₽.",
+    "description": "Интерактивная театрализованная постановка с элементами азотного шоу: герои проводят безопасные эффектные опыты, выпускают облака пара и зовут детей помогать им в лаборатории чудес.",
     "price": 3500,
     "accent": "cyan",
     "image": "/uploads/1787078814392-b2a42da2-4e3a-4fa9-aff6-e20e7d50e9f3.png",
     "imagePositionX": 50,
     "imagePositionY": 16,
     "imageScale": 100,
+    "galleryTitle": "Постер и видео из постановки",
+    "gallery": [
+      {
+        "src": "/uploads/theater-azot-show-poster.webp",
+        "alt": "Постер азотного шоу",
+        "label": "Постер"
+      },
+      {
+        "type": "video",
+        "src": "/uploads/theater-azot-show.mp4",
+        "poster": "/uploads/theater-azot-show-poster.webp",
+        "alt": "Видео из азотного шоу",
+        "label": "Видео из постановки"
+      }
+    ],
     "published": true,
     "updatedAt": "2026-08-18T18:46:54.399Z",
     "createdAt": "2026-08-18T18:46:54.399Z"
@@ -47,8 +62,21 @@
     "imagePositionY": 16,
     "imageScale": 100,
     "published": true,
-    "updatedAt": "2026-08-18T18:40:08.410Z",
-    "createdAt": "2026-08-18T18:39:52.192Z"
+    "updatedAt": "2026-08-22T09:08:44.741Z",
+    "createdAt": "2026-08-18T18:39:52.192Z",
+    "gallery": [
+      {
+        "type": "video",
+        "src": "/uploads/1787389724689-c1157c09-d03f-4f0b-bc44-c633ecdf01fa.mp4",
+        "mime": "video/mp4",
+        "alt": "Видео программы",
+        "label": "Видео",
+        "imagePositionX": 50,
+        "imagePositionY": 50,
+        "imageScale": 100
+      }
+    ],
+    "galleryTitle": "Материалы программы"
   },
   {
     "id": "show-raznos",
@@ -64,7 +92,20 @@
     "imagePositionY": 10,
     "imageScale": 100,
     "published": true,
-    "updatedAt": "2026-08-18T18:46:13.999Z",
-    "createdAt": "2026-08-18T18:45:55.200Z"
+    "updatedAt": "2026-08-22T09:04:26.286Z",
+    "createdAt": "2026-08-18T18:45:55.200Z",
+    "gallery": [
+      {
+        "type": "video",
+        "src": "/uploads/1787389447789-5e7e706b-598a-4b5a-8c4e-6ab8318e591a.mp4",
+        "mime": "video/mp4",
+        "alt": "Видео программы",
+        "label": "Отрывок 100к1",
+        "imagePositionX": 50,
+        "imagePositionY": 50,
+        "imageScale": 100
+      }
+    ],
+    "galleryTitle": "Материалы программы"
   }
 ]

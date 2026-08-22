@@ -36,5 +36,24 @@
     "buttonLabel": "Открыть афишу",
     "buttonUrl": "",
     "imageFit": "poster"
+  },
+  {
+    "id": "f1b640c8-6308-43a6-886b-cc9374fd4321",
+    "published": true,
+    "image": "/uploads/1787389886624-ea440f03-d24b-480f-820a-b8f57504c0e1.png",
+    "imagePositionX": 50,
+    "imagePositionY": 50,
+    "imageScale": 100,
+    "updatedAt": "2026-08-22T09:12:10.173Z",
+    "createdAt": "2026-08-22T09:11:03.741Z",
+    "title": "Пена всем!",
+    "slug": "pennaya-vecherinka",
+    "date": "2026-06-01",
+    "category": "Событие",
+    "description": "Пенные вечеринки на улице или в помещении у вас!",
+    "buttonLabel": "Открыть афишу",
+    "buttonUrl": "",
+    "imageFit": "poster",
+    "accent": "yellow"
   }
 ]

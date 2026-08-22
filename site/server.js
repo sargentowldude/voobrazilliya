@@ -4,16 +4,34 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import multer from 'multer';
+import nodemailer from 'nodemailer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const siteUrl = (process.env.SITE_URL || `http://localhost:${port}`).replace(/\/$/, '');
+const adminUsername = String(process.env.ADMIN_USERNAME || 'admin').trim() || 'admin';
 const adminPassword = process.env.ADMIN_PASSWORD || 'tema-admin';
 const cookieSecret = process.env.ADMIN_COOKIE_SECRET || 'local-tema-secret';
 const personalDataEmail = String(process.env.PERSONAL_DATA_EMAIL || '').trim();
 const personalDataPostalAddress = String(process.env.PERSONAL_DATA_POSTAL_ADDRESS || '').trim();
-const privacyPolicyVersion = '20.08.2026';
+const smtpHost = String(process.env.SMTP_HOST || '').trim();
+const smtpPortValue = Number(process.env.SMTP_PORT || 465);
+const smtpPort = Number.isInteger(smtpPortValue) && smtpPortValue > 0 && smtpPortValue <= 65535 ? smtpPortValue : 465;
+const smtpSecure = String(process.env.SMTP_SECURE || 'true').trim().toLowerCase() !== 'false';
+const smtpUser = String(process.env.SMTP_USER || '').trim();
+const smtpPassword = String(process.env.SMTP_PASSWORD || '');
+const smtpFrom = String(process.env.SMTP_FROM || smtpUser).trim();
+const smtpTo = String(process.env.SMTP_TO || '').trim();
+const yandexMetrikaId = /^\d+$/.test(String(process.env.YANDEX_METRIKA_ID || '').trim())
+  ? String(process.env.YANDEX_METRIKA_ID).trim()
+  : '';
+const trustProxy = String(process.env.TRUST_PROXY || '').trim() === '1';
+const loginLimit = { maxAttempts:5, windowMs:15 * 60 * 1000 };
+const leadLimit = { maxAttempts:5, windowMs:60 * 60 * 1000 };
+const privacyPolicyVersion = '22.08.2026';
+const personalDataConsentVersion = privacyPolicyVersion;
+const analyticsConsentVersion = privacyPolicyVersion;
 const brandName = 'ВообразилЛиЯ';
 const brandText = value => String(value ?? '').replaceAll('ТЕМА', brandName);
 
@@ -33,8 +51,16 @@ const files = {
 
 await fs.mkdir(uploadsDir, { recursive: true });
 app.disable('x-powered-by');
+if (trustProxy) app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '1mb' }));
+const legacyHtmlRedirects = {
+  '/index.html': '/',
+  '/animatory/index.html': '/animatory/',
+  '/show/index.html': '/show/',
+  '/spektakli/index.html': '/spektakli/'
+};
+app.get(Object.keys(legacyHtmlRedirects), (req, res) => res.redirect(301, legacyHtmlRedirects[req.path]));
 app.use(express.static(publicDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }));
 app.use('/fonts', express.static(fontsDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '30d' : 0 }));
 app.use('/logo', express.static(logoDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '30d' : 0 }));
@@ -46,10 +72,16 @@ const storage = multer.diskStorage({
     done(null, `${Date.now()}-${crypto.randomUUID()}${extension}`);
   }
 });
+const isImageMime = value => /^image\/(jpeg|png|webp|gif)$/i.test(value || '');
+const isVideoMime = value => /^video\/(mp4|quicktime|webm)$/i.test(value || '');
 const upload = multer({
   storage,
-  limits: { fileSize: 12 * 1024 * 1024 },
-  fileFilter: (_req, file, done) => done(null, /^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype))
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (_req, file, done) => {
+    const accepted = isImageMime(file.mimetype)
+      || (file.fieldname === 'galleryMedia' && isVideoMime(file.mimetype));
+    done(null, accepted);
+  }
 });
 
 const readJson = async (file, fallback) => {
@@ -110,9 +142,27 @@ const formatEventDate = value => {
   return Number.isNaN(date.getTime()) ? String(value || '') : new Intl.DateTimeFormat('ru-RU', { day:'numeric', month:'long' }).format(date);
 };
 const cropStyle = item => `object-position:${number(item.imagePositionX)}% ${number(item.imagePositionY)}%;transform-origin:${number(item.imagePositionX)}% ${number(item.imagePositionY)}%;transform:scale(${number(item.imageScale, 100) / 100});`;
+const galleryCropStyle = item => `object-position:${number(item.imagePositionX, 50)}% ${number(item.imagePositionY, 50)}%;transform-origin:${number(item.imagePositionX, 50)}% ${number(item.imagePositionY, 50)}%;transform:scale(${number(item.imageScale, 100) / 100});`;
 const image = (item, className = '') => item?.image
   ? `<img class="${className}" src="${escapeAttr(item.image)}" alt="${escapeAttr(item.name || item.title || '')}" style="${cropStyle(item)}">`
   : '<span class="hero-program-card__placeholder">ФОТО ПОЯВИТСЯ ЗДЕСЬ</span>';
+const programMediaGallery = item => {
+  const media = Array.isArray(item?.gallery) ? item.gallery.filter(entry => entry?.src) : [];
+  if (!media.length) return '';
+  const title = String(item.galleryTitle || 'Материалы программы').trim();
+  const entries = media.map(entry => {
+    const alt = String(entry.alt || entry.label || '').trim();
+    const label = entry.label ? `<figcaption>${escapeHtml(entry.label)}</figcaption>` : '';
+    const openLabel = escapeAttr(`Открыть: ${alt || 'материал программы'}`);
+    if (entry.type === 'video') {
+      const poster = entry.poster ? ` poster="${escapeAttr(entry.poster)}"` : '';
+      const posterData = entry.poster ? ` data-media-poster="${escapeAttr(entry.poster)}"` : '';
+      return `<figure class="program-media-gallery__item program-media-gallery__item--video"><button class="program-media-gallery__open" type="button" data-open-media data-media-type="video" data-media-src="${escapeAttr(entry.src)}"${posterData} data-media-alt="${escapeAttr(alt)}" aria-label="${openLabel}"><video autoplay muted loop playsinline preload="metadata"${poster} aria-hidden="true" style="${galleryCropStyle(entry)}"><source src="${escapeAttr(entry.src)}" type="${escapeAttr(entry.mime || 'video/mp4')}"></video></button>${label}</figure>`;
+    }
+    return `<figure class="program-media-gallery__item"><button class="program-media-gallery__open" type="button" data-open-media data-media-type="image" data-media-src="${escapeAttr(entry.src)}" data-media-alt="${escapeAttr(alt)}" aria-label="${openLabel}"><img src="${escapeAttr(entry.src)}" alt="" loading="lazy" style="${galleryCropStyle(entry)}"></button>${label}</figure>`;
+  }).join('');
+  return `<section class="program-media-gallery" aria-label="${escapeAttr(title)}"><span class="program-media-gallery__title">${escapeHtml(title)}</span><div class="program-media-gallery__grid">${entries}</div></section>`;
+};
 const photoFromContent = (content, key) => ({
   image: content[key] || '',
   imagePositionX: content[`${key}PositionX`] ?? 50,
@@ -125,6 +175,11 @@ const photoWithFallback = (content, key, fallbackKey) => content[key]
 const visible = item => item && item.published !== false;
 
 const sign = value => crypto.createHmac('sha256', cookieSecret).update(value).digest('base64url');
+const secureMatch = (actual, expected) => {
+  const actualBuffer = Buffer.from(String(actual));
+  const expectedBuffer = Buffer.from(String(expected));
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+};
 const sessionValue = () => { const value = `admin.${Date.now() + 1000 * 60 * 60 * 24 * 7}`; return `${value}.${sign(value)}`; };
 const isAdmin = req => {
   const token = (req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('tema_admin='))?.slice(11);
@@ -137,6 +192,35 @@ const isAdmin = req => {
 };
 const requireAdmin = (req, res, next) => isAdmin(req) ? next() : res.redirect('/admin/login');
 const deleteUploaded = async file => { if (file?.path) await fs.unlink(file.path).catch(() => {}); };
+const rateLimitAttempts = new Map();
+const clientAddress = req => String(req.ip || req.socket.remoteAddress || 'unknown').slice(0, 200);
+const pruneRateLimitAttempts = () => {
+  const cutoff = Date.now() - Math.max(loginLimit.windowMs, leadLimit.windowMs);
+  rateLimitAttempts.forEach((attempts, key) => {
+    const activeAttempts = attempts.filter(timestamp => timestamp > cutoff);
+    if (activeAttempts.length) rateLimitAttempts.set(key, activeAttempts);
+    else rateLimitAttempts.delete(key);
+  });
+};
+setInterval(pruneRateLimitAttempts, 15 * 60 * 1000).unref();
+const retryAfter = (bucketName, req, limit) => {
+  const key = `${bucketName}:${clientAddress(req)}`;
+  const currentTime = Date.now();
+  const previous = rateLimitAttempts.get(key) || [];
+  const attempts = previous.filter(timestamp => timestamp > currentTime - limit.windowMs);
+  rateLimitAttempts.set(key, attempts);
+  if (attempts.length < limit.maxAttempts) return 0;
+  return Math.max(1, Math.ceil((attempts[0] + limit.windowMs - currentTime) / 1000));
+};
+const recordRateLimitAttempt = (bucketName, req, limit) => {
+  const key = `${bucketName}:${clientAddress(req)}`;
+  const currentTime = Date.now();
+  const previous = rateLimitAttempts.get(key) || [];
+  const attempts = previous.filter(timestamp => timestamp > currentTime - limit.windowMs);
+  attempts.push(currentTime);
+  rateLimitAttempts.set(key, attempts);
+};
+const clearRateLimitAttempts = (bucketName, req) => rateLimitAttempts.delete(`${bucketName}:${clientAddress(req)}`);
 
 const pageMeta = ({ title, description, path = '/' }) => ({
   title: brandText(title || `${brandName} — детские праздники в Кемерово`),
@@ -148,21 +232,30 @@ const nav = () => `<header class="site-header"><a class="wordmark" href="/" aria
 
 const personalDataContacts = () => `<dl class="legal-contacts"><dt>Электронная почта</dt><dd>${personalDataEmail ? `<a href="mailto:${escapeAttr(personalDataEmail)}">${escapeHtml(personalDataEmail)}</a>` : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_EMAIL</span>'}</dd><dt>Почтовый адрес для обращений</dt><dd>${personalDataPostalAddress ? escapeHtml(personalDataPostalAddress) : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_POSTAL_ADDRESS</span>'}</dd></dl>`;
 const consentField = () => `<label class="consent"><input required name="consent" type="checkbox"><span>Я даю <a href="/consent/" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и ознакомлен(а) с <a href="/privacy/" target="_blank" rel="noopener">Политикой</a>.</span></label>`;
-const footer = () => `<footer class="site-footer"><span>© ${new Date().getFullYear()} ${brandName}</span><nav aria-label="Правовая информация"><a href="/privacy/">Политика конфиденциальности</a><a href="/consent/">Согласие на обработку данных</a></nav></footer>`;
+const honeypotField = () => '<input class="form-honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">';
+const footer = () => `<footer class="site-footer"><span>© ${new Date().getFullYear()} ${brandName}</span><nav aria-label="Правовая информация"><a href="/privacy/">Политика конфиденциальности</a><a href="/consent/">Согласие на обработку данных</a><button class="cookie-settings" type="button" data-cookie-settings>Настроить cookies</button></nav></footer>`;
 
-const leadDialog = () => `<dialog class="lead-dialog"><button type="button" class="dialog-close" aria-label="Закрыть">×</button><span class="mono-tag">Заявка</span><h2>Давайте<br>устроим<br>праздник</h2><form class="contact-form contact-form--dialog" data-lead-form><label>Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label>Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="contact-form__details-label contact-form__details-label--wide">Комментарий<textarea name="comment" rows="3" placeholder="Что хотите заказать?"></textarea></label><input type="hidden" name="service"><input type="hidden" name="message">${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></form></dialog>`;
+const leadDialog = () => `<dialog class="lead-dialog"><button type="button" class="dialog-close" aria-label="Закрыть">×</button><span class="mono-tag">Заявка</span><h2>Давайте<br>устроим<br>праздник</h2><form class="contact-form contact-form--dialog" data-lead-form>${honeypotField()}<label>Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label>Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="contact-form__details-label contact-form__details-label--wide">Комментарий<textarea name="comment" rows="3" placeholder="Что хотите заказать?"></textarea></label><input type="hidden" name="service"><input type="hidden" name="message">${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></form></dialog>`;
+const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox aria-label="Просмотр фото или видео"><button class="media-lightbox__close" type="button" data-close-media aria-label="Закрыть просмотр">×</button><div class="media-lightbox__content" data-media-lightbox-content></div></dialog>`;
 
-const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/legal.css"></head><body class="${pageClass}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК <span aria-hidden="true">↗</span></a>${leadDialog()}<script src="/app.js" defer></script></body></html>`;
+const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
+const faviconLinks = () => '<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180"><link rel="manifest" href="/site.webmanifest"><meta name="theme-color" content="#140054">';
+const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/legal.css">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК <span aria-hidden="true">↗</span></a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js" defer></script></body></html>`;
+
+const cookiesSection = () => {
+  if (!yandexMetrikaId) return `<section><h2>4. Cookies и аналитика</h2><p>На дату публикации Политики сайт не подключает рекламные или аналитические сервисы, получающие данные посетителей. При подключении такого сервиса Оператор обновит Политику и запросит отдельное согласие до его загрузки.</p></section>`;
+  return `<section><h2>4. Cookies и Яндекс Метрика</h2><p>Только после отдельного согласия пользователя сайт подключает Яндекс Метрику для подсчёта посещаемости, анализа источников переходов, работы страниц и форм, а также улучшения сайта. До согласия тег Метрики не загружается. Данные, введённые в формы заявок, в Метрику не передаются.</p><table><thead><tr><th>Категория</th><th>Какие данные и зачем</th><th>Срок</th></tr></thead><tbody><tr><td>Настройки согласия сайта</td><td>Выбор «согласен» или «не согласен», версия Политики и дата выбора — чтобы сохранить настройку и не загружать Метрику без согласия.</td><td>12 месяцев</td></tr><tr><td>Яндекс Метрика</td><td>Идентификаторы cookie и localStorage, IP-адрес, тип устройства и браузера, дата и время визита, адреса просмотренных страниц, источник перехода, клики, прокрутка и запись сессии Вебвизора — для статистики и улучшения сайта.</td><td>Cookie и локальное хранилище — от сессии до 2 лет; срок зависит от конкретного технического файла Метрики.</td></tr></tbody></table><p>Сведения передаются сервису Яндекс Метрика как лицу, которому поручена обработка технических данных для указанной цели. Пользователь может изменить выбор в подвале сайта; после отказа тег Метрики отключается, а доступные сайту cookies и localStorage Метрики удаляются.</p></section>`;
+};
 
 const privacyPage = () => layout(
   pageMeta({ title:'Политика конфиденциальности — ТЕМА', description:'Политика в отношении обработки персональных данных.', path:'/privacy/' }),
-  `<article class="legal-page"><span class="mono-tag">Версия от ${privacyPolicyVersion}</span><h1>Политика в отношении обработки персональных данных</h1><p class="legal-page__lead">Настоящая политика определяет порядок обработки и защиты персональных данных пользователей сайта «ТЕМА».</p><section><h2>1. Общие положения</h2><p>Оператор персональных данных: <strong>физическое лицо Аничков Артём Вячеславович</strong> (далее — Оператор).</p>${personalDataContacts()}<p>Политика применяется к данным, которые Оператор получает через сайт «ТЕМА» по адресу <a href="${escapeAttr(siteUrl)}">${escapeHtml(siteUrl)}</a>, включая формы заявок. Она подготовлена в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».</p></section><section><h2>2. Цели, состав и основания обработки</h2><table><thead><tr><th>Цель</th><th>Данные</th><th>Основание</th></tr></thead><tbody><tr><td>Принять и обработать заявку, связаться с заявителем, подобрать и оказать услугу</td><td>Имя, номер телефона, выбранная услуга, дата, район, пожелания и иные сведения, добровольно указанные в комментарии</td><td>Согласие субъекта персональных данных; при заключении договора — его исполнение</td></tr><tr><td>Подобрать формат детского праздника</td><td>Возраст ребёнка, если его указывает родитель или иной законный представитель</td><td>Согласие заявителя</td></tr></tbody></table><p>Оператор не запрашивает и не обрабатывает специальные категории персональных данных и биометрические персональные данные. Пожалуйста, не указывайте в комментарии сведения о здоровье, документах, убеждениях и иную чувствительную информацию.</p></section><section><h2>3. Порядок и условия обработки</h2><p>Данные предоставляются пользователем добровольно через форму заявки. Оператор обрабатывает их автоматизированным способом: собирает, записывает, систематизирует, хранит, уточняет, использует для связи и удаления.</p><p>Персональные данные не распространяются и не предоставляются третьим лицам без основания, установленного законом, согласия субъекта либо договора поручения обработки. На дату публикации этой Политики сайт не использует рекламные и аналитические сервисы, которые получают данные посетителей.</p><p>Оператор обеспечивает запись, систематизацию, накопление, хранение, уточнение и извлечение персональных данных граждан Российской Федерации с использованием баз данных, находящихся на территории Российской Федерации. Если потребуется подключить сервис, предусматривающий передачу данных за пределы Российской Федерации, Оператор сначала выполнит требования законодательства о трансграничной передаче и обновит настоящую Политику.</p><p>Данные хранятся только до достижения цели обработки, отзыва согласия или истечения законного срока хранения. После этого они уничтожаются или обезличиваются, если их сохранение не требуется законодательством Российской Федерации.</p></section><section><h2>4. Согласие и данные детей</h2><p>Отмечая чекбокс и отправляя заявку, пользователь даёт конкретное, информированное и сознательное согласие на обработку данных в объёме и для целей, указанных в <a href="/consent/">Согласии на обработку персональных данных</a>.</p><p>Если в заявке указываются сведения о ребёнке или ином третьем лице, заявитель подтверждает, что является его законным представителем или иным образом вправе передать эти сведения Оператору.</p></section><section><h2>5. Права пользователя</h2><p>Пользователь вправе запросить сведения об обработке своих данных, потребовать их уточнения, блокирования или уничтожения, а также отозвать согласие. Для этого направьте обращение Оператору по контактам, указанным в разделе 1. Отзыв согласия не влияет на законность обработки до его отзыва и может сделать невозможными обработку заявки или оказание услуги.</p><p>Обращение также можно направить в Роскомнадзор или обжаловать действия Оператора в судебном порядке.</p></section><section><h2>6. Защита данных</h2><p>Оператор принимает необходимые правовые, организационные и технические меры: ограничивает доступ к заявкам, использует аутентификацию для административного раздела, защищает учётные данные и контролирует доступ к данным. Доступ к заявкам имеет только Оператор и лица, которым он поручил обработку на законном основании.</p></section><section><h2>7. Изменение Политики</h2><p>Оператор вправе обновлять Политику при изменении сайта, способов обработки или законодательства. Актуальная версия всегда доступна по адресу <a href="/privacy/">${escapeHtml(siteUrl)}/privacy/</a>.</p></section></article>`,
+  `<article class="legal-page"><span class="mono-tag">Версия от ${privacyPolicyVersion}</span><h1>Политика в отношении обработки персональных данных</h1><p class="legal-page__lead">Настоящая политика определяет порядок обработки и защиты персональных данных пользователей сайта «ТЕМА».</p><section><h2>1. Общие положения</h2><p>Оператор персональных данных: <strong>физическое лицо Аничков Артём Вячеславович</strong> (далее — Оператор).</p>${personalDataContacts()}<p>Политика применяется к данным, которые Оператор получает через сайт «ТЕМА» по адресу <a href="${escapeAttr(siteUrl)}">${escapeHtml(siteUrl)}</a>, включая формы заявок. Она подготовлена в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».</p></section><section><h2>2. Цели, состав и основания обработки</h2><table><thead><tr><th>Цель</th><th>Данные</th><th>Основание</th></tr></thead><tbody><tr><td>Принять и обработать заявку, связаться с заявителем, подобрать и оказать услугу</td><td>Имя, номер телефона, выбранная услуга, дата, район, пожелания и иные сведения, добровольно указанные в комментарии</td><td>Согласие субъекта персональных данных; при заключении договора — его исполнение</td></tr><tr><td>Подобрать формат детского праздника</td><td>Возраст ребёнка, если его указывает родитель или иной законный представитель</td><td>Согласие заявителя</td></tr><tr><td>Защитить формы и административный вход от спама и перебора пароля</td><td>IP-адрес, дата и время обращения, количество запросов и результат попытки входа</td><td>Законный интерес Оператора в обеспечении безопасности сайта</td></tr></tbody></table><p>Оператор не запрашивает и не обрабатывает специальные категории персональных данных и биометрические персональные данные. Пожалуйста, не указывайте в комментарии сведения о здоровье, документах, убеждениях и иную чувствительную информацию.</p></section><section><h2>3. Порядок и условия обработки</h2><p>Данные предоставляются пользователем добровольно через форму заявки. Оператор обрабатывает их автоматизированным способом: собирает, записывает, систематизирует, хранит, уточняет, использует для связи и удаления.</p><p>Для доставки новой заявки Оператор направляет указанные в ней сведения через настроенный почтовый SMTP-сервис. Такой сервис обрабатывает только необходимые данные по поручению Оператора для доставки сообщения.</p><p>Персональные данные не распространяются и не предоставляются третьим лицам без основания, установленного законом, согласия субъекта либо договора поручения обработки.</p><p>Для защиты сайта от спама и перебора пароля технические сведения об IP-адресах и попытках обращений хранятся только в памяти сервера: для заявок — до 1 часа, для входа в административный раздел — до 15 минут.</p><p>Оператор обеспечивает запись, систематизацию, накопление, хранение, уточнение и извлечение персональных данных граждан Российской Федерации с использованием баз данных, находящихся на территории Российской Федерации. Если потребуется подключить сервис, предусматривающий передачу данных за пределы Российской Федерации, Оператор сначала выполнит требования законодательства о трансграничной передаче и обновит настоящую Политику.</p><p>Данные хранятся только до достижения цели обработки, отзыва согласия или истечения законного срока хранения. После этого они уничтожаются или обезличиваются, если их сохранение не требуется законодательством Российской Федерации.</p></section>${cookiesSection()}<section><h2>5. Согласие и данные детей</h2><p>Отмечая чекбокс и отправляя заявку, пользователь даёт конкретное, информированное и сознательное согласие на обработку данных в объёме и для целей, указанных в <a href="/consent/">Согласии на обработку персональных данных</a>.</p><p>Если в заявке указываются сведения о ребёнке или ином третьем лице, заявитель подтверждает, что является его законным представителем или иным образом вправе передать эти сведения Оператору.</p></section><section><h2>6. Права пользователя</h2><p>Пользователь вправе запросить сведения об обработке своих данных, потребовать их уточнения, блокирования или уничтожения, а также отозвать согласие. Для этого направьте обращение Оператору по контактам, указанным в разделе 1. Отзыв согласия не влияет на законность обработки до его отзыва и может сделать невозможными обработку заявки или оказание услуги.</p><p>Обращение также можно направить в Роскомнадзор или обжаловать действия Оператора в судебном порядке.</p></section><section><h2>7. Защита данных</h2><p>Оператор принимает необходимые правовые, организационные и технические меры: ограничивает доступ к заявкам, использует аутентификацию для административного раздела, защищает учётные данные и контролирует доступ к данным. Доступ к заявкам имеет только Оператор и лица, которым он поручил обработку на законном основании.</p></section><section><h2>8. Изменение Политики</h2><p>Оператор вправе обновлять Политику при изменении сайта, способов обработки или законодательства. Актуальная версия всегда доступна по адресу <a href="/privacy/">${escapeHtml(siteUrl)}/privacy/</a>.</p></section></article>`,
   'legal-body'
 );
 
 const consentPage = () => layout(
   pageMeta({ title:'Согласие на обработку персональных данных — ТЕМА', description:'Согласие на обработку персональных данных для заявок с сайта.', path:'/consent/' }),
-  `<article class="legal-page"><span class="mono-tag">Версия от ${privacyPolicyVersion}</span><h1>Согласие на обработку персональных данных</h1><p class="legal-page__lead">Заполняя форму и отмечая поле согласия, я свободно, своей волей и в своём интересе даю согласие физическому лицу <strong>Аничкову Артёму Вячеславовичу</strong> на обработку моих персональных данных.</p><section><h2>Что обрабатывается и зачем</h2><p>Оператор может обрабатывать имя, номер телефона, сведения из комментария, выбранную услугу, а также возраст ребёнка, если я укажу его в заявке. Цель — принять и обработать заявку, связаться со мной, подобрать услугу, заключить и исполнить договор при его оформлении.</p></section><section><h2>Как обрабатываются данные</h2><p>Я разрешаю сбор, запись, систематизацию, накопление, хранение, уточнение, использование, передачу в случаях, предусмотренных законодательством или договором поручения обработки, блокирование и уничтожение данных с использованием средств автоматизации или без них. Оператор не распространяет мои данные неопределённому кругу лиц.</p></section><section><h2>Срок и отзыв согласия</h2><p>Согласие действует до достижения цели обработки или до его отзыва, если более длительное хранение не требуется законом или договором. Я могу отозвать согласие, направив обращение Оператору по контактам, указанным ниже. После отзыва Оператор прекратит обработку и уничтожит данные в сроки, установленные законом, если их сохранение не требуется для исполнения обязанностей по закону или договору.</p>${personalDataContacts()}</section><section><h2>Дополнительно</h2><p>Я подтверждаю достоверность предоставленных сведений. Если я указываю данные ребёнка или другого лица, то являюсь его законным представителем либо имею законное основание на их передачу. Полный порядок обработки приведён в <a href="/privacy/">Политике в отношении обработки персональных данных</a>.</p></section></article>`,
+  `<article class="legal-page"><span class="mono-tag">Версия от ${personalDataConsentVersion}</span><h1>Согласие на обработку персональных данных</h1><p class="legal-page__lead">Заполняя форму и отмечая поле согласия, я свободно, своей волей и в своём интересе даю согласие физическому лицу <strong>Аничкову Артёму Вячеславовичу</strong> на обработку моих персональных данных.</p><section><h2>Что обрабатывается и зачем</h2><p>Оператор может обрабатывать имя, номер телефона, сведения из комментария, выбранную услугу, а также возраст ребёнка, если я укажу его в заявке. Цель — принять и обработать заявку, связаться со мной, подобрать услугу, заключить и исполнить договор при его оформлении.</p></section><section><h2>Как обрабатываются данные</h2><p>Я разрешаю сбор, запись, систематизацию, накопление, хранение, уточнение, использование, передачу почтовому сервису для доставки заявки и иные передачи в случаях, предусмотренных законодательством или договором поручения обработки, блокирование и уничтожение данных с использованием средств автоматизации или без них. Оператор не распространяет мои данные неопределённому кругу лиц.</p></section><section><h2>Срок и отзыв согласия</h2><p>Согласие действует до достижения цели обработки или до его отзыва, если более длительное хранение не требуется законом или договором. Я могу отозвать согласие, направив обращение Оператору по контактам, указанным ниже. После отзыва Оператор прекратит обработку и уничтожит данные в сроки, установленные законом, если их сохранение не требуется для исполнения обязанностей по закону или договору.</p>${personalDataContacts()}</section><section><h2>Дополнительно</h2><p>Я подтверждаю достоверность предоставленных сведений. Если я указываю данные ребёнка или другого лица, то являюсь его законным представителем либо имею законное основание на их передачу. Полный порядок обработки приведён в <a href="/privacy/">Политике в отношении обработки персональных данных</a>.</p></section></article>`,
   'legal-body'
 );
 
@@ -203,7 +296,7 @@ const pageHeroCopy = (content, key) => {
   };
 };
 
-const partyForm = () => `<section class="contact" id="zayavka"><div><span class="mono-tag">Ваш праздник за три шага</span><h2>Соберём<br>вау-эффект</h2><p>Выберите возраст и формат — заявка уже будет понятна нам. Останется оставить имя и телефон.</p></div><form class="contact-form contact-form--planner" data-lead-form data-party-builder><div class="contact-form__planner-intro"><span class="mono-tag">Мини-конструктор</span><strong>Какой праздник<br>нужен вам?</strong><p data-builder-summary>Выберите возраст и формат — добавим их к заявке.</p></div><fieldset class="contact-form__step contact-form__step--age"><legend><b>01</b>Возраст ребёнка</legend><div class="contact-form__choices"><button type="button" data-builder-age="0–3 года">0–3</button><button type="button" data-builder-age="4–6 лет">4–6</button><button type="button" data-builder-age="7–9 лет">7–9</button><button type="button" data-builder-age="10+ лет">10+</button></div></fieldset><fieldset class="contact-form__step contact-form__step--format"><legend><b>02</b>Формат</legend><div class="contact-form__choices"><button type="button" data-builder-format="Аниматор">Герой</button><button type="button" data-builder-format="Шоу">Шоу</button><button type="button" data-builder-format="Спектакль">Театр</button><button type="button" data-builder-format="День рождения">Под ключ</button></div></fieldset><input type="hidden" name="childAge"><input type="hidden" name="partyFormat"><input type="hidden" name="service"><input type="hidden" name="message"><label class="contact-form__details-label">Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label class="contact-form__details-label">Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="contact-form__details-label contact-form__details-label--wide">Комментарий<input name="comment" placeholder="Дата, район, пожелания"></label>${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></form></section>`;
+const partyForm = () => `<section class="contact" id="zayavka"><div><span class="mono-tag">Заявка</span><h2>Обсудим<br>ваш праздник</h2><p>Оставьте контакты — уточним детали и всё обсудим по телефону.</p></div><form class="contact-form contact-form--planner" data-lead-form data-party-form>${honeypotField()}<div class="contact-form__planner-intro"><span class="mono-tag">Давайте знакомиться</span><strong>Позвоним<br>и всё обсудим</strong><p>Оставьте номер — подберём праздник вместе по телефону.</p></div><input type="hidden" name="service"><input type="hidden" name="message"><label class="contact-form__details-label">Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label class="contact-form__details-label">Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="contact-form__details-label full">Комментарий<input name="comment" placeholder="Дата, район, пожелания"></label>${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></form></section>`;
 
 const factIcons = {
   age: '<svg class="service-card__fact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
@@ -242,7 +335,7 @@ const renderHome = async () => {
   const homePulse = `<div class="home-pulse" aria-label="Условия"><div class="home-pulse__track"><div class="home-pulse__group">${conditions}</div><div class="home-pulse__group" aria-hidden="true">${conditions}</div></div></div>`;
   const homeMosaic = `<section class="photo-story"><div class="photo-story__intro"><span class="mono-tag">НЕ ПОСТАНОВКА · ЖИВЫЕ ЭМОЦИИ</span><h2>Дети не позируют.<br>Они живут внутри истории.</h2></div><div class="photo-story__mosaic"><figure class="story-shot story-shot--wide"><div class="image-slot">${image(photoFromContent(content, 'photo5'), 'managed-photo')}</div><figcaption><b>01</b> Момент, когда весь зал играет вместе</figcaption></figure><figure class="story-shot story-shot--portrait"><div class="image-slot">${image(photoFromContent(content, 'photo6'), 'managed-photo')}</div></figure><figure class="story-shot story-shot--detail"><div class="image-slot">${image(photoFromContent(content, 'photo7'), 'managed-photo')}</div><figcaption><b>03</b> Маленькие вещи делают мир убедительным</figcaption></figure></div></section>`;
   const body = [
-    heroBlock({ tag:'Детские праздники · Кемерово', lines:['ДЕТСКИЕ', 'ПРАЗДНИКИ', 'В КЕМЕРОВО'], intro:content.heroIntro || 'Организация детских праздников в Кемерово: аниматоры, шоу и спектакли на вашей площадке.', photo:photoFromContent(content, 'photo1'), service:'Праздник в Кемерово', pageClass:'hero--home' }),
+    heroBlock({ tag:'Праздники · Кемерово', lines:['ПРАЗДНИКИ', 'В КЕМЕРОВО'], intro:content.heroIntro || 'Организация детских праздников в Кемерово: аниматоры, шоу и спектакли на вашей площадке.', photo:photoFromContent(content, 'photo1'), service:'Праздник в Кемерово', pageClass:'hero--home' }),
     homeTicker,
     `<section class="services"><div class="section-heading section-heading--home-formats"><span class="mono-tag">Выберите формат праздника</span><h2>И начнём игру</h2></div><div class="service-grid service-grid--home">${directionCards}</div></section>`,
     homePulse,
@@ -261,7 +354,7 @@ const heroCard = (hero, index) => {
 const heroCartDialog = (heroes, settings) => {
   const miniCards = heroes.map(hero => `<button class="hero-cart__mini-card" type="button" data-cart-second-option="${escapeAttr(hero.id)}">${hero.image ? `<img src="${escapeAttr(hero.image)}" alt="" style="${cropStyle(hero)}">` : '<span class="hero-cart__mini-placeholder" aria-hidden="true">★</span>'}<span>${escapeHtml(hero.name)}</span></button>`).join('');
   const promo = settings.enabled && heroes.length > 1 ? `<section class="hero-cart__upsell" data-cart-upsell><div class="hero-cart__upsell-head"><div class="hero-cart__upsell-copy"><span class="mono-tag">Акция к празднику</span><h3>${escapeHtml(settings.promoTitle)}</h3><p>${escapeHtml(settings.promoDescription)}</p></div><div class="hero-cart__upsell-price"><small>Второй герой</small><strong>${formatPrice(settings.secondHeroPrice)}</strong><span>фиксированная доплата</span></div></div><ul class="hero-cart__upsell-benefits"><li>Больше игр и внимания каждому ребёнку</li><li>Два любимых героя в одной истории</li></ul><p class="hero-cart__upsell-help">Выберите напарника для главного героя</p><div class="hero-cart__mini-grid" role="group" aria-label="Выберите второго героя">${miniCards}</div></section>` : '';
-  return `<dialog class="hero-cart-dialog" data-hero-cart data-second-hero-price="${settings.secondHeroPrice}"><button class="dialog-close" type="button" data-close-hero-cart aria-label="Закрыть корзину">×</button><form class="hero-cart" data-lead-form data-hero-cart-form><header class="hero-cart__header"><span class="mono-tag">Ваша корзина</span><h2>Соберём<br>праздник</h2><p>Выберите день — сумма посчитается сразу.</p></header><fieldset class="hero-cart__day"><legend>Когда праздник?</legend><div><button type="button" class="is-selected" data-cart-day="weekday" aria-pressed="true">Будни</button><button type="button" data-cart-day="weekend" aria-pressed="false">Выходные</button></div></fieldset><section class="hero-cart__items" aria-live="polite"><div class="hero-cart__item"><span><small>Главный герой</small><strong data-cart-primary-name>Выберите героя</strong></span><b data-cart-primary-price>—</b></div><div class="hero-cart__item hero-cart__item--second" data-cart-second-item hidden><span><small>Второй герой · акция</small><strong data-cart-second-name></strong></span><b data-cart-second-price></b></div></section>${promo}<section class="hero-cart__total"><span>Итого</span><strong data-cart-total>—</strong><small data-cart-summary>Выберите главного героя.</small></section><section class="hero-cart__lead"><h3>Оставьте заявку</h3><div class="hero-cart__fields"><label>Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label>Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="hero-cart__field--wide">Комментарий<input name="comment" placeholder="Дата, район, пожелания"></label></div><input type="hidden" name="service"><input type="hidden" name="message">${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></section></form></dialog>`;
+  return `<dialog class="hero-cart-dialog" data-hero-cart data-second-hero-price="${settings.secondHeroPrice}"><button class="dialog-close" type="button" data-close-hero-cart aria-label="Закрыть корзину">×</button><form class="hero-cart" data-lead-form data-hero-cart-form>${honeypotField()}<header class="hero-cart__header"><span class="mono-tag">Ваша корзина</span><h2>Соберём<br>праздник</h2><p>Выберите день — сумма посчитается сразу.</p></header><fieldset class="hero-cart__day"><legend>Когда праздник?</legend><div><button type="button" class="is-selected" data-cart-day="weekday" aria-pressed="true">Будни</button><button type="button" data-cart-day="weekend" aria-pressed="false">Выходные</button></div></fieldset><section class="hero-cart__items" aria-live="polite"><div class="hero-cart__item"><span><small>Главный герой</small><strong data-cart-primary-name>Выберите героя</strong></span><b data-cart-primary-price>—</b></div><div class="hero-cart__item hero-cart__item--second" data-cart-second-item hidden><span><small>Второй герой · акция</small><strong data-cart-second-name></strong></span><b data-cart-second-price></b></div></section>${promo}<section class="hero-cart__total"><span>Итого</span><strong data-cart-total>—</strong><small data-cart-summary>Выберите главного героя.</small></section><section class="hero-cart__lead"><h3>Оставьте заявку</h3><div class="hero-cart__fields"><label>Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label>Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="hero-cart__field--wide">Комментарий<input name="comment" placeholder="Дата, район, пожелания"></label></div><input type="hidden" name="service"><input type="hidden" name="message">${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></section></form></dialog>`;
 };
 
 const heroChoiceDialog = settings => settings.enabled ? `<dialog class="hero-choice-dialog" data-hero-choice><button class="dialog-close" type="button" data-close-hero-choice aria-label="Закрыть">×</button><div class="hero-choice"><span class="mono-tag">Акция к празднику</span><h2>${escapeHtml(settings.promoTitle)}</h2><p><strong data-choice-hero-name></strong> уже в программе. ${escapeHtml(settings.promoDescription)}</p><section class="hero-choice__offer"><div class="hero-choice__price"><span>Второй герой<br>по акции</span><strong>${formatPrice(settings.secondHeroPrice)}</strong><small>фиксированная доплата</small></div><ul class="hero-choice__benefits"><li>Больше игр и внимания каждому ребёнку</li><li>Два персонажа в одной истории</li></ul></section><div class="hero-choice__actions"><button class="hero-choice__no" type="button" data-choice-no>Оставить<br>одного героя</button><button class="hero-choice__yes" type="button" data-choice-yes>Выбрать<br>второго героя <b>↗</b></button></div></div></dialog>` : '';
@@ -274,7 +367,7 @@ const renderAnimators = async () => {
   return layout(pageMeta({ title:'Аниматоры на детский праздник в Кемерово | ТЕМА', description:'Заказать аниматора на детский день рождения в Кемерово: супергерои, игровая программа, выезд на дом, в сад или школу.', path:'/animatory/' }), body, 'page--animatory');
 };
 
-const showCard = (show, index) => `<article class="show-offer-card show-offer-card--${escapeAttr(show.accent || 'yellow')}"><div class="show-offer-card__media">${image(show)}<span class="show-offer-card__number">0${index + 1}</span></div><div class="show-offer-card__summary"><span class="mono-tag">Интерактивная программа</span><h3>${escapeHtml(show.name)}</h3><p class="show-offer-card__price"><span>Стоимость</span><strong>от ${formatPrice(show.price)}</strong></p></div><div class="show-offer-card__details"><p>${escapeHtml(show.description)}</p><a class="show-offer-card__seo-link" href="/show/${escapeAttr(show.slug)}/">Подробнее о шоу</a></div><div class="show-offer-card__action"><button class="show-offer-card__cta" data-open-form data-service="${escapeAttr(show.name)}" data-order-message="Хочу заказать: ${escapeAttr(show.name)}.">ЗАКАЗАТЬ ШОУ <b>↗</b></button></div></article>`;
+const showCard = (show, index) => `<article class="show-offer-card show-offer-card--${escapeAttr(show.accent || 'yellow')}"><div class="show-offer-card__media">${image(show)}<span class="show-offer-card__number">0${index + 1}</span></div><div class="show-offer-card__summary"><span class="mono-tag">Интерактивная программа</span><h3>${escapeHtml(show.name)}</h3><p class="show-offer-card__price"><span>Стоимость</span><strong>от ${formatPrice(show.price)}</strong></p></div><div class="show-offer-card__details"><p>${escapeHtml(show.description)}</p>${programMediaGallery(show)}<a class="show-offer-card__seo-link" href="/show/${escapeAttr(show.slug)}/">Подробнее о шоу</a></div><div class="show-offer-card__action"><button class="show-offer-card__cta" data-open-form data-service="${escapeAttr(show.name)}" data-order-message="Хочу заказать: ${escapeAttr(show.name)}.">ЗАКАЗАТЬ ШОУ <b>↗</b></button></div></article>`;
 
 const renderShow = async () => {
   const content = await loadContent(); const shows = (await loadCatalog('shows')).filter(visible);
@@ -285,7 +378,7 @@ const renderShow = async () => {
 
 const playCard = play => `<article class="playbill-card playbill-card--${escapeAttr(play.accent || 'violet')}"><div class="playbill-card__photo">${image(play)}</div><span class="mono-tag">Интерактивный спектакль · ${escapeHtml(play.age || '3+') }</span><h3>${escapeHtml(play.name)}</h3><p>${escapeHtml(play.description)}</p>${Number(play.price) > 0 ? `<p><strong>от ${formatPrice(play.price)}</strong></p>` : ''}<div class="playbill-card__action"><button class="playbill-card__cta" data-open-form data-service="Спектакль: ${escapeAttr(play.name)}" data-order-message="Хочу заказать спектакль «${escapeAttr(play.name)}».">ЗАКАЗАТЬ СПЕКТАКЛЬ <b>↗</b></button></div></article>`;
 
-const stagePlayCard = play => `<article class="theater-stage-card theater-stage-card--${escapeAttr(play.accent || 'violet')}"><div class="theater-stage-card__media">${image(play)}</div><div class="theater-stage-card__copy"><span class="mono-tag">Интерактивный спектакль · ${escapeHtml(play.age || '3+') }</span><h2>${escapeHtml(play.name)}</h2><p>${escapeHtml(play.description)}</p>${Number(play.price) > 0 ? `<strong class="theater-stage-card__price">от ${formatPrice(play.price)}</strong>` : ''}<button class="theater-stage-card__cta" data-open-form data-service="Спектакль: ${escapeAttr(play.name)}" data-order-message="Хочу заказать спектакль «${escapeAttr(play.name)}».">ЗАКАЗАТЬ СПЕКТАКЛЬ <b>↗</b></button></div></article>`;
+const stagePlayCard = play => `<article class="theater-stage-card theater-stage-card--${escapeAttr(play.accent || 'violet')}"><div class="theater-stage-card__media">${image(play)}</div><div class="theater-stage-card__copy"><span class="mono-tag">Интерактивный спектакль · ${escapeHtml(play.age || '3+') }</span><h2>${escapeHtml(play.name)}</h2><p>${escapeHtml(play.description)}</p>${programMediaGallery(play)}${Number(play.price) > 0 ? `<strong class="theater-stage-card__price">от ${formatPrice(play.price)}</strong>` : ''}<button class="theater-stage-card__cta" data-open-form data-service="Спектакль: ${escapeAttr(play.name)}" data-order-message="Хочу заказать спектакль «${escapeAttr(play.name)}».">ЗАКАЗАТЬ СПЕКТАКЛЬ <b>↗</b></button></div></article>`;
 
 const renderPlays = async () => {
   const content = await loadContent(); const plays = (await loadCatalog('plays')).filter(visible);
@@ -335,7 +428,7 @@ const renderServiceDetail = ({ item, type }) => {
   const isHero = type === 'heroes';
   const name = item.name;
   const label = isHero ? `Аниматор ${name}` : name;
-  const body = `<section class="event-detail seo-service-detail${isHero ? '' : ' seo-service-page--show'}"><a class="event-detail__back" href="/${isHero ? 'animatory' : 'show'}/">← НАЗАД В КАТАЛОГ</a><div class="event-detail__layout"><div class="event-detail__media">${image(item)}</div><article class="event-detail__copy"><span class="mono-tag">${isHero ? 'Аниматор на праздник' : 'Шоу на праздник'} · Кемерово</span><h1>${escapeHtml(label)}</h1><p class="seo-service-detail__lead">${escapeHtml(item.description)}</p><p>${isHero ? `${escapeHtml(item.duration || 40)} минут игры, яркий реквизит и герой, который вовлечёт детей в приключение.` : 'Программа на вашей площадке: ведущий, реквизит и эффектный финал.'}</p><p><strong>${isHero ? `${escapeHtml(item.duration || 40)} минут · ` : ''}${formatPrice(item.price)}</strong></p><button class="outline-button" data-open-form data-service="${escapeAttr(label)}" data-order-message="Хочу заказать ${escapeAttr(label)}.">ЗАКАЗАТЬ <span>↗</span></button></article></div></section>${partyForm()}`;
+  const body = `<section class="event-detail seo-service-detail${isHero ? '' : ' seo-service-page--show'}"><a class="event-detail__back" href="/${isHero ? 'animatory' : 'show'}/">← НАЗАД В КАТАЛОГ</a><div class="event-detail__layout"><div class="event-detail__media">${image(item)}</div><article class="event-detail__copy"><span class="mono-tag">${isHero ? 'Аниматор на праздник' : 'Шоу на праздник'} · Кемерово</span><h1>${escapeHtml(label)}</h1><p class="seo-service-detail__lead">${escapeHtml(item.description)}</p><p>${isHero ? `${escapeHtml(item.duration || 40)} минут игры, яркий реквизит и герой, который вовлечёт детей в приключение.` : 'Программа на вашей площадке: ведущий, реквизит и эффектный финал.'}</p>${programMediaGallery(item)}<p><strong>${isHero ? `${escapeHtml(item.duration || 40)} минут · ` : ''}${formatPrice(item.price)}</strong></p><button class="outline-button" data-open-form data-service="${escapeAttr(label)}" data-order-message="Хочу заказать ${escapeAttr(label)}.">ЗАКАЗАТЬ <span>↗</span></button></article></div></section>${partyForm()}`;
   return layout(pageMeta({ title:item.seoTitle || `${label} в Кемерово | ТЕМА`, description:item.seoDescription || item.description, path:`/${isHero ? 'animatory' : 'show'}/${item.slug}/` }), body, isHero ? 'page--animatory' : 'page--show');
 };
 
@@ -345,13 +438,32 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body) => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css"></head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть сайт ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><main class="admin-shell">${body}</main><script src="/admin.js" defer></script></body></html>`);
-const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css"></head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Пароль<input name="password" type="password" autofocus required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
+const adminLayout = (title, body) => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть сайт ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><main class="admin-shell">${body}</main><script src="/admin.js" defer></script></body></html>`);
+const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
 const adminTabs = active => `<nav class="admin-tabs"><a class="${active === 'content' ? 'is-active' : ''}" href="/admin/">Главная и фото</a><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Корзина аниматоров</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'plays' ? 'is-active' : ''}" href="/admin/catalog/plays">Спектакли</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
 const selectField = (label, name, value, values) => `<label class="admin-field">${escapeHtml(label)}<select name="${escapeAttr(name)}">${values.map(([itemValue, itemLabel]) => `<option value="${escapeAttr(itemValue)}" ${itemValue === value ? 'selected' : ''}>${escapeHtml(itemLabel)}</option>`).join('')}</select></label>`;
 const visibilityField = value => `<label class="admin-check"><input type="checkbox" name="published" ${value !== false ? 'checked' : ''}> Показывать на сайте</label>`;
 const mediaEditor = (key, item, { poster = false } = {}) => `<div class="photo-editor" data-fit-preview="${escapeAttr(key)}"><div class="admin-photo-preview ${poster && item.imageFit === 'poster' ? 'is-poster' : ''}">${item.image ? `<img data-crop-preview="${escapeAttr(key)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>'}</div><label class="upload-field">Загрузить фотографию<input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(key)}"><span>JPG, PNG или WEBP · до 12 МБ</span></label><div class="crop-grid">${formField('Горизонт', 'imagePositionX', number(item.imagePositionX), { type:'range', step:'1' }).replace(`name=\"imagePositionX\"`, `name=\"imagePositionX\" data-crop-x=\"${escapeAttr(key)}\"`)}${formField('Вертикаль', 'imagePositionY', number(item.imagePositionY), { type:'range', step:'1' }).replace(`name=\"imagePositionY\"`, `name=\"imagePositionY\" data-crop-y=\"${escapeAttr(key)}\"`)}${formField('Масштаб', 'imageScale', number(item.imageScale, 100), { type:'range', step:'1' }).replace(`name=\"imageScale\"`, `name=\"imageScale\" data-crop-scale=\"${escapeAttr(key)}\"`)}<output data-scale-output="${escapeAttr(key)}">${number(item.imageScale, 100)}%</output></div>${poster ? selectField('Как показывать афишу', 'imageFit', item.imageFit || 'cover', [['cover','Заполнить карточку (кадрирование)'],['poster','Целая афиша без обрезки']]).replace(`name=\"imageFit\"`, `name=\"imageFit\" data-image-fit=\"${escapeAttr(key)}\"`) : ''}</div>`;
+
+const galleryCropControls = (key, index, item) => {
+  const cropKey = `${key}-gallery-${index}`;
+  const control = (label, field, value, attribute) => `<label class="admin-field">${label}<input type="range" min="0" max="200" step="1" name="${field}-${index}" value="${number(value, field === 'galleryScale' ? 100 : 50)}" ${attribute}="${escapeAttr(cropKey)}"></label>`;
+  return `<div class="crop-grid admin-gallery-item__crop">${control('Горизонт', 'galleryPositionX', item.imagePositionX, 'data-crop-x')}${control('Вертикаль', 'galleryPositionY', item.imagePositionY, 'data-crop-y')}${control('Масштаб', 'galleryScale', item.imageScale, 'data-crop-scale')}<output data-scale-output="${escapeAttr(cropKey)}">${number(item.imageScale, 100)}%</output></div>`;
+};
+
+const galleryEditor = (key, item) => {
+  const gallery = Array.isArray(item.gallery) ? item.gallery.filter(entry => entry?.src) : [];
+  const entries = gallery.map((entry, index) => {
+    const cropKey = `${key}-gallery-${index}`;
+    const isVideo = entry.type === 'video';
+    const preview = isVideo
+      ? `<video data-crop-preview="${escapeAttr(cropKey)}" src="${escapeAttr(entry.src)}"${entry.poster ? ` poster="${escapeAttr(entry.poster)}"` : ''} muted playsinline preload="metadata" style="${galleryCropStyle(entry)}" aria-label="${escapeAttr(entry.label || 'Видео')}"></video>`
+      : `<img data-crop-preview="${escapeAttr(cropKey)}" src="${escapeAttr(entry.src)}" alt="" style="${galleryCropStyle(entry)}">`;
+    return `<article class="admin-gallery-item"><div class="admin-gallery-preview ${isVideo ? 'is-video' : ''}">${preview}</div><div class="admin-gallery-item__fields">${formField('Подпись', `galleryLabel-${index}`, entry.label || '')}<label class="admin-check"><input type="checkbox" name="galleryRemove-${index}"> Убрать материал</label></div>${galleryCropControls(key, index, entry)}</article>`;
+  }).join('');
+  return `<section class="admin-gallery-editor"><header><div><h3>Дополнительные фото и видео</h3><p>Обложка карточки остаётся отдельно. Материалы ниже можно удалить, подписать и кадрировать.</p></div>${formField('Заголовок блока', 'galleryTitle', item.galleryTitle || 'Материалы программы')}</header>${entries ? `<div class="admin-gallery-grid">${entries}</div>` : '<p class="admin-gallery-editor__empty">Пока нет дополнительных материалов.</p>'}<label class="upload-field admin-gallery-editor__upload">Добавить фото или видео<input type="file" name="galleryMedia" multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"><span>JPG, PNG, WEBP, GIF, MP4, MOV или WebM · до 100 МБ на файл</span></label></section>`;
+};
 
 const contentPhotoEditor = (key, title, content) => {
   const item = photoFromContent(content, key);
@@ -416,7 +528,7 @@ const catalogForm = (type, item = {}) => {
       basic += formField('SEO-описание', 'seoDescription', item.seoDescription || '', { textarea:true, wide:true });
     }
   }
-  return `<section class="admin-panel"><div class="admin-panel__top"><h2>${heading}</h2>${visibilityField(item.published)}</div><input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><div class="admin-grid">${basic}</div>${mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event })}</section>`;
+  return `<section class="admin-panel"><div class="admin-panel__top"><h2>${heading}</h2>${visibilityField(item.published)}</div><input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><div class="admin-grid">${basic}</div>${mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event })}${show || play ? galleryEditor(`${type}-${item.id || 'new'}`, item) : ''}</section>`;
 };
 
 const catalogItemCard = (type, item) => {
@@ -441,12 +553,42 @@ const renderAdminCatalog = async type => {
   return adminLayout(titles[type], `<div class="admin-page-head"><div><span>ТЕМА / КАТАЛОГ</span><h1>${titles[type]}</h1><p>Добавляйте карточки, стоимость, описание, SEO и фотографии. Изменения появляются на сайте сразу после сохранения.</p></div><button data-open-create>+ Добавить</button></div>${adminTabs(type)}${heroTextEditor}<div class="admin-catalog-list">${items.length ? items.map(item => catalogItemCard(type,item)).join('') : '<p class="admin-panel admin-empty">В каталоге пока нет карточек.</p>'}</div><dialog class="create-dialog"><button class="create-dialog__close" type="button" aria-label="Закрыть">×</button><form class="admin-catalog-form" method="post" action="/admin/catalog/${type}/save" enctype="multipart/form-data">${catalogForm(type,{ published:true })}<div class="admin-actions"><button type="submit">Создать карточку</button></div></form></dialog>`);
 };
 
-const updateCatalogItem = (type, oldItem, body, uploadedFile) => {
+const updateGallery = (source, body, files = []) => {
+  const existing = Array.isArray(source.gallery) ? source.gallery.filter(entry => entry?.src) : [];
+  const kept = existing.map((entry, index) => {
+    if (truthy(body[`galleryRemove-${index}`])) return null;
+    return {
+      ...entry,
+      type: entry.type === 'video' ? 'video' : 'image',
+      label: String(body[`galleryLabel-${index}`] ?? entry.label ?? '').trim().slice(0, 120),
+      imagePositionX: number(body[`galleryPositionX-${index}`], entry.imagePositionX ?? 50),
+      imagePositionY: number(body[`galleryPositionY-${index}`], entry.imagePositionY ?? 50),
+      imageScale: number(body[`galleryScale-${index}`], entry.imageScale ?? 100)
+    };
+  }).filter(Boolean);
+  const added = files.filter(file => isImageMime(file.mimetype) || isVideoMime(file.mimetype)).map(file => {
+    const type = isVideoMime(file.mimetype) ? 'video' : 'image';
+    return {
+      type,
+      src: `/uploads/${file.filename}`,
+      ...(type === 'video' ? { mime:file.mimetype } : {}),
+      alt: type === 'video' ? 'Видео программы' : 'Фото программы',
+      label: type === 'video' ? 'Видео' : 'Фото',
+      imagePositionX: 50,
+      imagePositionY: 50,
+      imageScale: 100
+    };
+  });
+  return [...kept, ...added].slice(0, 12);
+};
+
+const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = []) => {
   const name = String(body.name || '').trim();
   const itemsPromise = loadCatalog(type);
   return itemsPromise.then(items => {
-    const isNew = !oldItem;
     const source = oldItem || {};
+    const supportsGallery = type === 'shows' || type === 'plays';
+    const gallery = supportsGallery ? updateGallery(source, body, galleryFiles) : source.gallery;
     const base = {
       ...source,
       id: source.id || crypto.randomUUID(),
@@ -456,7 +598,11 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile) => {
       imagePositionY: number(body.imagePositionY, source.imagePositionY ?? 50),
       imageScale: number(body.imageScale, source.imageScale ?? 100),
       updatedAt: now(),
-      createdAt: source.createdAt || now()
+      createdAt: source.createdAt || now(),
+      ...(supportsGallery ? {
+        gallery,
+        galleryTitle: String(body.galleryTitle ?? source.galleryTitle ?? 'Материалы программы').trim().slice(0, 120) || 'Материалы программы'
+      } : {})
     };
     if (type === 'events') return {
       ...base,
@@ -489,13 +635,25 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile) => {
   });
 };
 
-const trySendTelegram = async lead => {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chat = process.env.TELEGRAM_CHAT_ID;
-  if (!token || !chat) return;
-  const apiBase = (process.env.TELEGRAM_API_BASE || 'https://api.telegram.org').replace(/\/$/, '');
-  const text = [`Новая заявка с сайта ${brandName}`, `Имя: ${lead.name}`, `Телефон: ${lead.phone}`, `Услуга: ${lead.service || '—'}`, `Сообщение: ${lead.message || '—'}`].join('\n');
-  try { await fetch(`${apiBase}/bot${token}/sendMessage`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({ chat_id:chat, text }) }); } catch { /* local JSON is the reliable fallback */ }
+let smtpTransport;
+const trySendEmail = async lead => {
+  if (!smtpHost || !smtpUser || !smtpPassword || !smtpFrom || !smtpTo) return;
+  try {
+    smtpTransport ||= nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: { user:smtpUser, pass:smtpPassword }
+    });
+    await smtpTransport.sendMail({
+      from: smtpFrom,
+      to: smtpTo,
+      subject: `Новая заявка с сайта ${brandName}`,
+      text: [`Имя: ${lead.name}`, `Телефон: ${lead.phone}`, `Услуга: ${lead.service || '—'}`, `Сообщение: ${lead.message || '—'}`, `Время: ${lead.createdAt}`].join('\n')
+    });
+  } catch (error) {
+    console.error('Не удалось отправить заявку по SMTP:', error.message);
+  }
 };
 
 app.get('/health', (_req, res) => res.json({ ok:true }));
@@ -507,7 +665,7 @@ app.get('/brand-logo.svg', async (_req, res, next) => {
       .replace('<path fill="#FEFEFD" d="M0 0L1254 0L1254 1254L0 1254L0 0Z"/>', ''));
   } catch (error) { next(error); }
 });
-app.get('/robots.txt', (_req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`));
+app.get('/robots.txt', (_req, res) => res.type('text/plain').send(`User-agent: Yandex\nDisallow: /admin/\nAllow: /\nSitemap: ${new URL('/sitemap.xml', siteUrl).href}\n`));
 app.get('/sitemap.xml', async (_req, res, next) => {
   try {
     const [heroes, shows, events] = await Promise.all([loadCatalog('heroes'), loadCatalog('shows'), loadCatalog('events')]);
@@ -518,23 +676,58 @@ app.get('/sitemap.xml', async (_req, res, next) => {
 
 app.post('/api/leads', async (req, res, next) => {
   try {
+    if (String(req.body.website || '').trim()) return res.status(400).json({ error:'Не удалось отправить заявку. Попробуйте ещё раз.' });
+    const leadRetryAfter = retryAfter('lead', req, leadLimit);
+    if (leadRetryAfter) {
+      res.setHeader('Retry-After', String(leadRetryAfter));
+      return res.status(429).json({ error:`Слишком много заявок. Повторите через ${Math.ceil(leadRetryAfter / 60)} мин.` });
+    }
+    recordRateLimitAttempt('lead', req, leadLimit);
     const name = String(req.body.name || '').trim().slice(0, 100);
     const phone = String(req.body.phone || '').trim().slice(0, 60);
     const service = String(req.body.service || '').trim().slice(0, 160);
     const message = String(req.body.message || '').trim().slice(0, 1000);
-    if (!name || !phone || !truthy(req.body.consent)) return res.status(400).json({ error:'Укажите имя, телефон и согласие на обработку данных.' });
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (!name || phoneDigits.length < 10 || phoneDigits.length > 15 || !truthy(req.body.consent)) return res.status(400).json({ error:'Укажите имя, корректный телефон и согласие на обработку данных.' });
     const consentAt = now();
-    const lead = { id:crypto.randomUUID(), createdAt:consentAt, name, phone, service, message, source:'website', consent:true, consentAt, consentVersion:privacyPolicyVersion };
+    const lead = {
+      id:crypto.randomUUID(),
+      createdAt:consentAt,
+      name,
+      phone,
+      service,
+      message,
+      source:'website',
+      consent:true,
+      consentAt,
+      consentVersion:personalDataConsentVersion,
+      consentDocument:'Согласие на обработку персональных данных',
+      consentDocumentUrl:`${siteUrl}/consent/`,
+      privacyPolicyVersion,
+      privacyPolicyUrl:`${siteUrl}/privacy/`,
+      consentMethod:'required-checkbox'
+    };
     await fs.appendFile(files.leads, `${JSON.stringify(lead)}\n`, 'utf8');
-    void trySendTelegram(lead);
+    void trySendEmail(lead);
     res.status(201).json({ ok:true, message:'Заявка отправлена. Скоро свяжемся с вами!' });
   } catch (error) { next(error); }
 });
 
 app.get('/admin/login', (req, res) => isAdmin(req) ? res.redirect('/admin/') : res.send(adminLogin(req.query.error)));
 app.post('/admin/login', (req, res) => {
+  const loginRetryAfter = retryAfter('login', req, loginLimit);
+  if (loginRetryAfter) {
+    res.setHeader('Retry-After', String(loginRetryAfter));
+    return res.status(429).send(adminLogin(`Слишком много попыток. Повторите через ${Math.ceil(loginRetryAfter / 60)} мин.`));
+  }
+  const attemptedUsername = String(req.body.username || '').trim();
   const attempted = String(req.body.password || '');
-  if (attempted !== adminPassword) return res.redirect('/admin/login?error=Неверный+пароль');
+  const validCredentials = secureMatch(attemptedUsername, adminUsername) & secureMatch(attempted, adminPassword);
+  if (!validCredentials) {
+    recordRateLimitAttempt('login', req, loginLimit);
+    return res.redirect('/admin/login?error=Неверный+логин+или+пароль');
+  }
+  clearRateLimitAttempts('login', req);
   res.setHeader('Set-Cookie', `tema_admin=${sessionValue()}; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}; Max-Age=604800`);
   res.redirect('/admin/');
 });
@@ -587,18 +780,22 @@ app.post('/admin/cart', requireAdmin, async (req, res, next) => {
     res.redirect('/admin/cart');
   } catch (error) { next(error); }
 });
-app.post('/admin/catalog/:type/save', requireAdmin, upload.single('image'), async (req, res, next) => {
+app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image', maxCount:1 }, { name:'galleryMedia', maxCount:8 }]), async (req, res, next) => {
   const type = req.params.type;
-  if (!['heroes','shows','plays','events'].includes(type)) { await deleteUploaded(req.file); return res.status(404).send('Каталог не найден'); }
+  const uploaded = req.files || {};
+  const uploadedCover = uploaded.image?.[0];
+  const uploadedGallery = uploaded.galleryMedia || [];
+  const allUploaded = [uploadedCover, ...uploadedGallery].filter(Boolean);
+  if (!['heroes','shows','plays','events'].includes(type)) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(404).send('Каталог не найден'); }
   try {
     const items = await loadCatalog(type);
     const current = items.find(item => item.id === req.body.id);
-    if (req.body.id && !current) { await deleteUploaded(req.file); return res.status(404).send('Карточка не найдена'); }
-    const updated = await updateCatalogItem(type, current, req.body, req.file);
-    if (!updated.name && !updated.title) { await deleteUploaded(req.file); return res.status(400).send('Укажите название'); }
+    if (req.body.id && !current) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(404).send('Карточка не найдена'); }
+    const updated = await updateCatalogItem(type, current, req.body, uploadedCover, uploadedGallery);
+    if (!updated.name && !updated.title) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(400).send('Укажите название'); }
     await saveCatalog(type, current ? items.map(item => item.id === current.id ? updated : item) : [...items, updated]);
     res.redirect(`/admin/catalog/${type}`);
-  } catch (error) { next(error); }
+  } catch (error) { await Promise.all(allUploaded.map(deleteUploaded)); next(error); }
 });
 app.post('/admin/catalog/:type/delete', requireAdmin, async (req, res, next) => {
   const type = req.params.type;

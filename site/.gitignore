@@ -1,5 +1,8 @@
 node_modules/
 .env
 data/leads.jsonl
+public/uploads/*.mp4
+public/uploads/*.mov
+public/uploads/*.webm
 npm-debug.log*
 *.local

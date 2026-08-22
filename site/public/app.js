@@ -1,8 +1,100 @@
 const menuButton = document.querySelector(".menu-button");
 const menu = document.querySelector(".site-menu");
 const dialog = document.querySelector(".lead-dialog");
+const floatingPartyCta = document.querySelector(".floating-party-cta");
+const siteFooter = document.querySelector(".site-footer");
+const cookieBanner = document.querySelector("[data-cookie-banner]");
+const analyticsConsentCookie = "voobrazillia_analytics_consent";
+const analyticsConsentVersionCookie = "voobrazillia_analytics_consent_version";
+const analyticsConsentAtCookie = "voobrazillia_analytics_consent_at";
+const metrikaScriptId = "yandex-metrika-script";
+let metrikaLoaded = false;
 
-const revealItems = document.querySelectorAll(".section-heading, .service-card, .photo-story__intro, .story-shot, .landing-intro, .character-card, .landing-facts, .hero-catalog__heading, .hero-program-card, .show-console, .show-round, .show-catalog__heading, .show-offer-card, .theater-stage, .playbill-card, .poster-card, .contact-form__planner-intro, .contact-form__step, .contact > div, .contact-form");
+const getMetrikaCounterId = () => Number(document.body?.dataset.yandexMetrikaId);
+const getAnalyticsConsentVersion = () => document.body?.dataset.analyticsConsentVersion || "";
+const getCookie = name => document.cookie.split("; ").find(item => item.startsWith(`${name}=`))?.split("=").slice(1).join("=") || "";
+const setAnalyticsConsent = value => {
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  const attributes = `Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
+  document.cookie = `${analyticsConsentCookie}=${value}; ${attributes}`;
+  document.cookie = `${analyticsConsentVersionCookie}=${encodeURIComponent(getAnalyticsConsentVersion())}; ${attributes}`;
+  document.cookie = `${analyticsConsentAtCookie}=${encodeURIComponent(new Date().toISOString())}; ${attributes}`;
+};
+const removeStorageByPrefix = storage => {
+  Object.keys(storage).filter(name => name.startsWith("_ym") || name.startsWith("ytm_") || name === "zz").forEach(name => storage.removeItem(name));
+};
+const removeMetrikaCookies = () => {
+  const names = new Set(["_ym_uid", "_ym_d", "_ym_isad", "_ym_visorc", "_ym_retryReqs"]);
+  document.cookie.split("; ").forEach(item => {
+    const name = item.split("=")[0];
+    if (name.startsWith("_ym_")) names.add(name);
+  });
+  names.forEach(name => {
+    document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
+    document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax; Domain=${window.location.hostname}`;
+  });
+  removeStorageByPrefix(window.localStorage);
+  removeStorageByPrefix(window.sessionStorage);
+};
+const loadMetrika = () => {
+  const counterId = getMetrikaCounterId();
+  if (!Number.isSafeInteger(counterId) || counterId <= 0 || metrikaLoaded) return;
+  metrikaLoaded = true;
+  window.ym = window.ym || function (...args) {
+    (window.ym.a = window.ym.a || []).push(args);
+  };
+  window.ym.l = window.ym.l || Date.now();
+  window.ym(counterId, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: true });
+  const script = document.createElement("script");
+  script.id = metrikaScriptId;
+  script.async = true;
+  script.src = "https://mc.yandex.ru/metrika/tag.js";
+  document.head.append(script);
+};
+const stopMetrika = () => {
+  const counterId = getMetrikaCounterId();
+  if (Number.isSafeInteger(counterId) && counterId > 0 && typeof window.ym === "function") {
+    window.ym(counterId, "destruct");
+  }
+  document.getElementById(metrikaScriptId)?.remove();
+  metrikaLoaded = false;
+  removeMetrikaCookies();
+};
+const applyAnalyticsConsent = value => {
+  setAnalyticsConsent(value);
+  if (value === "granted") loadMetrika();
+  else stopMetrika();
+  if (cookieBanner) cookieBanner.hidden = true;
+};
+
+if (cookieBanner) {
+  const consent = getCookie(analyticsConsentCookie);
+  const hasCurrentConsentVersion = getCookie(analyticsConsentVersionCookie) === getAnalyticsConsentVersion();
+  if (consent === "granted" && hasCurrentConsentVersion) loadMetrika();
+  else if (!(consent === "denied" && hasCurrentConsentVersion)) cookieBanner.hidden = false;
+  cookieBanner.querySelectorAll("[data-cookie-choice]").forEach(button => button.addEventListener("click", () => applyAnalyticsConsent(button.dataset.cookieChoice)));
+  document.querySelectorAll("[data-cookie-settings]").forEach(button => button.addEventListener("click", () => {
+    cookieBanner.hidden = false;
+    cookieBanner.querySelector("[data-cookie-choice=\"granted\"]")?.focus();
+  }));
+}
+
+const metrikaGoal = (goal, params) => {
+  const counterId = getMetrikaCounterId();
+  if (!Number.isSafeInteger(counterId) || counterId <= 0 || typeof window.ym !== "function") return;
+  window.ym(counterId, "reachGoal", goal, params);
+};
+
+// Убираем фиксированную CTA, когда в кадре появляется подвал: она не должна
+// закрывать правовые ссылки или контакты на коротких экранах.
+if (floatingPartyCta && siteFooter && "IntersectionObserver" in window) {
+  const footerObserver = new IntersectionObserver(([entry]) => {
+    floatingPartyCta.classList.toggle("is-footer-visible", entry.isIntersecting);
+  });
+  footerObserver.observe(siteFooter);
+}
+
+const revealItems = document.querySelectorAll(".section-heading, .service-card, .photo-story__intro, .story-shot, .landing-intro, .character-card, .landing-facts, .hero-catalog__heading, .hero-program-card, .show-console, .show-round, .show-catalog__heading, .show-offer-card, .theater-stage, .playbill-card, .poster-card, .contact-form__planner-intro, .contact > div, .contact-form");
 revealItems.forEach(item => item.classList.add("reveal"));
 
 if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -37,7 +129,7 @@ document.querySelectorAll("[data-open-form]").forEach(button => {
     if (commentInput) commentInput.value = message;
     dialog.showModal();
     dialog.querySelector('[name="name"]')?.focus();
-    window.ym?.(window.YANDEX_METRIKA_ID, "reachGoal", "form_open");
+    metrikaGoal("form_open", { form: "dialog" });
   });
 });
 
@@ -159,6 +251,7 @@ if (heroCart) {
     if (comment) comment.value = message;
     if (!dialog.open) dialog.showModal();
     dialog.querySelector('[name="name"]')?.focus();
+    metrikaGoal("form_open", { form: "dialog" });
   };
 
   const openHeroCart = () => {
@@ -221,41 +314,13 @@ dialog?.addEventListener("click", event => {
   if (event.target === dialog) dialog.close();
 });
 
-document.querySelectorAll("[data-party-builder]").forEach(builder => {
-  const updateSummary = () => {
-    const age = builder.querySelector('[name="childAge"]')?.value;
-    const format = builder.querySelector('[name="partyFormat"]')?.value;
-    const summary = builder.querySelector("[data-builder-summary]");
-    if (!summary) return;
-
-    const complete = Boolean(age && format);
-    summary.classList.toggle("is-ready", complete);
-    summary.textContent = complete
-      ? `Ваш план: ${age} · ${format}`
-      : "Выберите возраст и формат — добавим их к заявке.";
-  };
-
-  const setChoice = (selector, inputName, button) => {
-    builder.querySelectorAll(selector).forEach(item => {
-      const active = item === button;
-      item.classList.toggle("is-selected", active);
-      item.setAttribute("aria-pressed", String(active));
-    });
-    builder.querySelector(`[name="${inputName}"]`).value = button.dataset[inputName === "childAge" ? "builderAge" : "builderFormat"];
-    updateSummary();
-  };
-
-  builder.querySelectorAll("[data-builder-age]").forEach(button => {
-    button.addEventListener("click", () => setChoice("[data-builder-age]", "childAge", button));
-  });
-  builder.querySelectorAll("[data-builder-format]").forEach(button => {
-    button.addEventListener("click", () => setChoice("[data-builder-format]", "partyFormat", button));
-  });
-
-  updateSummary();
-});
-
 document.querySelectorAll("[data-lead-form]").forEach(form => {
+  let started = false;
+  form.addEventListener("input", () => {
+    if (started) return;
+    started = true;
+    metrikaGoal("form_start", { form: form.matches("[data-hero-cart-form]") ? "hero_cart" : form.matches("[data-party-form]") ? "planner" : "dialog" });
+  });
   form.addEventListener("submit", async event => {
     event.preventDefault();
     const status = form.querySelector(".form-status");
@@ -275,15 +340,9 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
       ].filter(Boolean).join(". ") + ".";
       const comment = form.querySelector('[name="comment"]')?.value.trim();
       if (comment) form.elements.message.value += ` Комментарий: ${comment}`;
-    } else if (form.matches("[data-party-builder]")) {
-      const age = form.querySelector('[name="childAge"]').value;
-      const format = form.querySelector('[name="partyFormat"]').value;
-      if (!age || !format) {
-        status.textContent = "Сначала выберите возраст и формат праздника.";
-        return;
-      }
-      form.elements.service.value = `Подбор праздника · ${format}`;
-      form.elements.message.value = `Возраст ребёнка: ${age}. Формат: ${format}.`;
+    } else if (form.matches("[data-party-form]")) {
+      form.elements.service.value = "Подбор праздника";
+      form.elements.message.value = "Хочу обсудить праздник по телефону.";
       const comment = form.querySelector('[name="comment"]')?.value.trim();
       if (comment) form.elements.message.value += ` Комментарий: ${comment}`;
     } else if (form.elements.comment?.value.trim()) {
@@ -307,18 +366,7 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
       if (!response.ok) throw new Error(result.error || "Ошибка отправки");
       status.textContent = result.message;
       form.reset();
-      if (form.matches("[data-party-builder]")) {
-        form.querySelectorAll(".is-selected").forEach(button => {
-          button.classList.remove("is-selected");
-          button.setAttribute("aria-pressed", "false");
-        });
-        const summary = form.querySelector("[data-builder-summary]");
-        if (summary) {
-          summary.classList.remove("is-ready");
-          summary.textContent = "Выберите возраст и формат — добавим их к заявке.";
-        }
-      }
-      window.ym?.(window.YANDEX_METRIKA_ID, "reachGoal", "form_submit");
+      metrikaGoal("form_submit", { form: form.matches("[data-hero-cart-form]") ? "hero_cart" : form.matches("[data-party-form]") ? "planner" : "dialog" });
       const formDialog = form.closest("dialog");
       if (formDialog?.open) setTimeout(() => formDialog.close(), 1800);
     } catch (error) {
@@ -330,4 +378,39 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
   });
 });
 
-document.querySelectorAll('a[href^="tel:"]').forEach(link => link.addEventListener("click", () => window.ym?.(window.YANDEX_METRIKA_ID, "reachGoal", "phone_click")));
+document.querySelectorAll('a[href^="tel:"]').forEach(link => link.addEventListener("click", () => metrikaGoal("phone_click")));
+
+const mediaLightboxDialog = document.querySelector("[data-media-lightbox]");
+const mediaLightboxContent = document.querySelector("[data-media-lightbox-content]");
+if (mediaLightboxDialog && mediaLightboxContent) {
+  const clearMediaLightbox = () => {
+    mediaLightboxContent.querySelector("video")?.pause();
+    mediaLightboxContent.replaceChildren();
+  };
+  const closeMediaLightbox = () => {
+    if (mediaLightboxDialog.open) mediaLightboxDialog.close();
+  };
+
+  document.querySelectorAll("[data-open-media]").forEach(trigger => trigger.addEventListener("click", () => {
+    const isVideo = trigger.dataset.mediaType === "video";
+    const media = document.createElement(isVideo ? "video" : "img");
+    media.src = trigger.dataset.mediaSrc || "";
+    if (isVideo) {
+      media.controls = true;
+      media.playsInline = true;
+      media.preload = "metadata";
+      media.setAttribute("aria-label", trigger.dataset.mediaAlt || "Видео программы");
+      if (trigger.dataset.mediaPoster) media.poster = trigger.dataset.mediaPoster;
+    } else {
+      media.alt = trigger.dataset.mediaAlt || "";
+    }
+    mediaLightboxContent.replaceChildren(media);
+    mediaLightboxDialog.showModal();
+  }));
+
+  mediaLightboxDialog.querySelector("[data-close-media]")?.addEventListener("click", closeMediaLightbox);
+  mediaLightboxDialog.addEventListener("click", event => {
+    if (event.target === mediaLightboxDialog) closeMediaLightbox();
+  });
+  mediaLightboxDialog.addEventListener("close", clearMediaLightbox);
+}
