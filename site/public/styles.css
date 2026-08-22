@@ -6925,3 +6925,21 @@ footer small {
   .hero::before { opacity: .64; }
   .hero::after { opacity: .48; }
 }
+
+
+/* One overhead rail lets the mascot perch on the title without boxing the copy in. */
+.hero h1::before {
+  inset: -16px -18px auto;
+  height: 3px;
+  border: 0;
+  background: var(--yellow);
+  border-radius: 0;
+  box-shadow: none;
+  clip-path: polygon(0 50%, 14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%);
+}
+.page--animatory .hero h1::before { background: var(--yellow); }
+.page--show .hero h1::before { background: var(--pink); }
+.page--theater .hero h1::before { background: var(--butter); }
+@media (max-width: 600px) {
+  .hero h1::before { inset: -12px -12px auto; }
+}
