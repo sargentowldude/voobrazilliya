@@ -12,7 +12,14 @@ let metrikaLoaded = false;
 
 const getMetrikaCounterId = () => Number(document.body?.dataset.yandexMetrikaId);
 const getAnalyticsConsentVersion = () => document.body?.dataset.analyticsConsentVersion || "";
-const getCookie = name => document.cookie.split("; ").find(item => item.startsWith(`${name}=`))?.split("=").slice(1).join("=") || "";
+const getCookie = name => {
+  const value = document.cookie.split("; ").find(item => item.startsWith(`${name}=`))?.split("=").slice(1).join("=") || "";
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
 const setAnalyticsConsent = value => {
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
   const attributes = `Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
