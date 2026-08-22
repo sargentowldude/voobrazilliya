@@ -4985,9 +4985,9 @@ footer small {
 @media (max-width: 650px) {
   .show-catalog { margin-top: 34px; padding: 0 18px 72px; }
   .show-offer-grid-wrap { padding-top: 0; }
-  .show-offer-grid { grid-template-columns: 1fr; }
-  .show-offer-card__media { height: 220px; }
-  .show-offer-card__summary h3 { font-size: clamp(29px, 9vw, 42px); }
+  .show-offer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .show-offer-card__media { height: auto; aspect-ratio: 3 / 4; }
+  .show-offer-card__summary h3 { font-size: clamp(22px, 6.8vw, 30px); }
 }
 
 /* Афиша на главной: центрированный заголовок и больше пространства событиям. */
