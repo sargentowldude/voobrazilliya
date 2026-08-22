@@ -101,8 +101,15 @@ if (floatingPartyCta && siteFooter && "IntersectionObserver" in window) {
   footerObserver.observe(siteFooter);
 }
 
-const revealItems = document.querySelectorAll(".section-heading, .service-card, .photo-story__intro, .story-shot, .landing-intro, .character-card, .landing-facts, .hero-catalog__heading, .hero-program-card, .show-console, .show-round, .show-catalog__heading, .show-offer-card, .theater-stage, .playbill-card, .poster-card, .contact-form__planner-intro, .contact > div, .contact-form");
-revealItems.forEach(item => item.classList.add("reveal"));
+const revealItems = document.querySelectorAll(".section-heading, .service-card, .photo-story__intro, .story-shot, .landing-intro, .character-card, .landing-facts, .hero-catalog__heading, .hero-program-card, .show-console, .show-round, .show-catalog__heading, .show-offer-card, .theater-stage, .theater-stage-card, .playbill-card, .poster-card, .birthday-format-card, .contact-form__planner-intro, .contact > div, .contact-form");
+const revealVariant = item => {
+  if (item.matches(".section-heading, .photo-story__intro, .landing-intro, .landing-facts, .hero-catalog__heading, .show-catalog__heading, .contact-form__planner-intro")) return "reveal--copy";
+  if (item.matches(".story-shot, .theater-stage, .theater-stage-card")) return "reveal--media";
+  if (item.matches(".show-console, .show-round")) return "reveal--slide";
+  if (item.matches(".service-card, .character-card, .hero-program-card, .show-offer-card, .playbill-card, .poster-card, .birthday-format-card")) return "reveal--card";
+  return "reveal--rise";
+};
+revealItems.forEach(item => item.classList.add("reveal", revealVariant(item)));
 
 if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   const revealObserver = new IntersectionObserver(entries => {
