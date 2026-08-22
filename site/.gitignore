@@ -1,6 +1,7 @@
 node_modules/
 .env
 data/leads.jsonl
+data/leads-deletion-log.jsonl
 public/uploads/*.mp4
 public/uploads/*.mov
 public/uploads/*.webm

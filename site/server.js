@@ -29,7 +29,9 @@ const yandexMetrikaId = /^\d+$/.test(String(process.env.YANDEX_METRIKA_ID || '')
 const trustProxy = String(process.env.TRUST_PROXY || '').trim() === '1';
 const loginLimit = { maxAttempts:5, windowMs:15 * 60 * 1000 };
 const leadLimit = { maxAttempts:5, windowMs:60 * 60 * 1000 };
-const privacyPolicyVersion = '22.08.2026';
+const leadRetentionDays = 90;
+const leadRetentionMs = leadRetentionDays * 24 * 60 * 60 * 1000;
+const privacyPolicyVersion = '22.08.2026, редакция 2';
 const personalDataConsentVersion = privacyPolicyVersion;
 const analyticsConsentVersion = privacyPolicyVersion;
 const brandName = 'ВообразилЛиЯ';
@@ -46,7 +48,8 @@ const files = {
   heroes: path.join(dataDir, 'heroes.json'),
   shows: path.join(dataDir, 'shows.json'),
   plays: path.join(dataDir, 'plays.json'),
-  leads: path.join(dataDir, 'leads.jsonl')
+  leads: path.join(dataDir, 'leads.jsonl'),
+  leadDeletionLog: path.join(dataDir, 'leads-deletion-log.jsonl')
 };
 
 await fs.mkdir(uploadsDir, { recursive: true });
@@ -92,10 +95,52 @@ const writeJson = async (file, value) => {
   await fs.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
   await fs.rename(temporary, file);
 };
+const writeTextAtomically = async (file, value) => {
+  const temporary = `${file}.${crypto.randomUUID()}.tmp`;
+  await fs.writeFile(temporary, value, 'utf8');
+  await fs.rename(temporary, file);
+};
 const loadContent = () => readJson(files.content, {});
 const loadCatalog = type => readJson(files[type], []);
 const saveCatalog = (type, items) => writeJson(files[type], items);
 const now = () => new Date().toISOString();
+const retentionEndsAt = createdAt => {
+  const createdAtTimestamp = Date.parse(createdAt);
+  return Number.isFinite(createdAtTimestamp) ? new Date(createdAtTimestamp + leadRetentionMs).toISOString() : '';
+};
+let leadStoreOperation = Promise.resolve();
+const queueLeadStoreOperation = task => {
+  const operation = leadStoreOperation.then(task, task);
+  leadStoreOperation = operation.catch(() => {});
+  return operation;
+};
+const appendLead = lead => queueLeadStoreOperation(() => fs.appendFile(files.leads, `${JSON.stringify(lead)}\n`, 'utf8'));
+const purgeExpiredLeads = () => queueLeadStoreOperation(async () => {
+  const source = await fs.readFile(files.leads, 'utf8').catch(error => error.code === 'ENOENT' ? '' : Promise.reject(error));
+  if (!source) return 0;
+  const currentTime = Date.now();
+  const retained = [];
+  const deleted = [];
+  source.split(/\r?\n/).filter(Boolean).forEach(line => {
+    try {
+      const lead = JSON.parse(line);
+      const expiresAt = String(lead.retentionUntil || retentionEndsAt(lead.createdAt));
+      if (Number.isFinite(Date.parse(expiresAt)) && Date.parse(expiresAt) <= currentTime) {
+        deleted.push({ id:lead.id || null, createdAt:lead.createdAt || null, expiresAt, deletedAt:now(), reason:'retention-90-days' });
+      } else {
+        retained.push(line);
+      }
+    } catch {
+      retained.push(line);
+    }
+  });
+  if (!deleted.length) return 0;
+  await writeTextAtomically(files.leads, retained.length ? `${retained.join('\n')}\n` : '');
+  await fs.appendFile(files.leadDeletionLog, `${deleted.map(record => JSON.stringify(record)).join('\n')}\n`, 'utf8');
+  return deleted.length;
+});
+await purgeExpiredLeads();
+setInterval(() => { void purgeExpiredLeads().catch(error => console.error('Не удалось очистить устаревшие заявки:', error.message)); }, 6 * 60 * 60 * 1000).unref();
 const truthy = value => value === true || value === 'true' || value === 'on' || value === '1';
 const number = (value, fallback = 50) => {
   const parsed = Number(value);
@@ -242,9 +287,10 @@ const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-cons
 const faviconLinks = () => '<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180"><link rel="manifest" href="/site.webmanifest"><meta name="theme-color" content="#140054">';
 const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/legal.css">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК <span aria-hidden="true">↗</span></a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js" defer></script></body></html>`;
 
+const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
 const cookiesSection = () => {
-  if (!yandexMetrikaId) return `<section><h2>4. Cookies и аналитика</h2><p>На дату публикации Политики сайт не подключает рекламные или аналитические сервисы, получающие данные посетителей. При подключении такого сервиса Оператор обновит Политику и запросит отдельное согласие до его загрузки.</p></section>`;
-  return `<section><h2>4. Cookies и Яндекс Метрика</h2><p>Только после отдельного согласия пользователя сайт подключает Яндекс Метрику для подсчёта посещаемости, анализа источников переходов, работы страниц и форм, а также улучшения сайта. До согласия тег Метрики не загружается. Данные, введённые в формы заявок, в Метрику не передаются.</p><table><thead><tr><th>Категория</th><th>Какие данные и зачем</th><th>Срок</th></tr></thead><tbody><tr><td>Настройки согласия сайта</td><td>Выбор «согласен» или «не согласен», версия Политики и дата выбора — чтобы сохранить настройку и не загружать Метрику без согласия.</td><td>12 месяцев</td></tr><tr><td>Яндекс Метрика</td><td>Идентификаторы cookie и localStorage, IP-адрес, тип устройства и браузера, дата и время визита, адреса просмотренных страниц, источник перехода, клики, прокрутка и запись сессии Вебвизора — для статистики и улучшения сайта.</td><td>Cookie и локальное хранилище — от сессии до 2 лет; срок зависит от конкретного технического файла Метрики.</td></tr></tbody></table><p>Сведения передаются сервису Яндекс Метрика как лицу, которому поручена обработка технических данных для указанной цели. Пользователь может изменить выбор в подвале сайта; после отказа тег Метрики отключается, а доступные сайту cookies и localStorage Метрики удаляются.</p></section>`;
+  if (!yandexMetrikaId) return `${dataStorageSection()}<section><h2>4. Cookies и аналитика</h2><p>На дату публикации Политики сайт не подключает рекламные или аналитические сервисы, получающие данные посетителей. При подключении такого сервиса Оператор обновит Политику и запросит отдельное согласие до его загрузки.</p></section>`;
+  return `${dataStorageSection()}<section><h2>4. Cookies и Яндекс Метрика</h2><p>Только после отдельного согласия пользователя сайт подключает Яндекс Метрику для подсчёта посещаемости, анализа источников переходов, работы страниц и форм, а также улучшения сайта. До согласия тег Метрики не загружается. Данные, введённые в формы заявок, в Метрику не передаются.</p><table><thead><tr><th>Категория</th><th>Какие данные и зачем</th><th>Срок</th></tr></thead><tbody><tr><td>Настройки согласия сайта</td><td>Выбор «согласен» или «не согласен», версия Политики и дата выбора — чтобы сохранить настройку и не загружать Метрику без согласия.</td><td>12 месяцев</td></tr><tr><td>Яндекс Метрика</td><td>Идентификаторы cookie и localStorage, IP-адрес, тип устройства и браузера, дата и время визита, адреса просмотренных страниц, источник перехода, клики, прокрутка и запись сессии Вебвизора — для статистики и улучшения сайта.</td><td>Cookie и локальное хранилище — от сессии до 2 лет; срок зависит от конкретного технического файла Метрики.</td></tr></tbody></table><p>Сведения передаются сервису Яндекс Метрика как лицу, которому поручена обработка технических данных для указанной цели. Пользователь может изменить выбор в подвале сайта; после отказа тег Метрики отключается, а доступные сайту cookies и localStorage Метрики удаляются.</p></section>`;
 };
 
 const privacyPage = () => layout(
@@ -693,6 +739,8 @@ app.post('/api/leads', async (req, res, next) => {
     const lead = {
       id:crypto.randomUUID(),
       createdAt:consentAt,
+      retentionUntil:retentionEndsAt(consentAt),
+      retentionRule:`${leadRetentionDays} days from submission`,
       name,
       phone,
       service,
@@ -707,7 +755,7 @@ app.post('/api/leads', async (req, res, next) => {
       privacyPolicyUrl:`${siteUrl}/privacy/`,
       consentMethod:'required-checkbox'
     };
-    await fs.appendFile(files.leads, `${JSON.stringify(lead)}\n`, 'utf8');
+    await appendLead(lead);
     void trySendEmail(lead);
     res.status(201).json({ ok:true, message:'Заявка отправлена. Скоро свяжемся с вами!' });
   } catch (error) { next(error); }
