@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
+import sharp from 'sharp';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -237,6 +238,28 @@ const isAdmin = req => {
 };
 const requireAdmin = (req, res, next) => isAdmin(req) ? next() : res.redirect('/admin/login');
 const deleteUploaded = async file => { if (file?.path) await fs.unlink(file.path).catch(() => {}); };
+const convertUploadedImageToWebp = async file => {
+  if (!isImageMime(file?.mimetype)) return file;
+  const sourceExtension = path.extname(file.filename).toLowerCase();
+  const filename = sourceExtension === '.webp'
+    ? `${path.parse(file.filename).name}-${crypto.randomUUID()}.webp`
+    : `${path.parse(file.filename).name}.webp`;
+  const outputPath = path.join(uploadsDir, filename);
+  try {
+    await sharp(file.path, { animated:file.mimetype === 'image/gif', limitInputPixels:40_000_000 })
+      .rotate()
+      .webp({ quality:82, effort:5, smartSubsample:true })
+      .toFile(outputPath);
+    await fs.unlink(file.path);
+    const { size } = await fs.stat(outputPath);
+    Object.assign(file, { filename, mimetype:'image/webp', path:outputPath, size });
+    return file;
+  } catch (error) {
+    await fs.unlink(outputPath).catch(() => {});
+    throw error;
+  }
+};
+const convertUploadedImagesToWebp = files => Promise.all(files.map(convertUploadedImageToWebp));
 const rateLimitAttempts = new Map();
 const clientAddress = req => String(req.ip || req.socket.remoteAddress || 'unknown').slice(0, 200);
 const pruneRateLimitAttempts = () => {
@@ -490,7 +513,7 @@ const adminTabs = active => `<nav class="admin-tabs"><a class="${active === 'con
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
 const selectField = (label, name, value, values) => `<label class="admin-field">${escapeHtml(label)}<select name="${escapeAttr(name)}">${values.map(([itemValue, itemLabel]) => `<option value="${escapeAttr(itemValue)}" ${itemValue === value ? 'selected' : ''}>${escapeHtml(itemLabel)}</option>`).join('')}</select></label>`;
 const visibilityField = value => `<label class="admin-check"><input type="checkbox" name="published" ${value !== false ? 'checked' : ''}> Показывать на сайте</label>`;
-const mediaEditor = (key, item, { poster = false } = {}) => `<div class="photo-editor" data-fit-preview="${escapeAttr(key)}"><div class="admin-photo-preview ${poster && item.imageFit === 'poster' ? 'is-poster' : ''}">${item.image ? `<img data-crop-preview="${escapeAttr(key)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>'}</div><label class="upload-field">Загрузить фотографию<input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(key)}"><span>JPG, PNG или WEBP · до 12 МБ</span></label><div class="crop-grid">${formField('Горизонт', 'imagePositionX', number(item.imagePositionX), { type:'range', step:'1' }).replace(`name=\"imagePositionX\"`, `name=\"imagePositionX\" data-crop-x=\"${escapeAttr(key)}\"`)}${formField('Вертикаль', 'imagePositionY', number(item.imagePositionY), { type:'range', step:'1' }).replace(`name=\"imagePositionY\"`, `name=\"imagePositionY\" data-crop-y=\"${escapeAttr(key)}\"`)}${formField('Масштаб', 'imageScale', number(item.imageScale, 100), { type:'range', step:'1' }).replace(`name=\"imageScale\"`, `name=\"imageScale\" data-crop-scale=\"${escapeAttr(key)}\"`)}<output data-scale-output="${escapeAttr(key)}">${number(item.imageScale, 100)}%</output></div>${poster ? selectField('Как показывать афишу', 'imageFit', item.imageFit || 'cover', [['cover','Заполнить карточку (кадрирование)'],['poster','Целая афиша без обрезки']]).replace(`name=\"imageFit\"`, `name=\"imageFit\" data-image-fit=\"${escapeAttr(key)}\"`) : ''}</div>`;
+const mediaEditor = (key, item, { poster = false } = {}) => `<div class="photo-editor" data-fit-preview="${escapeAttr(key)}"><div class="admin-photo-preview ${poster && item.imageFit === 'poster' ? 'is-poster' : ''}">${item.image ? `<img data-crop-preview="${escapeAttr(key)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>'}</div><label class="upload-field">Загрузить фотографию<input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(key)}"><span>JPG, PNG, WEBP или GIF → WebP · до 12 МБ</span></label><div class="crop-grid">${formField('Горизонт', 'imagePositionX', number(item.imagePositionX), { type:'range', step:'1' }).replace(`name=\"imagePositionX\"`, `name=\"imagePositionX\" data-crop-x=\"${escapeAttr(key)}\"`)}${formField('Вертикаль', 'imagePositionY', number(item.imagePositionY), { type:'range', step:'1' }).replace(`name=\"imagePositionY\"`, `name=\"imagePositionY\" data-crop-y=\"${escapeAttr(key)}\"`)}${formField('Масштаб', 'imageScale', number(item.imageScale, 100), { type:'range', step:'1' }).replace(`name=\"imageScale\"`, `name=\"imageScale\" data-crop-scale=\"${escapeAttr(key)}\"`)}<output data-scale-output="${escapeAttr(key)}">${number(item.imageScale, 100)}%</output></div>${poster ? selectField('Как показывать афишу', 'imageFit', item.imageFit || 'cover', [['cover','Заполнить карточку (кадрирование)'],['poster','Целая афиша без обрезки']]).replace(`name=\"imageFit\"`, `name=\"imageFit\" data-image-fit=\"${escapeAttr(key)}\"`) : ''}</div>`;
 
 const galleryCropControls = (key, index, item) => {
   const cropKey = `${key}-gallery-${index}`;
@@ -508,12 +531,12 @@ const galleryEditor = (key, item) => {
       : `<img data-crop-preview="${escapeAttr(cropKey)}" src="${escapeAttr(entry.src)}" alt="" style="${galleryCropStyle(entry)}">`;
     return `<article class="admin-gallery-item"><div class="admin-gallery-preview ${isVideo ? 'is-video' : ''}">${preview}</div><div class="admin-gallery-item__fields">${formField('Подпись', `galleryLabel-${index}`, entry.label || '')}<label class="admin-check"><input type="checkbox" name="galleryRemove-${index}"> Убрать материал</label></div>${galleryCropControls(key, index, entry)}</article>`;
   }).join('');
-  return `<section class="admin-gallery-editor"><header><div><h3>Дополнительные фото и видео</h3><p>Обложка карточки остаётся отдельно. Материалы ниже можно удалить, подписать и кадрировать.</p></div>${formField('Заголовок блока', 'galleryTitle', item.galleryTitle || 'Материалы программы')}</header>${entries ? `<div class="admin-gallery-grid">${entries}</div>` : '<p class="admin-gallery-editor__empty">Пока нет дополнительных материалов.</p>'}<label class="upload-field admin-gallery-editor__upload">Добавить фото или видео<input type="file" name="galleryMedia" multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"><span>JPG, PNG, WEBP, GIF, MP4, MOV или WebM · до 100 МБ на файл</span></label></section>`;
+  return `<section class="admin-gallery-editor"><header><div><h3>Дополнительные фото и видео</h3><p>Обложка карточки остаётся отдельно. Материалы ниже можно удалить, подписать и кадрировать.</p></div>${formField('Заголовок блока', 'galleryTitle', item.galleryTitle || 'Материалы программы')}</header>${entries ? `<div class="admin-gallery-grid">${entries}</div>` : '<p class="admin-gallery-editor__empty">Пока нет дополнительных материалов.</p>'}<label class="upload-field admin-gallery-editor__upload">Добавить фото или видео<input type="file" name="galleryMedia" multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"><span>Фото JPG, PNG, WEBP или GIF → WebP; видео MP4, MOV, WebM · до 100 МБ</span></label></section>`;
 };
 
 const contentPhotoEditor = (key, title, content) => {
   const item = photoFromContent(content, key);
-  return `<fieldset class="admin-photo-block"><legend>${escapeHtml(title)}</legend><div class="photo-editor" data-fit-preview="${escapeAttr(key)}"><div class="admin-photo-preview">${item.image ? `<img data-crop-preview="${escapeAttr(key)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>'}</div><label class="upload-field">Заменить изображение<input type="file" name="${escapeAttr(key)}" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(key)}"><span>JPG, PNG или WEBP</span></label><div class="crop-grid">${formField('Горизонт', `${key}PositionX`, number(item.imagePositionX), { type:'range', step:'1' }).replace(`name=\"${key}PositionX\"`, `name=\"${key}PositionX\" data-crop-x=\"${escapeAttr(key)}\"`)}${formField('Вертикаль', `${key}PositionY`, number(item.imagePositionY), { type:'range', step:'1' }).replace(`name=\"${key}PositionY\"`, `name=\"${key}PositionY\" data-crop-y=\"${escapeAttr(key)}\"`)}${formField('Масштаб', `${key}Scale`, number(item.imageScale, 100), { type:'range', step:'1' }).replace(`name=\"${key}Scale\"`, `name=\"${key}Scale\" data-crop-scale=\"${escapeAttr(key)}\"`)}<output data-scale-output="${escapeAttr(key)}">${number(item.imageScale, 100)}%</output></div></div></fieldset>`;
+  return `<fieldset class="admin-photo-block"><legend>${escapeHtml(title)}</legend><div class="photo-editor" data-fit-preview="${escapeAttr(key)}"><div class="admin-photo-preview">${item.image ? `<img data-crop-preview="${escapeAttr(key)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>'}</div><label class="upload-field">Заменить изображение<input type="file" name="${escapeAttr(key)}" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(key)}"><span>JPG, PNG, WEBP или GIF → WebP</span></label><div class="crop-grid">${formField('Горизонт', `${key}PositionX`, number(item.imagePositionX), { type:'range', step:'1' }).replace(`name=\"${key}PositionX\"`, `name=\"${key}PositionX\" data-crop-x=\"${escapeAttr(key)}\"`)}${formField('Вертикаль', `${key}PositionY`, number(item.imagePositionY), { type:'range', step:'1' }).replace(`name=\"${key}PositionY\"`, `name=\"${key}PositionY\" data-crop-y=\"${escapeAttr(key)}\"`)}${formField('Масштаб', `${key}Scale`, number(item.imageScale, 100), { type:'range', step:'1' }).replace(`name=\"${key}Scale\"`, `name=\"${key}Scale\" data-crop-scale=\"${escapeAttr(key)}\"`)}<output data-scale-output="${escapeAttr(key)}">${number(item.imageScale, 100)}%</output></div></div></fieldset>`;
 };
 
 const pageHeroEditor = (key, label, content) => {
@@ -788,7 +811,9 @@ app.get('/admin/catalog/:type', requireAdmin, async (req, res, next) => {
   try { res.send(await renderAdminCatalog(req.params.type)); } catch (error) { next(error); }
 });
 app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) => {
+  const allUploaded = req.files || [];
   try {
+    await convertUploadedImagesToWebp(allUploaded);
     const previous = await loadContent();
     const nextContent = {
       ...previous,
@@ -801,7 +826,7 @@ app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) =>
       if (req.body[titleField] !== undefined) nextContent[titleField] = String(req.body[titleField] || '').trim();
       if (req.body[introField] !== undefined) nextContent[introField] = String(req.body[introField] || '').trim();
     }
-    const inputFiles = new Map((req.files || []).map(file => [file.fieldname, file]));
+    const inputFiles = new Map(allUploaded.map(file => [file.fieldname, file]));
     for (const key of ['photo1','homeBoyPhoto','homeGirlPhoto','homeAdultShowPhoto','homeFoamPhoto','homeTheaterPhoto','photo5','photo6','photo7','photoBirthday','animatoryPhoto1','animatoryPhoto2','animatoryPhoto3','animatoryPhoto4','showPhoto1','showPhoto2','showPhoto3','showPhoto4','theaterPhoto1','theaterPhoto2','theaterPhoto3','theaterPhoto4']) {
       const file = inputFiles.get(key);
       if (file) nextContent[key] = `/uploads/${file.filename}`;
@@ -812,7 +837,7 @@ app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) =>
     await writeJson(files.content, nextContent);
     const redirectTo = ['/admin/', '/admin/birthday', '/admin/catalog/heroes', '/admin/catalog/shows', '/admin/catalog/plays'].includes(req.body.redirectTo) ? req.body.redirectTo : '/admin/';
     res.redirect(redirectTo);
-  } catch (error) { next(error); }
+  } catch (error) { await Promise.all(allUploaded.map(deleteUploaded)); next(error); }
 });
 app.post('/admin/cart', requireAdmin, async (req, res, next) => {
   try {
@@ -836,6 +861,7 @@ app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image
   const allUploaded = [uploadedCover, ...uploadedGallery].filter(Boolean);
   if (!['heroes','shows','plays','events'].includes(type)) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(404).send('Каталог не найден'); }
   try {
+    await convertUploadedImagesToWebp(allUploaded);
     const items = await loadCatalog(type);
     const current = items.find(item => item.id === req.body.id);
     if (req.body.id && !current) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(404).send('Карточка не найдена'); }

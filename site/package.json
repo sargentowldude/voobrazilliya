@@ -7,12 +7,14 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch server.js",
     "start": "node --env-file-if-exists=.env server.js",
-    "check": "node --check server.js && node --check public/app.js && node --check public/admin.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/admin.js && node --check scripts/convert-images-to-webp.mjs",
+    "images:webp": "node scripts/convert-images-to-webp.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.5"
+    "nodemailer": "^9.0.5",
+    "sharp": "^0.34.3"
   }
 }
