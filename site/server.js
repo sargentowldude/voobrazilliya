@@ -195,19 +195,21 @@ const image = (item, className = '') => item?.image
 const programMediaGallery = item => {
   const media = Array.isArray(item?.gallery) ? item.gallery.filter(entry => entry?.src) : [];
   if (!media.length) return '';
+  const hasVideo = media.some(entry => entry.type === 'video');
   const title = String(item.galleryTitle || 'Материалы программы').trim();
   const entries = media.map(entry => {
     const alt = String(entry.alt || entry.label || '').trim();
     const label = entry.label ? `<figcaption>${escapeHtml(entry.label)}</figcaption>` : '';
     const openLabel = escapeAttr(`Открыть: ${alt || 'материал программы'}`);
     if (entry.type === 'video') {
-      const poster = entry.poster ? ` poster="${escapeAttr(entry.poster)}"` : '';
-      const posterData = entry.poster ? ` data-media-poster="${escapeAttr(entry.poster)}"` : '';
-      return `<figure class="program-media-gallery__item program-media-gallery__item--video"><button class="program-media-gallery__open" type="button" data-open-media data-media-type="video" data-media-src="${escapeAttr(entry.src)}"${posterData} data-media-alt="${escapeAttr(alt)}" aria-label="${openLabel}"><video autoplay muted loop playsinline preload="metadata"${poster} aria-hidden="true" style="${galleryCropStyle(entry)}"><source src="${escapeAttr(entry.src)}" type="${escapeAttr(entry.mime || 'video/mp4')}"></video></button>${label}</figure>`;
+      const previewPoster = entry.poster || item?.image || '';
+      const poster = previewPoster ? ` poster="${escapeAttr(previewPoster)}"` : '';
+      const posterData = previewPoster ? ` data-media-poster="${escapeAttr(previewPoster)}"` : '';
+      return `<figure class="program-media-gallery__item program-media-gallery__item--video"><button class="program-media-gallery__open" type="button" data-open-media data-media-type="video" data-media-src="${escapeAttr(entry.src)}"${posterData} data-media-alt="${escapeAttr(alt)}" aria-label="${openLabel}"><video muted playsinline preload="none"${poster} aria-hidden="true" style="${galleryCropStyle(entry)}"><source src="${escapeAttr(entry.src)}" type="${escapeAttr(entry.mime || 'video/mp4')}"></video></button>${label}</figure>`;
     }
     return `<figure class="program-media-gallery__item"><button class="program-media-gallery__open" type="button" data-open-media data-media-type="image" data-media-src="${escapeAttr(entry.src)}" data-media-alt="${escapeAttr(alt)}" aria-label="${openLabel}"><img src="${escapeAttr(entry.src)}" alt="" loading="lazy" style="${galleryCropStyle(entry)}"></button>${label}</figure>`;
   }).join('');
-  return `<section class="program-media-gallery" aria-label="${escapeAttr(title)}"><span class="program-media-gallery__title">${escapeHtml(title)}</span><div class="program-media-gallery__grid">${entries}</div></section>`;
+  return `<section class="program-media-gallery${hasVideo ? ' program-media-gallery--has-video' : ''}" aria-label="${escapeAttr(title)}"><span class="program-media-gallery__title">${escapeHtml(title)}</span><div class="program-media-gallery__grid">${entries}</div></section>`;
 };
 const photoFromContent = (content, key) => ({
   image: content[key] || '',
