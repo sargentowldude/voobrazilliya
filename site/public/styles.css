@@ -6894,3 +6894,34 @@ footer small {
     transition: none !important;
   }
 }
+
+
+/* Amplified hero confetti: larger shapes and a denser layered field. */
+.hero::before {
+  opacity: .78;
+  background:
+    radial-gradient(circle, var(--hero-confetti-a) 0 47%, transparent 53%) 8% 18% / 26px 26px no-repeat,
+    conic-gradient(from 18deg, var(--hero-confetti-b) 0 25%, transparent 25% 50%, var(--hero-confetti-b) 50% 75%, transparent 75%) 73% 16% / 32px 32px no-repeat,
+    linear-gradient(57deg, transparent 41%, var(--hero-confetti-c) 43% 58%, transparent 60%) 20% 74% / 17px 68px no-repeat,
+    radial-gradient(circle, var(--hero-confetti-d) 0 47%, transparent 53%) 65% 84% / 20px 20px no-repeat,
+    linear-gradient(130deg, transparent 40%, var(--hero-confetti-a) 42% 58%, transparent 60%) 91% 61% / 20px 62px no-repeat,
+    radial-gradient(circle, var(--hero-confetti-c) 0 47%, transparent 53%) 43% 47% / 16px 16px no-repeat,
+    conic-gradient(from 32deg, var(--hero-confetti-a) 0 25%, transparent 25% 50%, var(--hero-confetti-a) 50% 75%, transparent 75%) 87% 32% / 27px 27px no-repeat,
+    linear-gradient(42deg, transparent 40%, var(--hero-confetti-b) 42% 58%, transparent 60%) 39% 90% / 16px 53px no-repeat;
+}
+.hero::after {
+  opacity: .62;
+  background:
+    conic-gradient(from 8deg, var(--hero-confetti-c) 0 25%, transparent 25% 50%, var(--hero-confetti-c) 50% 75%, transparent 75%) 33% 12% / 25px 25px no-repeat,
+    linear-gradient(42deg, transparent 40%, var(--hero-confetti-b) 42% 58%, transparent 60%) 5% 64% / 16px 50px no-repeat,
+    radial-gradient(circle, var(--hero-confetti-a) 0 46%, transparent 53%) 51% 54% / 23px 23px no-repeat,
+    linear-gradient(132deg, transparent 41%, var(--hero-confetti-d) 43% 57%, transparent 59%) 83% 79% / 18px 57px no-repeat,
+    radial-gradient(circle, var(--hero-confetti-b) 0 46%, transparent 53%) 94% 26% / 18px 18px no-repeat,
+    conic-gradient(from 12deg, var(--hero-confetti-d) 0 25%, transparent 25% 50%, var(--hero-confetti-d) 50% 75%, transparent 75%) 59% 28% / 19px 19px no-repeat,
+    radial-gradient(circle, var(--hero-confetti-c) 0 46%, transparent 53%) 14% 45% / 16px 16px no-repeat,
+    linear-gradient(118deg, transparent 40%, var(--hero-confetti-a) 42% 58%, transparent 60%) 72% 53% / 18px 48px no-repeat;
+}
+@media (max-width: 600px) {
+  .hero::before { opacity: .64; }
+  .hero::after { opacity: .48; }
+}
