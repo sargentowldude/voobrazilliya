@@ -355,6 +355,10 @@ const pageHeroDefaults = {
   birthday: {
     title: 'ДЕНЬ РОЖДЕНИЯ\nДЛЯ ДЕТЕЙ\nВ КЕМЕРОВО',
     intro: 'Детский день рождения в Кемерово с аниматором, шоу или спектаклем. Подберём программу по возрасту ребёнка, гостям и вашей площадке.'
+  },
+  homeAnimator: {
+    title: 'ГЕРОЙ\nУЖЕ\nВ ПУТИ.',
+    intro: 'Позовите аниматора домой, в кафе, сад или школу — и обычный день превратится в приключение.'
   }
 };
 
@@ -485,7 +489,8 @@ const renderBirthday = async () => {
 
 const renderHomeAnimator = async () => {
   const content = await loadContent();
-  const body = `${heroBlock({ tag:'Аниматор на дом · Кемерово', lines:['ГЕРОЙ', 'УЖЕ', 'В ПУТИ.'], intro:'Позовите аниматора домой, в кафе, сад или школу — и обычный день превратится в приключение.', photo:photoFromContent(content,'animatoryPhoto3'), mascot:'/assets/mascot-peek-animator.png', service:'Аниматор на дом', pageClass:'afisha-hero' })}<section class="landing-intro"><span class="mono-tag">Где провести</span><h2>Мы приедем<br>туда, где<br>удобно вам</h2><p>Привезём реквизит, программу и настроение. Вам остаётся собрать гостей и ждать героя.</p></section>${partyForm()}`;
+  const heroCopy = pageHeroCopy(content, 'homeAnimator');
+  const body = `${heroBlock({ tag:'Аниматор на дом · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'animatoryPhoto3'), mascot:'/assets/mascot-peek-animator.png', service:'Аниматор на дом', pageClass:'afisha-hero' })}<section class="landing-intro"><span class="mono-tag">Где провести</span><h2>Мы приедем<br>туда, где<br>удобно вам</h2><p>Привезём реквизит, программу и настроение. Вам остаётся собрать гостей и ждать героя.</p></section>${partyForm()}`;
   return layout(pageMeta({ title:'Аниматор на дом в Кемерово | ТЕМА', description:'Заказать аниматора на дом в Кемерово: игровая программа, реквизит и любимый герой ребёнка.', path:'/animatory-na-dom/' }), body, 'page--animatory');
 };
 
@@ -509,9 +514,9 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body) => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть сайт ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><main class="admin-shell">${body}</main><script src="/admin.js" defer></script></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
-const adminTabs = active => `<nav class="admin-tabs"><a class="${active === 'content' ? 'is-active' : ''}" href="/admin/">Главная и фото</a><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Корзина аниматоров</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'plays' ? 'is-active' : ''}" href="/admin/catalog/plays">Спектакли</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a></nav>`;
+const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'theater-page' ? 'is-active' : ''}" href="/admin/page/theater">Спектакли — первый экран</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'plays' ? 'is-active' : ''}" href="/admin/catalog/plays">Спектакли</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
 const selectField = (label, name, value, values) => `<label class="admin-field">${escapeHtml(label)}<select name="${escapeAttr(name)}">${values.map(([itemValue, itemLabel]) => `<option value="${escapeAttr(itemValue)}" ${itemValue === value ? 'selected' : ''}>${escapeHtml(itemLabel)}</option>`).join('')}</select></label>`;
 const visibilityField = value => `<label class="admin-check"><input type="checkbox" name="published" ${value !== false ? 'checked' : ''}> Показывать на сайте</label>`;
@@ -541,87 +546,199 @@ const contentPhotoEditor = (key, title, content) => {
   return `<fieldset class="admin-photo-block"><legend>${escapeHtml(title)}</legend><div class="photo-editor" data-fit-preview="${escapeAttr(key)}"><div class="admin-photo-preview">${item.image ? `<img data-crop-preview="${escapeAttr(key)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>'}</div><label class="upload-field">Заменить изображение<input type="file" name="${escapeAttr(key)}" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(key)}"><span>JPG, PNG, WEBP или GIF → WebP</span></label><div class="crop-grid">${formField('Горизонт', `${key}PositionX`, number(item.imagePositionX), { type:'range', step:'1' }).replace(`name=\"${key}PositionX\"`, `name=\"${key}PositionX\" data-crop-x=\"${escapeAttr(key)}\"`)}${formField('Вертикаль', `${key}PositionY`, number(item.imagePositionY), { type:'range', step:'1' }).replace(`name=\"${key}PositionY\"`, `name=\"${key}PositionY\" data-crop-y=\"${escapeAttr(key)}\"`)}${formField('Масштаб', `${key}Scale`, number(item.imageScale, 100), { type:'range', step:'1' }).replace(`name=\"${key}Scale\"`, `name=\"${key}Scale\" data-crop-scale=\"${escapeAttr(key)}\"`)}<output data-scale-output="${escapeAttr(key)}">${number(item.imageScale, 100)}%</output></div></div></fieldset>`;
 };
 
-const pageHeroEditor = (key, label, content) => {
-  const heroCopy = pageHeroCopy(content, key);
-  return `<article class="admin-copy-card"><span>${escapeHtml(label)}</span>${formField('H1 — каждая строка с новой строки', `${key}HeroTitle`, heroCopy.lines.join('\n'), { textarea:true, wide:true, required:true })}${formField('Описание под H1', `${key}HeroIntro`, heroCopy.intro, { textarea:true, wide:true, required:true })}</article>`;
+const adminSaveNotice = query => query?.deleted === '1'
+  ? `<p class="admin-toast" role="status">Карточка удалена из каталога.</p>`
+  : query?.saved === '1' ? `<p class="admin-toast" role="status">Сохранено. Изменения уже видны на сайте.</p>` : '';
+
+const adminPreviewLink = (url, label = 'Открыть на сайте') => url
+  ? `<a class="admin-preview-link" href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(label)} ↗</a>` : '';
+
+const adminSaveBar = ({ previewUrl, submitLabel = 'Сохранить изменения' } = {}) => `<div class="admin-savebar" data-savebar><span data-save-status>Изменений нет</span><div><button class="admin-savebar__reset" type="button" data-reset-form hidden>Отменить</button>${adminPreviewLink(previewUrl, 'Посмотреть')}<button type="submit">${escapeHtml(submitLabel)}</button></div></div>`;
+
+const pagePhotoGroup = (group, content) => `<details class="admin-editor-section admin-editor-section--photos" ${group.open === false ? '' : 'open'}><summary><span><strong>${escapeHtml(group.title)}</strong><small>${escapeHtml(group.description || 'Изменяйте только то, что видно в указанном месте сайта.')}</small></span><b aria-hidden="true">⌄</b></summary><div class="admin-photo-grid">${group.items.map(([key, label]) => contentPhotoEditor(key, label, content)).join('')}</div></details>`;
+
+const adminPageConfig = {
+  home: {
+    active:'home', title:'Главная', eyebrow:'Страницы сайта',
+    intro:'Здесь редактируется только главная: первый экран, плитки направлений и фотомозаика. Фото других страниц — в их разделах слева.',
+    publicUrl:'/', adminUrl:'/admin/',
+    hero:{ titleName:'heroTitle', introName:'heroIntro', title:'Первый экран', hint:'Главный заголовок и текст, который посетитель видит сразу после открытия сайта.' },
+    photoGroups:[
+      { title:'Первый экран', description:'Большая фотография на первом экране главной.', items:[['photo1','Главная → первое большое фото']] },
+      { title:'Плитки направлений', description:'Карточки ниже первого экрана. Резервное фото будет видно, только если отдельная плитка не заполнена.', items:[
+        ['homeBoyPhoto','Главная → плитка «Аниматор для мальчика»'],
+        ['homeGirlPhoto','Главная → плитка «Аниматор для девочки» (сейчас используется резерв аниматоров)'],
+        ['homeAdultShowPhoto','Главная → плитка «Шоу для взрослых» (сейчас используется главное фото шоу)'],
+        ['homeFoamPhoto','Главная → плитка «Пенная вечеринка»'],
+        ['homeTheaterPhoto','Главная → плитка «Спектакли к вам» (сейчас используется главное фото спектаклей)']
+      ]},
+      { title:'Фотомозаика «Живые эмоции»', description:'Три кадра ниже плиток на главной странице.', items:[
+        ['photo5','Главная → мозаика, широкий кадр'],
+        ['photo6','Главная → мозаика, вертикальный кадр'],
+        ['photo7','Главная → мозаика, деталь']
+      ]}
+    ]
+  },
+  birthday: {
+    active:'birthday', title:'День рождения', eyebrow:'Страницы сайта',
+    intro:'Первый экран страницы дня рождения. Карточки «Аниматор», «Шоу» и «Спектакль» ниже используют общие фото из соответствующих разделов.',
+    publicUrl:'/detskiy-den-rozhdeniya/', adminUrl:'/admin/birthday',
+    hero:{ key:'birthday', title:'Первый экран', hint:'Каждая новая строка H1 станет новой строкой в дизайне.' },
+    photoGroups:[{ title:'Первый экран', description:'Главная фотография страницы дня рождения.', items:[['photoBirthday','День рождения → первое большое фото']] }]
+  },
+  animatory: {
+    active:'animatory-page', title:'Аниматоры — страница', eyebrow:'Страницы сайта',
+    intro:'Первый экран каталога аниматоров и связанные резервные изображения на главной.',
+    publicUrl:'/animatory/', adminUrl:'/admin/page/animatory',
+    hero:{ key:'animatory', title:'Первый экран', hint:'Заголовок и подзаголовок страницы каталога аниматоров.' },
+    photoGroups:[
+      { title:'Главное фото', description:'Первый экран аниматоров, карточка «Аниматор» на дне рождения и резерв на главной.', items:[['animatoryPhoto1','Аниматоры → первый экран и связанные карточки']] },
+      { title:'Резерв на главной', description:'Появится в плитке «Аниматор для девочки», если там не загружено отдельное фото.', items:[['animatoryPhoto2','Главная → резерв для плитки «Аниматор для девочки»']] },
+      { title:'Резерв', description:'Это фото пока нигде не используется и не видно посетителям.', open:false, items:[['animatoryPhoto4','Резерв → пока не показывается на сайте']] }
+    ]
+  },
+  homeAnimator: {
+    active:'home-animator', title:'Аниматор на дом', eyebrow:'Страницы сайта',
+    intro:'Первый экран страницы «Аниматор на дом»: заголовок, описание и фотография.',
+    publicUrl:'/animatory-na-dom/', adminUrl:'/admin/page/home-animator',
+    hero:{ key:'homeAnimator', title:'Первый экран', hint:'Заголовок и описание страницы «Аниматор на дом».' },
+    photoGroups:[{ title:'Первый экран', description:'Главная фотография страницы «Аниматор на дом».', items:[['animatoryPhoto3','Аниматор на дом → первое большое фото']] }]
+  },
+  show: {
+    active:'show-page', title:'Шоу — страница', eyebrow:'Страницы сайта',
+    intro:'Первый экран каталога шоу и резервные изображения, которые могут подхватываться на главной.',
+    publicUrl:'/show/', adminUrl:'/admin/page/show',
+    hero:{ key:'show', title:'Первый экран', hint:'Заголовок и подзаголовок страницы шоу.' },
+    photoGroups:[
+      { title:'Главное фото', description:'Первый экран шоу, карточка на дне рождения и резерв на главной.', items:[['showPhoto1','Шоу → первый экран и связанные карточки']] },
+      { title:'Резерв пенной вечеринки', description:'Покажется на главной только если для плитки «Пенная вечеринка» нет отдельного фото.', items:[['showPhoto2','Главная → резерв для плитки «Пенная вечеринка»']] },
+      { title:'Резерв', description:'Эти фото сейчас нигде не используются и не видны посетителям.', open:false, items:[['showPhoto3','Резерв → пока не показывается на сайте'],['showPhoto4','Резерв → пока не показывается на сайте']] }
+    ]
+  },
+  theater: {
+    active:'theater-page', title:'Спектакли — страница', eyebrow:'Страницы сайта',
+    intro:'Первый экран каталога спектаклей и резервные изображения.',
+    publicUrl:'/spektakli/', adminUrl:'/admin/page/theater',
+    hero:{ key:'theater', title:'Первый экран', hint:'Заголовок и подзаголовок страницы спектаклей.' },
+    photoGroups:[
+      { title:'Главное фото', description:'Первый экран спектаклей, карточка на дне рождения и резерв на главной.', items:[['theaterPhoto1','Спектакли → первый экран и связанные карточки']] },
+      { title:'Резерв', description:'Эти фото сейчас нигде не используются и не видны посетителям.', open:false, items:[['theaterPhoto2','Резерв → пока не показывается на сайте'],['theaterPhoto3','Резерв → пока не показывается на сайте'],['theaterPhoto4','Резерв → пока не показывается на сайте']] }
+    ]
+  }
 };
 
-const pageHeroForm = (key, title, content, redirectTo) => {
-  const heroCopy = pageHeroCopy(content, key);
-  return `<form class="admin-page-copy" method="post" action="/admin/content" enctype="multipart/form-data"><input type="hidden" name="redirectTo" value="${escapeAttr(redirectTo)}"><section class="admin-panel"><div class="admin-panel__top"><div><h2>Главный текст страницы</h2><p class="admin-panel__hint">${escapeHtml(title)}: отредактируйте H1 и описание первого экрана. Каждая новая строка H1 станет новой строкой в дизайне.</p></div></div><div class="admin-grid">${formField('H1 — каждая строка с новой строки', `${key}HeroTitle`, heroCopy.lines.join('\n'), { textarea:true, wide:true, required:true })}${formField('Описание под H1', `${key}HeroIntro`, heroCopy.intro, { textarea:true, wide:true, required:true })}</div><div class="admin-actions"><button type="submit">СОХРАНИТЬ ГЛАВНЫЙ ТЕКСТ</button></div></section></form>`;
+const renderPageHeroFields = (config, content) => {
+  if (!config.hero) return '';
+  const titleName = config.hero.key ? `${config.hero.key}HeroTitle` : config.hero.titleName;
+  const introName = config.hero.key ? `${config.hero.key}HeroIntro` : config.hero.introName;
+  const current = config.hero.key ? pageHeroCopy(content, config.hero.key) : { lines:[content[titleName] || ''], intro:content[introName] || '' };
+  return `<section class="admin-editor-card"><header><span>${escapeHtml(config.hero.title)}</span><h2>Что увидят на первом экране</h2><p>${escapeHtml(config.hero.hint)}</p></header><div class="admin-grid">${formField(config.hero.key ? 'H1 — каждая строка с новой строки' : 'H1', titleName, current.lines.join('\n'), { textarea:Boolean(config.hero.key), wide:true, required:true })}${formField(config.hero.key ? 'Описание под H1' : 'Подзаголовок', introName, current.intro, { textarea:true, wide:true, required:true })}</div></section>`;
 };
 
-const renderAdminContent = async () => {
+const renderAdminPage = async (key, query = {}) => {
+  const config = adminPageConfig[key];
+  if (!config) throw new Error('Страница админки не найдена');
   const content = await loadContent();
-  const photoGroups = [
-    ['photo1','Главная — большое фото'], ['homeBoyPhoto','Главная, карточка — аниматор для мальчика'], ['homeGirlPhoto','Главная, карточка — аниматор для девочки'], ['homeAdultShowPhoto','Главная, карточка — шоу для взрослых'], ['homeFoamPhoto','Главная, карточка — пенная вечеринка'], ['homeTheaterPhoto','Главная, карточка — спектакли'], ['photo5','Главная — мозаика, широкий кадр'], ['photo6','Главная — мозаика, портрет'], ['photo7','Главная — мозаика, деталь'], ['photoBirthday','День рождения — главное фото'], ['animatoryPhoto1','Аниматоры — главное фото'], ['animatoryPhoto2','Аниматоры — дополнительное фото'], ['animatoryPhoto3','Аниматоры — фото 3'], ['animatoryPhoto4','Аниматоры — фото 4'], ['showPhoto1','Шоу — главное фото'], ['showPhoto2','Шоу — фото 2'], ['showPhoto3','Шоу — фото 3'], ['showPhoto4','Шоу — фото 4'], ['theaterPhoto1','Спектакли — главное фото'], ['theaterPhoto2','Спектакли — фото 2'], ['theaterPhoto3','Спектакли — фото 3'], ['theaterPhoto4','Спектакли — фото 4']
-  ];
-  return adminLayout('Главная', `<div class="admin-page-head"><div><span>ТЕМА</span><h1>Главная и фотографии</h1><p>Все фотографии и их кадрирование в одном месте.</p></div></div>${adminTabs('content')}<form class="admin-content-form" method="post" action="/admin/content" enctype="multipart/form-data"><section class="admin-panel"><h2>Текст на главной</h2><div class="admin-grid">${formField('H1', 'heroTitle', content.heroTitle, { required:true, wide:true })}${formField('Подзаголовок', 'heroIntro', content.heroIntro, { textarea:true, wide:true })}</div></section><section class="admin-panel"><h2>Фотографии страниц</h2><div class="admin-photo-grid">${photoGroups.map(([key,title]) => contentPhotoEditor(key,title,content)).join('')}</div></section><div class="admin-actions"><button type="submit">СОХРАНИТЬ ИЗМЕНЕНИЯ</button></div></form>`);
+  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
+  return adminLayout(config.title, body, config.active);
 };
 
-const renderAdminBirthday = async () => {
-  const content = await loadContent();
-  return adminLayout('День рождения', `<div class="admin-page-head"><div><span>ТЕМА / СТРАНИЦА</span><h1>День рождения</h1><p>Главный текст и SEO-смысл страницы детского дня рождения.</p></div></div>${adminTabs('birthday')}${pageHeroForm('birthday', 'Детский день рождения', content, '/admin/birthday')}`);
-};
+const renderAdminContent = query => renderAdminPage('home', query);
+const renderAdminBirthday = query => renderAdminPage('birthday', query);
 
-const renderAdminHeroCart = async () => {
+const renderAdminHeroCart = async (query = {}) => {
   const settings = heroCartSettings(await loadContent());
-  return adminLayout('Корзина аниматоров', `<div class="admin-page-head"><div><span>ТЕМА / АНИМАТОРЫ</span><h1>Корзина и акция</h1><p>Настройте предложение второго персонажа. Клиент видит его сразу после выбора первого героя, без перехода на отдельную страницу.</p></div></div>${adminTabs('cart')}<form class="admin-content-form" method="post" action="/admin/cart"><section class="admin-panel"><div class="admin-panel__top"><div><h2>Второй герой со скидкой</h2><p class="admin-panel__hint">Доплата прибавляется к цене первого героя на выбранный день.</p></div><label class="admin-check"><input type="checkbox" name="heroCartUpsellEnabled" ${settings.enabled ? 'checked' : ''}> Показывать предложение</label></div><div class="admin-grid">${formField('Цена второго героя, ₽', 'heroCartSecondHeroPrice', settings.secondHeroPrice, { type:'number', step:'1', required:true })}${formField('Заголовок акции', 'heroCartPromoTitle', settings.promoTitle, { required:true, wide:true })}${formField('Текст под заголовком', 'heroCartPromoDescription', settings.promoDescription, { textarea:true, wide:true })}</div></section><div class="admin-actions"><button type="submit">СОХРАНИТЬ НАСТРОЙКИ</button></div></form>`);
+  const body = `<header class="admin-page-head"><div><span>Продажи</span><h1>Акция второго героя</h1><p>Это предложение клиент увидит после выбора первого аниматора. Здесь меняются только настройки акции.</p></div>${adminPreviewLink('/animatory/', 'Посмотреть каталог')}</header>${adminSaveNotice(query)}<form class="admin-content-form admin-edit-form" method="post" action="/admin/cart" data-admin-form><section class="admin-editor-card"><header><span>Настройки акции</span><h2>Второй герой со скидкой</h2><p>Доплата прибавляется к цене первого героя на выбранный день.</p></header><div class="admin-panel__top"><label class="admin-check"><input type="checkbox" name="heroCartUpsellEnabled" ${settings.enabled ? 'checked' : ''}> Показывать предложение на сайте</label></div><div class="admin-grid">${formField('Цена второго героя, ₽', 'heroCartSecondHeroPrice', settings.secondHeroPrice, { type:'number', step:'1', required:true })}${formField('Заголовок акции', 'heroCartPromoTitle', settings.promoTitle, { required:true, wide:true })}${formField('Текст под заголовком', 'heroCartPromoDescription', settings.promoDescription, { textarea:true, wide:true })}</div></section>${adminSaveBar({ previewUrl:'/animatory/', submitLabel:'Сохранить акцию' })}</form>`;
+  return adminLayout('Акция второго героя', body, 'cart');
 };
+
+const catalogTitles = { heroes:'Аниматоры', shows:'Шоу', plays:'Спектакли', events:'Афиша' };
+const catalogPageIntro = {
+  heroes:'Добавляйте и редактируйте карточки аниматоров. Первый экран страницы настраивается отдельно в разделе «Аниматоры — первый экран».',
+  shows:'Добавляйте и редактируйте шоу. Первый экран страницы настраивается отдельно в разделе «Шоу — первый экран».',
+  plays:'Добавляйте и редактируйте спектакли. Первый экран страницы настраивается отдельно в разделе «Спектакли — первый экран».',
+  events:'Добавляйте мероприятия в афишу. Каждая карточка открывается в отдельной редакторской странице.'
+};
+
+const catalogPublicUrl = (type, item) => {
+  if (!item || item.published === false) return '';
+  if (type === 'heroes') return `/animatory/${item.slug}/`;
+  if (type === 'shows') return `/show/${item.slug}/`;
+  if (type === 'events') return `/afisha/${item.slug}/`;
+  return '/spektakli/';
+};
+
+const catalogEditorSection = (title, description, body, open = true) => `<details class="admin-editor-section" ${open ? 'open' : ''}><summary><span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(description)}</small></span><b aria-hidden="true">⌄</b></summary><div class="admin-editor-section__body">${body}</div></details>`;
 
 const catalogForm = (type, item = {}) => {
-  const hero = type === 'heroes'; const show = type === 'shows'; const play = type === 'plays'; const event = type === 'events';
-  const label = hero ? 'аниматора' : show ? 'шоу' : play ? 'спектакля' : 'афиши';
-  const heading = item.id ? `Редактировать ${label}` : `Добавить ${label}`;
-  let basic = formField(hero || show || event ? 'Название' : 'Название спектакля', 'name', item.name || item.title || '', { required:true, wide:true });
-  if (!play) basic += formField('SEO-slug / адрес', 'slug', item.slug || '', { wide:true });
+  const hero = type === 'heroes';
+  const show = type === 'shows';
+  const play = type === 'plays';
+  const event = type === 'events';
+  const noun = hero ? 'аниматора' : show ? 'шоу' : play ? 'спектакль' : 'событие';
+  const title = item.name || item.title || '';
+  const name = formField(hero || show || event ? 'Название' : 'Название спектакля', 'name', title, { required:true, wide:true }).replace('name="name"', 'name="name" data-title');
+  const slug = !play ? formField('Адрес страницы', 'slug', item.slug || '', { wide:true }).replace('name="slug"', 'name="slug" data-slug') : '';
+  let basic = name + slug;
+  let settings = '';
+  let seo = '';
+
   if (event) {
-    basic += formField('Дата', 'date', item.date || '', { type:'date' });
-    basic += formField('Категория', 'category', item.category || 'Событие');
     basic += formField('Описание', 'description', item.description || '', { textarea:true, wide:true });
-    basic += formField('Надпись на кнопке', 'buttonLabel', item.buttonLabel || 'Открыть афишу');
-    basic += formField('Ссылка кнопки (необязательно)', 'buttonUrl', item.buttonUrl || '');
+    settings = formField('Дата', 'date', item.date || '', { type:'date' })
+      + formField('Категория', 'category', item.category || 'Событие')
+      + formField('Надпись на кнопке', 'buttonLabel', item.buttonLabel || 'Открыть афишу')
+      + formField('Ссылка кнопки (необязательно)', 'buttonUrl', item.buttonUrl || '');
   } else {
     basic += formField('Описание', 'description', item.description || '', { textarea:true, wide:true });
     if (hero) {
-      basic += formField('Длительность, минут', 'duration', item.duration || 40, { type:'number', step:'1' });
-      basic += selectField('Для кого', 'audience', item.audience || 'all', [['all','Для всех'],['boys','Для мальчиков'],['girls','Для девочек']]);
-      basic += formField('Цена в будни, ₽', 'priceWeekday', item.priceWeekday ?? item.price ?? '', { type:'number', step:'1', required:true });
-      basic += formField('Цена в выходные, ₽', 'priceWeekend', item.priceWeekend ?? item.price ?? '', { type:'number', step:'1', required:true });
+      settings = formField('Длительность, минут', 'duration', item.duration || 40, { type:'number', step:'1' })
+        + selectField('Для кого', 'audience', item.audience || 'all', [['all','Для всех'],['boys','Для мальчиков'],['girls','Для девочек']])
+        + formField('Цена в будни, ₽', 'priceWeekday', item.priceWeekday ?? item.price ?? '', { type:'number', step:'1', required:true })
+        + formField('Цена в выходные, ₽', 'priceWeekend', item.priceWeekend ?? item.price ?? '', { type:'number', step:'1', required:true });
     } else if (play) {
-      basic += formField('Возраст', 'age', item.age || '3+');
-      basic += formField('Цена, ₽ (необязательно)', 'price', item.price || '', { type:'number', step:'1' });
+      settings = formField('Возраст', 'age', item.age || '3+') + formField('Цена, ₽ (необязательно)', 'price', item.price || '', { type:'number', step:'1' });
     } else {
-      basic += formField('Цена, ₽', 'price', item.price || '', { type:'number', step:'1', required:true });
+      settings = formField('Цена, ₽', 'price', item.price || '', { type:'number', step:'1', required:true });
     }
-    if (!play) {
-      basic += formField('SEO-заголовок', 'seoTitle', item.seoTitle || '', { wide:true });
-      basic += formField('SEO-описание', 'seoDescription', item.seoDescription || '', { textarea:true, wide:true });
-    }
+    if (!play) seo = formField('Заголовок для поиска', 'seoTitle', item.seoTitle || '', { wide:true })
+      + formField('Описание для поиска', 'seoDescription', item.seoDescription || '', { textarea:true, wide:true });
   }
-  return `<section class="admin-panel"><div class="admin-panel__top"><h2>${heading}</h2>${visibilityField(item.published)}</div><input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><div class="admin-grid">${basic}</div>${mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event })}${show || play ? galleryEditor(`${type}-${item.id || 'new'}`, item) : ''}</section>`;
+
+  const status = item.published !== false ? 'Карточка видна посетителям.' : 'Карточка скрыта: её видите только вы в админке.';
+  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show || play ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${seo ? catalogEditorSection('Поисковая выдача', 'Необязательно. Если оставить пустым, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
 };
 
 const catalogItemCard = (type, item) => {
   const title = item.name || item.title || 'Без названия';
-  const typeName = { heroes:'Аниматор', shows:'Шоу', plays:'Спектакль', events:'Афиша' }[type];
   const prices = type === 'heroes' ? heroPrices(item) : null;
-  const priceMeta = type === 'heroes'
+  const price = type === 'heroes'
     ? `будни ${formatPrice(prices.weekday)} · выходные ${formatPrice(prices.weekend)}`
     : Number(item.price) ? `от ${formatPrice(item.price)}` : '';
-  const meta = [typeName, item.age, type === 'heroes' && item.duration ? `${item.duration} мин` : '', priceMeta].filter(Boolean).join(' · ');
-  const media = item.image
-    ? `<img src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">`
-    : '<span>Нет фото</span>';
-  return `<details class="admin-catalog-item"><summary><span class="admin-catalog-item__media">${media}</span><span class="admin-catalog-item__copy"><small>${escapeHtml(meta)}</small><strong>${escapeHtml(title)}</strong></span><span class="admin-catalog-item__status ${item.published !== false ? 'is-live' : ''}">${item.published !== false ? 'На сайте' : 'Скрыто'}</span><span class="admin-catalog-item__edit">Изменить <b>↓</b></span></summary><form class="admin-catalog-form" method="post" action="/admin/catalog/${type}/save" enctype="multipart/form-data">${catalogForm(type,item)}<div class="admin-actions"><button type="submit">Сохранить изменения</button><button class="admin-danger" type="submit" formaction="/admin/catalog/${type}/delete" formnovalidate onclick="return confirm('Удалить карточку?')">Удалить</button></div></form></details>`;
+  const meta = [item.age, type === 'heroes' && item.duration ? `${item.duration} мин` : '', price].filter(Boolean).join(' · ');
+  const media = item.image ? `<img src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<span>Нет фото</span>';
+  const preview = catalogPublicUrl(type, item);
+  return `<article class="admin-catalog-row"><span class="admin-catalog-item__media">${media}</span><div class="admin-catalog-item__copy"><small>${escapeHtml(meta || 'Карточка каталога')}</small><strong>${escapeHtml(title)}</strong></div><span class="admin-catalog-item__status ${item.published !== false ? 'is-live' : ''}">${item.published !== false ? 'На сайте' : 'Скрыто'}</span><div class="admin-catalog-row__actions"><a class="admin-row-action" href="/admin/catalog/${escapeAttr(type)}/edit/${escapeAttr(item.id)}">Редактировать</a>${preview ? adminPreviewLink(preview, 'Открыть') : '<span class="admin-row-muted">Скрыто</span>'}</div></article>`;
 };
 
-const renderAdminCatalog = async type => {
-  const titles = { heroes:'Аниматоры', shows:'Шоу', plays:'Спектакли', events:'Афиша' };
-  const [items, content] = await Promise.all([loadCatalog(type), loadContent()]);
-  const pageCopy = { heroes:['animatory', 'Аниматоры на праздник', '/admin/catalog/heroes'], shows:['show', 'Шоу-программы', '/admin/catalog/shows'], plays:['theater', 'Спектакли для детей', '/admin/catalog/plays'] }[type];
-  const heroTextEditor = pageCopy ? pageHeroForm(pageCopy[0], pageCopy[1], content, pageCopy[2]) : '';
-  return adminLayout(titles[type], `<div class="admin-page-head"><div><span>ТЕМА / КАТАЛОГ</span><h1>${titles[type]}</h1><p>Добавляйте карточки, стоимость, описание, SEO и фотографии. Изменения появляются на сайте сразу после сохранения.</p></div><button data-open-create>+ Добавить</button></div>${adminTabs(type)}${heroTextEditor}<div class="admin-catalog-list">${items.length ? items.map(item => catalogItemCard(type,item)).join('') : '<p class="admin-panel admin-empty">В каталоге пока нет карточек.</p>'}</div><dialog class="create-dialog"><button class="create-dialog__close" type="button" aria-label="Закрыть">×</button><form class="admin-catalog-form" method="post" action="/admin/catalog/${type}/save" enctype="multipart/form-data">${catalogForm(type,{ published:true })}<div class="admin-actions"><button type="submit">Создать карточку</button></div></form></dialog>`);
+const renderAdminCatalog = async (type, query = {}) => {
+  const title = catalogTitles[type];
+  const items = await loadCatalog(type);
+  const pageKey = { heroes:'animatory', shows:'show', plays:'theater' }[type];
+  const pageLink = pageKey ? `<aside class="admin-linked-page"><div><span>Связанная страница</span><strong>Первый экран настраивается отдельно</strong><p>Текст и общая фотография каталога не смешаны с карточками.</p></div><a href="${escapeAttr(adminPageConfig[pageKey].adminUrl)}">Открыть первый экран →</a></aside>` : '';
+  const body = `<header class="admin-page-head"><div><span>Каталог</span><h1>${escapeHtml(title)}</h1><p>${escapeHtml(catalogPageIntro[type])}</p></div><a class="admin-primary-link" href="/admin/catalog/${escapeAttr(type)}/new">+ Добавить</a></header>${adminSaveNotice(query)}${pageLink}<section class="admin-catalog-list" aria-label="${escapeAttr(title)}">${items.length ? items.map(item => catalogItemCard(type, item)).join('') : '<p class="admin-empty">Пока нет карточек. Добавьте первую.</p>'}</section>`;
+  return adminLayout(title, body, type);
+};
+
+const renderAdminCatalogEditor = async (type, id, query = {}) => {
+  const items = await loadCatalog(type);
+  const isNew = id === 'new';
+  const item = isNew ? { published:true } : items.find(entry => entry.id === id);
+  if (!item) throw new Error('Карточка не найдена');
+  const title = item.name || item.title || 'Новая карточка';
+  const preview = catalogPublicUrl(type, item);
+  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/${escapeAttr(type)}">← Все карточки</a><span>Каталог</span><h1>${escapeHtml(isNew ? `Новая карточка` : title)}</h1><p>Заполните главное, загрузите обложку и при необходимости добавьте материалы. Поля для поиска спрятаны в отдельный блок.</p></div>${preview ? adminPreviewLink(preview, 'Открыть на сайте') : ''}</header>${adminSaveNotice(query)}<form class="admin-catalog-form admin-edit-form" method="post" action="/admin/catalog/${escapeAttr(type)}/save" enctype="multipart/form-data" data-admin-form>${catalogForm(type, item)}${adminSaveBar({ previewUrl:preview, submitLabel:isNew ? 'Создать карточку' : 'Сохранить изменения' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление уберёт карточку из каталога. Загруженные файлы сохранятся на сервере.</p><button class="admin-danger" type="submit" formaction="/admin/catalog/${escapeAttr(type)}/delete" formnovalidate onclick="return confirm('Удалить карточку?')">Удалить карточку</button></div>`}</form>`;
+  return adminLayout(isNew ? `Новая карточка · ${catalogTitles[type]}` : title, body, type);
 };
 
 const updateGallery = (source, body, files = []) => {
@@ -650,7 +767,9 @@ const updateGallery = (source, body, files = []) => {
       imageScale: 100
     };
   });
-  return [...kept, ...added].slice(0, 12);
+  const gallery = [...kept, ...added];
+  if (gallery.length > 12) throw new Error('В карточке может быть максимум 12 фото и видео. Уберите лишнее и сохраните ещё раз.');
+  return gallery;
 };
 
 const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = []) => {
@@ -805,13 +924,27 @@ app.post('/admin/login', (req, res) => {
   res.redirect('/admin/');
 });
 app.post('/admin/logout', (_req, res) => { res.setHeader('Set-Cookie', 'tema_admin=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'); res.redirect('/admin/login'); });
-app.get('/admin/', requireAdmin, async (_req, res, next) => { try { res.send(await renderAdminContent()); } catch (error) { next(error); } });
-app.get('/admin/birthday', requireAdmin, async (_req, res, next) => { try { res.send(await renderAdminBirthday()); } catch (error) { next(error); } });
-app.get('/admin/cart', requireAdmin, async (_req, res, next) => { try { res.send(await renderAdminHeroCart()); } catch (error) { next(error); } });
+app.get('/admin/', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminContent(req.query)); } catch (error) { next(error); } });
+app.get('/admin/birthday', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminBirthday(req.query)); } catch (error) { next(error); } });
+app.get('/admin/page/:page', requireAdmin, async (req, res, next) => {
+  const pageKey = { animatory:'animatory', 'home-animator':'homeAnimator', show:'show', theater:'theater' }[req.params.page];
+  if (!pageKey) return res.status(404).send('Страница админки не найдена');
+  try { res.send(await renderAdminPage(pageKey, req.query)); } catch (error) { next(error); }
+});
+app.get('/admin/cart', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminHeroCart(req.query)); } catch (error) { next(error); } });
+app.get('/admin/catalog/:type/new', requireAdmin, async (req, res, next) => {
+  if (!['heroes','shows','plays','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
+  try { res.send(await renderAdminCatalogEditor(req.params.type, 'new', req.query)); } catch (error) { next(error); }
+});
+app.get('/admin/catalog/:type/edit/:id', requireAdmin, async (req, res, next) => {
+  if (!['heroes','shows','plays','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
+  try { res.send(await renderAdminCatalogEditor(req.params.type, req.params.id, req.query)); } catch (error) { next(error); }
+});
 app.get('/admin/catalog/:type', requireAdmin, async (req, res, next) => {
   if (!['heroes','shows','plays','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
-  try { res.send(await renderAdminCatalog(req.params.type)); } catch (error) { next(error); }
+  try { res.send(await renderAdminCatalog(req.params.type, req.query)); } catch (error) { next(error); }
 });
+
 app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) => {
   const allUploaded = req.files || [];
   try {
@@ -837,8 +970,9 @@ app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) =>
       nextContent[`${key}Scale`] = number(req.body[`${key}Scale`], previous[`${key}Scale`] ?? 100);
     }
     await writeJson(files.content, nextContent);
-    const redirectTo = ['/admin/', '/admin/birthday', '/admin/catalog/heroes', '/admin/catalog/shows', '/admin/catalog/plays'].includes(req.body.redirectTo) ? req.body.redirectTo : '/admin/';
-    res.redirect(redirectTo);
+    const requestedRedirect = String(req.body.redirectTo || '');
+    const redirectTo = Object.values(adminPageConfig).some(config => config.adminUrl === requestedRedirect) ? requestedRedirect : '/admin/';
+    res.redirect(`${redirectTo}?saved=1`);
   } catch (error) { await Promise.all(allUploaded.map(deleteUploaded)); next(error); }
 });
 app.post('/admin/cart', requireAdmin, async (req, res, next) => {
@@ -852,7 +986,7 @@ app.post('/admin/cart', requireAdmin, async (req, res, next) => {
       heroCartPromoTitle: String(req.body.heroCartPromoTitle || defaults.promoTitle).trim().slice(0, 120),
       heroCartPromoDescription: String(req.body.heroCartPromoDescription || defaults.promoDescription).trim().slice(0, 280)
     });
-    res.redirect('/admin/cart');
+    res.redirect('/admin/cart?saved=1');
   } catch (error) { next(error); }
 });
 app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image', maxCount:1 }, { name:'galleryMedia', maxCount:8 }]), async (req, res, next) => {
@@ -870,13 +1004,13 @@ app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image
     const updated = await updateCatalogItem(type, current, req.body, uploadedCover, uploadedGallery);
     if (!updated.name && !updated.title) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(400).send('Укажите название'); }
     await saveCatalog(type, current ? items.map(item => item.id === current.id ? updated : item) : [...items, updated]);
-    res.redirect(`/admin/catalog/${type}`);
+    res.redirect(`/admin/catalog/${type}/edit/${updated.id}?saved=1`);
   } catch (error) { await Promise.all(allUploaded.map(deleteUploaded)); next(error); }
 });
 app.post('/admin/catalog/:type/delete', requireAdmin, async (req, res, next) => {
   const type = req.params.type;
   if (!['heroes','shows','plays','events'].includes(type)) return res.status(404).send('Каталог не найден');
-  try { const items = await loadCatalog(type); await saveCatalog(type, items.filter(item => item.id !== req.body.id)); res.redirect(`/admin/catalog/${type}`); } catch (error) { next(error); }
+  try { const items = await loadCatalog(type); await saveCatalog(type, items.filter(item => item.id !== req.body.id)); res.redirect(`/admin/catalog/${type}?deleted=1`); } catch (error) { next(error); }
 });
 
 app.get('/privacy/', (_req, res) => res.send(privacyPage()));

@@ -52,3 +52,87 @@ document.querySelectorAll('[data-crop-x],[data-crop-y],[data-crop-scale]').forEa
 document.querySelectorAll('[data-image-fit]').forEach(select => {
   select.addEventListener('change', () => updateCrop(select.dataset.imageFit));
 });
+
+/* Admin overhaul: unsaved changes */
+(() => {
+  const forms = [...document.querySelectorAll('[data-admin-form]')];
+  const state = new WeakMap();
+
+  const setDirty = (form, dirty) => {
+    const current = state.get(form) || {};
+    current.dirty = dirty;
+    state.set(form, current);
+    form.dataset.dirty = dirty ? 'true' : 'false';
+    const status = form.querySelector('[data-save-status]');
+    const reset = form.querySelector('[data-reset-form]');
+    if (status) {
+      status.textContent = dirty ? 'Есть несохранённые изменения' : 'Изменений нет';
+      status.classList.toggle('is-dirty', dirty);
+    }
+    if (reset) reset.hidden = !dirty;
+  };
+
+  const hasUnsavedChanges = () => forms.some(form => state.get(form)?.dirty);
+
+  forms.forEach(form => {
+    state.set(form, { dirty:false });
+    form.addEventListener('input', () => setDirty(form, true));
+    form.addEventListener('change', () => setDirty(form, true));
+    form.addEventListener('submit', () => setDirty(form, false));
+    form.querySelector('[data-reset-form]')?.addEventListener('click', () => {
+      if (window.confirm('Отменить все несохранённые изменения на этой странице?')) window.location.reload();
+    });
+  });
+
+  window.addEventListener('beforeunload', event => {
+    if (!hasUnsavedChanges()) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+
+  document.addEventListener('click', event => {
+    const link = event.target.closest('a[href]');
+    if (!link || link.target === '_blank' || link.hasAttribute('download') || !hasUnsavedChanges()) return;
+    if (!window.confirm('Есть несохранённые изменения. Перейти и потерять их?')) event.preventDefault();
+  });
+})();
+
+/* Admin overhaul: upload feedback */
+(() => {
+  const formatSize = files => (files.reduce((sum, file) => sum + file.size, 0) / 1048576).toFixed(1);
+  const renderQueue = (input, files) => {
+    const field = input.closest('.upload-field');
+    if (!field) return;
+    let queue = field.querySelector('.admin-upload-queue');
+    if (!queue) {
+      queue = document.createElement('span');
+      queue.className = 'admin-upload-queue';
+      field.append(queue);
+    }
+    queue.replaceChildren(...files.map(file => {
+      const chip = document.createElement('i');
+      chip.textContent = file.name;
+      chip.title = file.name;
+      return chip;
+    }));
+  };
+
+  document.querySelectorAll('input[type="file"]').forEach(input => input.addEventListener('change', () => {
+    const files = [...(input.files || [])];
+    const hint = input.closest('.upload-field')?.querySelector(':scope > span:not(.admin-upload-queue)');
+    if (!files.length) return;
+    const total = formatSize(files);
+    if (input.name === 'galleryMedia') {
+      const editor = input.closest('.admin-gallery-editor');
+      const existing = editor?.querySelectorAll('.admin-gallery-item').length || 0;
+      const available = Math.max(0, 12 - existing);
+      const maximum = Math.min(8, available);
+      const valid = files.length <= maximum;
+      input.setCustomValidity(valid ? '' : `Можно добавить максимум ${maximum} файлов: сейчас в карточке ${existing} из 12 материалов.`);
+      if (hint) hint.textContent = `${files.length} файлов · ${total} МБ · максимум ${maximum} за это сохранение`;
+      renderQueue(input, files);
+      return;
+    }
+    if (hint) hint.textContent = `${files[0].name} · ${total} МБ`;
+  }));
+})();
