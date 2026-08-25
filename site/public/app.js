@@ -197,6 +197,15 @@ const setupMobileCartStepper = form => {
   let step = "program";
   let latest = { summary:"", total:"—", ready:false };
 
+  const updateScrollHints = () => {
+    window.requestAnimationFrame(() => {
+      form.querySelectorAll("[data-cart-scroll-hint]").forEach(hint => {
+        const scroller = hint.nextElementSibling;
+        hint.hidden = !scroller || scroller.scrollWidth <= scroller.clientWidth + 2;
+      });
+    });
+  };
+
   const setStep = nextStep => {
     step = nextStep;
     form.dataset.mobileStep = step;
@@ -230,6 +239,7 @@ const setupMobileCartStepper = form => {
       actionTotal.textContent = latest.total;
       compactSummary.textContent = latest.summary;
       if (step === "program") continueButton.disabled = !latest.ready;
+      updateScrollHints();
     },
     reset() { setStep("program"); }
   };
@@ -401,6 +411,7 @@ if (showCart) {
   const toggleHeroes = showCart.querySelector("[data-show-cart-toggle-heroes]");
   const clearHeroes = showCart.querySelector("[data-show-cart-clear-heroes]");
   const selectionHint = showCart.querySelector("[data-show-cart-selection-hint]");
+  const selectionToolbar = showCart.querySelector(".show-cart__selection-toolbar");
   let showCatalog = [];
   try {
     showCatalog = JSON.parse(showCart.dataset.showCartCatalog || "[]");
@@ -416,7 +427,6 @@ if (showCart) {
     return show?.enabled && Array.isArray(show.offers) ? show.offers : [];
   };
   const maxHeroesForShow = () => Number(currentShow()?.maxHeroes) === 1 ? 1 : 2;
-  const maxHeroesLabel = maxHeroes => maxHeroes === 1 ? "одного аниматора" : "до двух аниматоров";
   const currentHeroes = () => state.heroIds.map(id => currentOffers().find(hero => hero.id === id)).filter(Boolean);
   const heroPrice = hero => Number(hero?.[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] || 0);
   const showName = cartForm.querySelector("[data-show-cart-name]");
@@ -522,9 +532,9 @@ if (showCart) {
       optionWrap.hidden = !state.heroPickerOpen;
       toggleHeroes.textContent = state.heroPickerOpen ? "Скрыть выбор" : heroes.length ? "Изменить состав" : maxHeroes === 1 ? "Выбрать аниматора" : "Выбрать аниматоров";
       toggleHeroes.setAttribute("aria-expanded", String(state.heroPickerOpen));
-      selectionHint.textContent = heroes.length
-        ? `Выбрано: ${heroes.length} из ${maxHeroes}. Нажмите на карточку, чтобы убрать аниматора.`
-        : `Можно выбрать ${maxHeroesLabel(maxHeroes)}.`;
+      selectionToolbar.hidden = !heroes.length;
+      selectionHint.hidden = !heroes.length;
+      selectionHint.textContent = heroes.length ? `Выбрано: ${heroes.length} из ${maxHeroes}.` : "";
       clearHeroes.hidden = !heroes.length;
       renderHeroOptions(offers);
     }

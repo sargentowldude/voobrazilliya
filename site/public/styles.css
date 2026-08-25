@@ -7331,6 +7331,7 @@ footer small {
 
 /* Mobile checkout: split the long cart into program and contact steps. */
 .cart-mobile-stepper { display: none; }
+.hero-cart__scroll-hint { display: none; }
 
 @media (max-width: 600px) {
   .hero-cart {
@@ -7416,10 +7417,30 @@ footer small {
   .hero-cart [data-cart-desktop-submit] { display: none; }
   .hero-cart__header h2 { font-size: 31px; }
   .hero-cart__header p { font-size: 12px; }
+  .hero-choice .mono-tag,
+  .hero-choice > p,
+  .hero-choice__benefits,
+  .hero-cart__upsell .mono-tag,
+  .hero-cart__upsell-copy p,
+  .hero-cart__upsell-help { display: none; }
   .hero-cart__upsell { padding: 14px; }
+  .hero-cart__upsell h3 { margin: 0; font-size: 19px; }
+  .hero-cart__upsell-head { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .hero-cart__upsell-price { min-width: 0; padding: 8px 9px; }
+  .hero-cart__upsell-price strong { font-size: 21px; }
   .hero-cart__upsell-benefits,
   .hero-cart__upsell-price > span { display: none; }
+  .hero-cart__scroll-hint:not([hidden]) {
+    margin: 11px 0 6px;
+    display: block;
+    color: #625a1e;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
   .hero-cart__mini-grid {
+    margin-top: 0;
     margin-right: -18px;
     padding-right: 18px;
     display: flex;
@@ -7429,7 +7450,7 @@ footer small {
   }
   .hero-cart__mini-grid::-webkit-scrollbar { display: none; }
   .hero-cart__mini-card {
-    flex: 0 0 132px;
+    flex: 0 0 148px;
     min-height: 124px;
     scroll-snap-align: start;
   }
