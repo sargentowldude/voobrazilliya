@@ -348,7 +348,9 @@ if (showCart) {
     const show = currentShow();
     return show?.enabled && Array.isArray(show.offers) ? show.offers : [];
   };
-  const currentHeroes = () => currentOffers().filter(hero => state.heroIds.includes(hero.id));
+  const maxHeroesForShow = () => Number(currentShow()?.maxHeroes) === 1 ? 1 : 2;
+  const maxHeroesLabel = maxHeroes => maxHeroes === 1 ? "одного аниматора" : "до двух аниматоров";
+  const currentHeroes = () => state.heroIds.map(id => currentOffers().find(hero => hero.id === id)).filter(Boolean);
   const heroPrice = hero => Number(hero?.[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] || 0);
   const showName = cartForm.querySelector("[data-show-cart-name]");
   const showPrice = cartForm.querySelector("[data-show-cart-price]");
@@ -359,6 +361,9 @@ if (showCart) {
   const offerDescription = cartForm.querySelector("[data-show-cart-offer-description]");
   const choiceTitle = showHeroChoice?.querySelector("[data-show-choice-title]");
   const choiceDescription = showHeroChoice?.querySelector("[data-show-choice-description]");
+  const choiceLimit = showHeroChoice?.querySelector("[data-show-choice-limit]");
+  const choiceBadge = showHeroChoice?.querySelector(".show-hero-choice");
+  const choiceYes = showHeroChoice?.querySelector("[data-show-choice-yes]");
 
   const renderHeroOptions = offers => {
     optionGrid.replaceChildren();
@@ -401,7 +406,7 @@ if (showCart) {
       button.addEventListener("click", () => {
         if (selectedIndex >= 0) {
           state.heroIds = state.heroIds.filter(id => id !== hero.id);
-        } else if (state.heroIds.length < 2) {
+        } else if (state.heroIds.length < maxHeroesForShow()) {
           state.heroIds = [...state.heroIds, hero.id];
         }
         updateCart();
@@ -434,6 +439,7 @@ if (showCart) {
     const offers = currentOffers();
     state.heroIds = state.heroIds.filter(id => offers.some(hero => hero.id === id));
     const heroes = currentHeroes();
+    const maxHeroes = maxHeroesForShow();
     const heroAddOn = heroes.reduce((sum, hero) => sum + heroPrice(hero), 0);
     const showBase = Number(show?.price || 0);
     const dayLabel = state.day === "weekend" ? "Выходные" : "Будни";
@@ -446,11 +452,11 @@ if (showCart) {
       offerTitle.textContent = show.title || "Добавьте любимого героя";
       offerDescription.textContent = show.description || "Аниматор встретит гостей и сделает праздник ещё насыщеннее.";
       optionWrap.hidden = !state.heroPickerOpen;
-      toggleHeroes.textContent = state.heroPickerOpen ? "Скрыть выбор" : heroes.length ? "Изменить аниматоров" : "Выбрать аниматоров";
+      toggleHeroes.textContent = state.heroPickerOpen ? "Скрыть выбор" : heroes.length ? "Изменить состав" : maxHeroes === 1 ? "Выбрать аниматора" : "Выбрать аниматоров";
       toggleHeroes.setAttribute("aria-expanded", String(state.heroPickerOpen));
       selectionHint.textContent = heroes.length
-        ? `Выбрано: ${heroes.length} из 2. Нажмите на карточку, чтобы убрать аниматора.`
-        : "Можно выбрать до двух аниматоров.";
+        ? `Выбрано: ${heroes.length} из ${maxHeroes}. Нажмите на карточку, чтобы убрать аниматора.`
+        : `Можно выбрать ${maxHeroesLabel(maxHeroes)}.`;
       clearHeroes.hidden = !heroes.length;
       renderHeroOptions(offers);
     }
@@ -484,8 +490,12 @@ if (showCart) {
     state.heroIds = [];
     const show = currentShow();
     if (!currentOffers().length || !showHeroChoice) return openShowCart(showId);
+    const maxHeroes = maxHeroesForShow();
     choiceTitle.textContent = show.title || "Добавим аниматоров?";
     choiceDescription.textContent = show.description || "К этому шоу можно добавить любимых персонажей.";
+    choiceLimit.textContent = maxHeroes === 1 ? "Один аниматор" : "До двух аниматоров";
+    choiceBadge.dataset.showChoiceBadge = `+${maxHeroes}`;
+    choiceYes.innerHTML = maxHeroes === 1 ? "Выбрать<br>аниматора" : "Выбрать<br>аниматоров";
     showHeroChoice.showModal();
     showHeroChoice.querySelector("[data-show-choice-no]")?.focus();
   };
