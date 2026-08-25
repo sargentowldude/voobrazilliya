@@ -5018,10 +5018,9 @@ footer small {
   grid-column: 3;
   justify-self: end;
   min-height: 44px;
-  padding: 0 8px 0 17px;
+  padding: 0 17px;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
   border: 1px solid var(--yellow);
   border-radius: var(--pill);
   color: var(--yellow);
@@ -5032,22 +5031,7 @@ footer small {
   text-transform: uppercase;
   transition: color .2s, background .2s, transform .2s;
 }
-.events__all b,
-.poster-card__cta b {
-  width: 28px;
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--yellow);
-  color: var(--ink);
-  font-size: 15px;
-  line-height: 1;
-  transition: transform .2s;
-}
 .events__all:hover { background: var(--yellow); color: var(--ink); transform: translateY(-2px); }
-.events__all:hover b,
-.poster-card__cta:hover b { transform: rotate(45deg); }
 .events--home .event-grid {
   max-width: 1700px;
   margin-inline: auto;
@@ -5078,11 +5062,10 @@ footer small {
 .poster-card__cta {
   min-height: 48px;
   margin-top: auto;
-  padding: 0 8px 0 17px;
+  padding: 0 17px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: center;
   border: 1px solid var(--ink);
   border-radius: var(--pill);
   background: var(--poster-cta, var(--yellow));
@@ -5219,24 +5202,11 @@ footer small {
 }
 .hero-program-card__cta {
   min-height: 46px;
-  padding: 0 9px 0 17px;
+  padding: 0 17px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
 }
-.hero-program-card__cta b {
-  width: 28px;
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(255,255,255,.72);
-  font-size: 15px;
-  line-height: 1;
-  transition: transform .2s;
-}
-.hero-program-card__cta:hover b { transform: rotate(45deg); }
 
 @media (max-width: 1100px) {
   .hero-catalog { max-width: 1240px; }
@@ -5427,8 +5397,7 @@ footer small {
   text-align: left;
 }
 .hero-choice__no { border: 1px solid rgba(37, 36, 42, .38); background: rgba(255, 253, 245, .45); color: #25242a; }
-.hero-choice__yes { border: 1px solid #25242a; background: #25242a; color: #fff9ee; }
-.hero-choice__yes b { width: 27px; aspect-ratio: 1; display: grid; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #fff9ee; color: #25242a; font-size: 15px; }
+.hero-choice__yes { border: 1px solid #25242a; background: #25242a; color: #fff9ee; justify-content: center !important; text-align: center !important; }
 .hero-choice__actions button:hover { transform: translateY(-2px); }
 .hero-cart-dialog {
   width: min(790px, calc(100% - 28px));
@@ -5880,9 +5849,8 @@ footer small {
 
 .theater-stage-card__cta {
   display: inline-flex;
-  gap: 16px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-top: 17px;
   padding: 12px 15px;
   color: var(--ink);
@@ -6236,27 +6204,16 @@ footer small {
 .birthday-format-card__includes strong { display: block; font-size: 12px; line-height: 1.32; }
 .birthday-format-card__cta {
   min-height: 42px;
-  padding: 0 9px 0 13px;
+  padding: 0 13px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
   border: 1px solid var(--ink);
   border-radius: var(--pill);
   background: rgba(255,255,255,.65);
   font-size: 8px;
   font-weight: 800;
   letter-spacing: .055em;
-}
-.birthday-format-card__cta b {
-  width: 22px;
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--cream);
-  font-size: 13px;
 }
 @media (max-width: 1100px) {
   .birthday-format-card { grid-template-columns: 130px minmax(0, 1fr) minmax(260px, .85fr); }
@@ -6288,9 +6245,8 @@ footer small {
   bottom: clamp(16px, 3vw, 34px);
   display: inline-flex;
   align-items: center;
-  gap: 12px;
   min-height: 50px;
-  padding: 0 9px 0 18px;
+  padding: 0 18px;
   border: 1px solid var(--ink);
   border-radius: var(--pill);
   background: var(--yellow);
@@ -6314,26 +6270,11 @@ footer small {
   }
 }
 
-.floating-party-cta span {
-  display: grid;
-  width: 30px;
-  aspect-ratio: 1;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--cream);
-  font-size: 17px;
-  line-height: 1;
-  transition: transform .2s ease;
-}
-
 .floating-party-cta:hover {
   animation-play-state: paused;
   transform: translateY(-3px);
   box-shadow: 0 9px 0 rgba(37, 36, 42, .28);
 }
-
-.floating-party-cta:hover span { transform: translate(2px, -2px); }
 
 .floating-party-cta:focus-visible {
   animation-play-state: paused;
@@ -6981,4 +6922,108 @@ footer small {
   .show-offer-card__seo-link { font-size: 8px; }
   .show-offer-card__action { padding: 12px 11px; }
   .show-offer-card__cta { min-height: 40px; padding: 0 8px; font-size: 8px; letter-spacing: .04em; }
+}
+
+/* CTA без декоративных стрелок: редкое мягкое «дыхание» вместо визуального шума. */
+:where(
+  .outline-button,
+  .cream-button,
+  .service-card__cta,
+  .events__all,
+  .poster-card__cta,
+  .hero-program-card__cta,
+  .hero-choice__yes,
+  .show-offer-card__cta,
+  .playbill-card__cta,
+  .theater-stage-card__cta,
+  .birthday-format-card__cta
+) {
+  position: relative;
+  isolation: isolate;
+}
+
+.show-catalog__mascot-cta { isolation: isolate; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(
+    .outline-button,
+    .cream-button,
+    .service-card__cta,
+    .events__all,
+    .poster-card__cta,
+    .hero-program-card__cta,
+    .hero-choice__yes,
+    .show-offer-card__cta,
+    .playbill-card__cta,
+    .theater-stage-card__cta,
+    .birthday-format-card__cta,
+    .show-catalog__mascot-cta
+  )::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    pointer-events: none;
+    border: 1px solid currentColor;
+    border-radius: inherit;
+    opacity: 0;
+    transform: scale(.96);
+    will-change: opacity, transform;
+    animation: cta-halo-breathe 6.4s cubic-bezier(.22, .61, .36, 1) infinite;
+  }
+
+  .service-card:nth-child(3n + 2) .service-card__cta::after,
+  .hero-program-card:nth-child(3n + 2) .hero-program-card__cta::after,
+  .show-offer-card:nth-child(3n + 2) .show-offer-card__cta::after,
+  .playbill-card:nth-child(3n + 2) .playbill-card__cta::after,
+  .poster-card:nth-child(3n + 2) .poster-card__cta::after,
+  .birthday-format-card:nth-child(3n + 2) .birthday-format-card__cta::after {
+    animation-delay: -2.1s;
+  }
+
+  .service-card:nth-child(3n) .service-card__cta::after,
+  .hero-program-card:nth-child(3n) .hero-program-card__cta::after,
+  .show-offer-card:nth-child(3n) .show-offer-card__cta::after,
+  .playbill-card:nth-child(3n) .playbill-card__cta::after,
+  .poster-card:nth-child(3n) .poster-card__cta::after,
+  .birthday-format-card:nth-child(3n) .birthday-format-card__cta::after {
+    animation-delay: -4.2s;
+  }
+
+  :where(
+    .outline-button,
+    .cream-button,
+    .service-card__cta,
+    .events__all,
+    .poster-card__cta,
+    .hero-program-card__cta,
+    .hero-choice__yes,
+    .show-offer-card__cta,
+    .playbill-card__cta,
+    .theater-stage-card__cta,
+    .birthday-format-card__cta,
+    .show-catalog__mascot-cta
+  ):hover::after,
+  :where(
+    .outline-button,
+    .cream-button,
+    .service-card__cta,
+    .events__all,
+    .poster-card__cta,
+    .hero-program-card__cta,
+    .hero-choice__yes,
+    .show-offer-card__cta,
+    .playbill-card__cta,
+    .theater-stage-card__cta,
+    .birthday-format-card__cta,
+    .show-catalog__mascot-cta
+  ):focus-visible::after {
+    animation-play-state: paused;
+    opacity: 0;
+  }
+}
+
+@keyframes cta-halo-breathe {
+  0%, 68%, 100% { opacity: 0; transform: scale(.96); }
+  80% { opacity: .36; transform: scale(1); }
+  94% { opacity: 0; transform: scale(1.13); }
 }
