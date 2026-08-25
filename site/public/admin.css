@@ -1250,3 +1250,14 @@ button { cursor: pointer; }
 }
 .admin-show-hero-offer__toggle small { color: var(--admin-muted); }
 .admin-show-hero-offer__fields { margin-top: 13px; }
+
+.admin-sales-show-list {
+  display: grid;
+  gap: 22px;
+}
+.admin-sales-show-form .admin-editor-card { box-shadow: var(--admin-shadow); }
+.admin-sales-show-form .admin-editor-section { margin: 0; }
+.admin-sales-show-form .admin-savebar {
+  position: static;
+  margin-top: 12px;
+}

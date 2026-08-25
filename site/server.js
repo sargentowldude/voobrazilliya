@@ -341,7 +341,7 @@ const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox 
 
 const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
 const faviconLinks = () => '<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180"><link rel="manifest" href="/site.webmanifest"><meta name="theme-color" content="#140054">';
-const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/legal.css">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js" defer></script></body></html>`;
+const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/legal.css">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260826" defer></script></body></html>`;
 
 const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
 const cookiesSection = () => {
@@ -561,7 +561,7 @@ const renderEventDetail = event => {
 
 const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
-const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'theater-page' ? 'is-active' : ''}" href="/admin/page/theater">Спектакли — первый экран</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'plays' ? 'is-active' : ''}" href="/admin/catalog/plays">Спектакли</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a></section></nav>`;
+const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'theater-page' ? 'is-active' : ''}" href="/admin/page/theater">Спектакли — первый экран</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'plays' ? 'is-active' : ''}" href="/admin/catalog/plays">Спектакли</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
 const selectField = (label, name, value, values) => `<label class="admin-field">${escapeHtml(label)}<select name="${escapeAttr(name)}">${values.map(([itemValue, itemLabel]) => `<option value="${escapeAttr(itemValue)}" ${itemValue === value ? 'selected' : ''}>${escapeHtml(itemLabel)}</option>`).join('')}</select></label>`;
 const visibilityField = value => `<label class="admin-check"><input type="checkbox" name="published" ${value !== false ? 'checked' : ''}> Показывать на сайте</label>`;
@@ -697,6 +697,19 @@ const renderAdminHeroCart = async (query = {}) => {
   return adminLayout('Акция второго героя', body, 'cart');
 };
 
+const renderAdminShowHeroUpsells = async (query = {}) => {
+  const [shows, heroes] = await Promise.all([loadCatalog('shows'), loadCatalog('heroes')]);
+  const cards = shows.length
+    ? shows.map(show => {
+      const preview = catalogPublicUrl('shows', show);
+      const status = show.published !== false ? 'Шоу видно на сайте.' : 'Шоу скрыто с сайта, но настройку можно подготовить заранее.';
+      return `<form id="show-${escapeAttr(show.id)}" class="admin-edit-form admin-sales-show-form" method="post" action="/admin/sales/show-animators/${encodeURIComponent(show.id)}" data-admin-form><section class="admin-editor-card"><header><span>Шоу</span><h2>${escapeHtml(show.name || 'Без названия')}</h2><p>${status}</p></header>${showHeroOfferEditor(show, heroes, { open:show.heroUpsellEnabled === true })}</section>${adminSaveBar({ previewUrl:preview, submitLabel:'Сохранить предложение' })}</form>`;
+    }).join('')
+    : '<p class="admin-empty">Сначала добавьте хотя бы одно шоу в каталоге.</p>';
+  const body = `<header class="admin-page-head"><div><span>Продажи</span><h1>Аниматоры к шоу</h1><p>Выберите подходящих героев для каждого шоу и настройте доплату. Новый аниматор из каталога автоматически появится здесь для выбора.</p></div>${adminPreviewLink('/show/', 'Посмотреть каталог')}</header>${adminSaveNotice(query)}<div class="admin-sales-show-list">${cards}</div>`;
+  return adminLayout('Аниматоры к шоу', body, 'show-animators');
+};
+
 const catalogTitles = { heroes:'Аниматоры', shows:'Шоу', plays:'Спектакли', events:'Афиша' };
 const catalogPageIntro = {
   heroes:'Добавляйте и редактируйте карточки аниматоров. Первый экран страницы настраивается отдельно в разделе «Аниматоры — первый экран».',
@@ -715,7 +728,7 @@ const catalogPublicUrl = (type, item) => {
 
 const catalogEditorSection = (title, description, body, open = true) => `<details class="admin-editor-section" ${open ? 'open' : ''}><summary><span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(description)}</small></span><b aria-hidden="true">⌄</b></summary><div class="admin-editor-section__body">${body}</div></details>`;
 
-const showHeroOfferEditor = (show, heroes) => {
+const showHeroOfferEditor = (show, heroes, { open = true } = {}) => {
   const offers = new Map((Array.isArray(show.heroOffers) ? show.heroOffers : []).map(offer => [offer.heroId, offer]));
   const availableHeroes = heroes.filter(visible);
   const rows = availableHeroes.length
@@ -726,10 +739,36 @@ const showHeroOfferEditor = (show, heroes) => {
       return `<article class="admin-show-hero-offer"><label class="admin-check admin-show-hero-offer__toggle"><input type="checkbox" name="heroOfferIds" value="${escapeAttr(hero.id)}" ${active ? 'checked' : ''}> <span><strong>${escapeHtml(hero.name)}</strong><small>По умолчанию: будни ${formatPrice(prices.weekday)} · выходные ${formatPrice(prices.weekend)}</small></span></label><div class="admin-grid admin-show-hero-offer__fields">${formField('Подпись в корзине (необязательно)', `heroOfferLabel-${hero.id}`, offer.label || '', { wide:true })}${formField('Будни, ₽', `heroOfferWeekday-${hero.id}`, offer.weekdayPrice ?? prices.weekday, { type:'number', step:'1' })}${formField('Выходные, ₽', `heroOfferWeekend-${hero.id}`, offer.weekendPrice ?? prices.weekend, { type:'number', step:'1' })}${formField('Порядок', `heroOfferPosition-${hero.id}`, offer.position ?? index + 1, { type:'number', step:'1' })}</div></article>`;
     }).join('')
     : '<p class="admin-empty">Сначала добавьте хотя бы одного видимого аниматора в каталоге.</p>';
-  return catalogEditorSection('Аниматоры к шоу', 'Выберите только подходящих персонажей. Для взрослой программы выключите предложение целиком.', `<div class="admin-panel__top"><label class="admin-check"><input type="checkbox" name="heroUpsellEnabled" ${show.heroUpsellEnabled === true ? 'checked' : ''}> Предлагать аниматора после выбора шоу</label></div><div class="admin-grid">${formField('Заголовок предложения', 'heroOfferTitle', show.heroOfferTitle || 'Добавьте любимого героя', { wide:true })}${formField('Текст предложения', 'heroOfferDescription', show.heroOfferDescription || 'Аниматор встретит гостей и сделает праздник ещё насыщеннее.', { textarea:true, wide:true })}</div><div class="admin-show-hero-offer-list">${rows}</div>`);
+  return catalogEditorSection('Аниматоры к шоу', 'Выберите только подходящих персонажей. Для взрослой программы выключите предложение целиком.', `<div class="admin-panel__top"><label class="admin-check"><input type="checkbox" name="heroUpsellEnabled" ${show.heroUpsellEnabled === true ? 'checked' : ''}> Предлагать аниматора после выбора шоу</label></div><div class="admin-grid">${formField('Заголовок предложения', 'heroOfferTitle', show.heroOfferTitle || 'Добавьте любимого героя', { wide:true })}${formField('Текст предложения', 'heroOfferDescription', show.heroOfferDescription || 'Аниматор встретит гостей и сделает праздник ещё насыщеннее.', { textarea:true, wide:true })}</div><div class="admin-show-hero-offer-list">${rows}</div>`, open);
 };
 
-const catalogForm = (type, item = {}, heroes = []) => {
+const showHeroUpsellData = (body, heroes) => {
+  const selectedHeroIds = [...new Set((Array.isArray(body.heroOfferIds) ? body.heroOfferIds : [body.heroOfferIds]).filter(Boolean).map(String))];
+  const heroById = new Map(heroes.filter(visible).map(hero => [hero.id, hero]));
+  const heroOffers = selectedHeroIds
+    .map((heroId, index) => {
+      const hero = heroById.get(heroId);
+      if (!hero) return null;
+      const prices = heroPrices(hero);
+      return {
+        heroId,
+        label: String(body[`heroOfferLabel-${heroId}`] || '').trim().slice(0, 120),
+        weekdayPrice: priceNumber(body[`heroOfferWeekday-${heroId}`], prices.weekday),
+        weekendPrice: priceNumber(body[`heroOfferWeekend-${heroId}`], prices.weekend),
+        position: Math.max(1, Math.round(number(body[`heroOfferPosition-${heroId}`], index + 1)))
+      };
+    })
+    .filter(Boolean)
+    .sort((first, second) => first.position - second.position || first.heroId.localeCompare(second.heroId));
+  return {
+    heroUpsellEnabled: truthy(body.heroUpsellEnabled),
+    heroOfferTitle: String(body.heroOfferTitle || 'Добавьте любимого героя').trim().slice(0, 120),
+    heroOfferDescription: String(body.heroOfferDescription || 'Аниматор встретит гостей и сделает праздник ещё насыщеннее.').trim().slice(0, 280),
+    heroOffers
+  };
+};
+
+const catalogForm = (type, item = {}) => {
   const hero = type === 'heroes';
   const show = type === 'shows';
   const play = type === 'plays';
@@ -765,7 +804,7 @@ const catalogForm = (type, item = {}, heroes = []) => {
   }
 
   const status = item.published !== false ? 'Карточка видна посетителям.' : 'Карточка скрыта: её видите только вы в админке.';
-  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${show ? showHeroOfferEditor(item, heroes) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show || play ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${seo ? catalogEditorSection('Поисковая выдача', 'Необязательно. Если оставить пустым, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
+  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show || play ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${seo ? catalogEditorSection('Поисковая выдача', 'Необязательно. Если оставить пустым, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
 };
 
 const catalogItemCard = (type, item) => {
@@ -790,13 +829,13 @@ const renderAdminCatalog = async (type, query = {}) => {
 };
 
 const renderAdminCatalogEditor = async (type, id, query = {}) => {
-  const [items, heroes] = await Promise.all([loadCatalog(type), type === 'shows' ? loadCatalog('heroes') : Promise.resolve([])]);
+  const items = await loadCatalog(type);
   const isNew = id === 'new';
   const item = isNew ? { published:true } : items.find(entry => entry.id === id);
   if (!item) throw new Error('Карточка не найдена');
   const title = item.name || item.title || 'Новая карточка';
   const preview = catalogPublicUrl(type, item);
-  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/${escapeAttr(type)}">← Все карточки</a><span>Каталог</span><h1>${escapeHtml(isNew ? `Новая карточка` : title)}</h1><p>Заполните главное, загрузите обложку и при необходимости добавьте материалы. Поля для поиска спрятаны в отдельный блок.</p></div>${preview ? adminPreviewLink(preview, 'Открыть на сайте') : ''}</header>${adminSaveNotice(query)}<form class="admin-catalog-form admin-edit-form" method="post" action="/admin/catalog/${escapeAttr(type)}/save" enctype="multipart/form-data" data-admin-form>${catalogForm(type, item, heroes)}${adminSaveBar({ previewUrl:preview, submitLabel:isNew ? 'Создать карточку' : 'Сохранить изменения' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление уберёт карточку из каталога. Загруженные файлы сохранятся на сервере.</p><button class="admin-danger" type="submit" formaction="/admin/catalog/${escapeAttr(type)}/delete" formnovalidate onclick="return confirm('Удалить карточку?')">Удалить карточку</button></div>`}</form>`;
+  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/${escapeAttr(type)}">← Все карточки</a><span>Каталог</span><h1>${escapeHtml(isNew ? `Новая карточка` : title)}</h1><p>Заполните главное, загрузите обложку и при необходимости добавьте материалы. Поля для поиска спрятаны в отдельный блок.</p></div>${preview ? adminPreviewLink(preview, 'Открыть на сайте') : ''}</header>${adminSaveNotice(query)}<form class="admin-catalog-form admin-edit-form" method="post" action="/admin/catalog/${escapeAttr(type)}/save" enctype="multipart/form-data" data-admin-form>${catalogForm(type, item)}${adminSaveBar({ previewUrl:preview, submitLabel:isNew ? 'Создать карточку' : 'Сохранить изменения' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление уберёт карточку из каталога. Загруженные файлы сохранятся на сервере.</p><button class="admin-danger" type="submit" formaction="/admin/catalog/${escapeAttr(type)}/delete" formnovalidate onclick="return confirm('Удалить карточку?')">Удалить карточку</button></div>`}</form>`;
   return adminLayout(isNew ? `Новая карточка · ${catalogTitles[type]}` : title, body, type);
 };
 
@@ -833,9 +872,7 @@ const updateGallery = (source, body, files = []) => {
 
 const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = []) => {
   const name = String(body.name || '').trim();
-  const itemsPromise = loadCatalog(type);
-  const heroesPromise = type === 'shows' ? loadCatalog('heroes') : Promise.resolve([]);
-  return Promise.all([itemsPromise, heroesPromise]).then(([items, heroes]) => {
+  return loadCatalog(type).then(items => {
     const source = oldItem || {};
     const supportsGallery = type === 'shows' || type === 'plays';
     const gallery = supportsGallery ? updateGallery(source, body, galleryFiles) : source.gallery;
@@ -874,33 +911,10 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       audience: ['all','boys','girls'].includes(body.audience) ? body.audience : 'all', accent: body.accent || source.accent || 'yellow',
       seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
     };
-    if (type === 'shows') {
-      const selectedHeroIds = [...new Set((Array.isArray(body.heroOfferIds) ? body.heroOfferIds : [body.heroOfferIds]).filter(Boolean).map(String))];
-      const heroById = new Map(heroes.filter(visible).map(hero => [hero.id, hero]));
-      const heroOffers = selectedHeroIds
-        .map((heroId, index) => {
-          const hero = heroById.get(heroId);
-          if (!hero) return null;
-          const prices = heroPrices(hero);
-          return {
-            heroId,
-            label: String(body[`heroOfferLabel-${heroId}`] || '').trim().slice(0, 120),
-            weekdayPrice: priceNumber(body[`heroOfferWeekday-${heroId}`], prices.weekday),
-            weekendPrice: priceNumber(body[`heroOfferWeekend-${heroId}`], prices.weekend),
-            position: Math.max(1, Math.round(number(body[`heroOfferPosition-${heroId}`], index + 1)))
-          };
-        })
-        .filter(Boolean)
-        .sort((first, second) => first.position - second.position || first.heroId.localeCompare(second.heroId));
-      return {
-        ...base, name, slug: uniqueSlug(body.slug || `${name}-kemerovo`, items, base.id), description: String(body.description || '').trim(),
-        price: priceNumber(body.price, source.price ?? 0), accent: body.accent || source.accent || 'cyan', seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim(),
-        heroUpsellEnabled: truthy(body.heroUpsellEnabled),
-        heroOfferTitle: String(body.heroOfferTitle || 'Добавьте любимого героя').trim().slice(0, 120),
-        heroOfferDescription: String(body.heroOfferDescription || 'Аниматор встретит гостей и сделает праздник ещё насыщеннее.').trim().slice(0, 280),
-        heroOffers
-      };
-    }
+    if (type === 'shows') return {
+      ...base, name, slug: uniqueSlug(body.slug || `${name}-kemerovo`, items, base.id), description: String(body.description || '').trim(),
+      price: priceNumber(body.price, source.price ?? 0), accent: body.accent || source.accent || 'cyan', seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
+    };
     return {
       ...base, name, slug: uniqueSlug(body.slug || name, items, base.id), description: String(body.description || '').trim(),
       age: String(body.age || '3+').trim(), price: priceNumber(body.price, source.price ?? 0), accent: body.accent || source.accent || 'violet'
@@ -910,7 +924,10 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
 
 let smtpTransport;
 const trySendEmail = async lead => {
-  if (!smtpHost || !smtpUser || !smtpPassword || !smtpFrom || !smtpTo) return;
+  if (!smtpHost || !smtpUser || !smtpPassword || !smtpFrom || !smtpTo) {
+    console.error('SMTP не настроен: заявка сохранена без почтового уведомления.');
+    return false;
+  }
   try {
     smtpTransport ||= nodemailer.createTransport({
       host: smtpHost,
@@ -924,8 +941,10 @@ const trySendEmail = async lead => {
       subject: `Новая заявка с сайта ${brandName}`,
       text: [`Имя: ${lead.name}`, `Телефон: ${lead.phone}`, `Услуга: ${lead.service || '—'}`, `Сообщение: ${lead.message || '—'}`, `Время: ${lead.createdAt}`].join('\n')
     });
+    return true;
   } catch (error) {
     console.error('Не удалось отправить заявку по SMTP:', error.message);
+    return false;
   }
 };
 
@@ -983,8 +1002,13 @@ app.post('/api/leads', async (req, res, next) => {
       consentMethod:'required-checkbox'
     };
     await appendLead(lead);
-    void trySendEmail(lead);
-    res.status(201).json({ ok:true, message:'Заявка отправлена. Скоро свяжемся с вами!' });
+    const emailSent = await trySendEmail(lead);
+    res.status(201).json({
+      ok:true,
+      message: emailSent
+        ? 'Заявка отправлена. Скоро свяжемся с вами!'
+        : 'Заявка сохранена. Почтовое уведомление задерживается, но мы её увидим и свяжемся с вами.'
+    });
   } catch (error) { next(error); }
 });
 
@@ -1015,6 +1039,7 @@ app.get('/admin/page/:page', requireAdmin, async (req, res, next) => {
   try { res.send(await renderAdminPage(pageKey, req.query)); } catch (error) { next(error); }
 });
 app.get('/admin/cart', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminHeroCart(req.query)); } catch (error) { next(error); } });
+app.get('/admin/sales/show-animators', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminShowHeroUpsells(req.query)); } catch (error) { next(error); } });
 app.get('/admin/catalog/:type/new', requireAdmin, async (req, res, next) => {
   if (!['heroes','shows','plays','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
   try { res.send(await renderAdminCatalogEditor(req.params.type, 'new', req.query)); } catch (error) { next(error); }
@@ -1070,6 +1095,16 @@ app.post('/admin/cart', requireAdmin, async (req, res, next) => {
       heroCartPromoDescription: String(req.body.heroCartPromoDescription || defaults.promoDescription).trim().slice(0, 280)
     });
     res.redirect('/admin/cart?saved=1');
+  } catch (error) { next(error); }
+});
+app.post('/admin/sales/show-animators/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const [shows, heroes] = await Promise.all([loadCatalog('shows'), loadCatalog('heroes')]);
+    const current = shows.find(show => show.id === req.params.id);
+    if (!current) return res.status(404).send('Шоу не найдено');
+    const updated = { ...current, ...showHeroUpsellData(req.body, heroes), updatedAt:now() };
+    await saveCatalog('shows', shows.map(show => show.id === current.id ? updated : show));
+    res.redirect(`/admin/sales/show-animators?saved=1#show-${encodeURIComponent(current.id)}`);
   } catch (error) { next(error); }
 });
 app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image', maxCount:1 }, { name:'galleryMedia', maxCount:8 }]), async (req, res, next) => {
