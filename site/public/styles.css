@@ -157,6 +157,102 @@ a {
 .site-menu a:last-child {
   border: 0;
 }
+.header-contacts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+.header-contact {
+  position: relative;
+  min-width: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(250, 245, 237, .34);
+  border-radius: var(--pill);
+  color: var(--cream);
+  text-decoration: none;
+  transition: transform .2s ease, background .2s ease, border-color .2s ease, color .2s ease;
+}
+.header-contact:hover,
+.header-contact:focus-visible {
+  border-color: var(--yellow);
+  background: var(--yellow);
+  color: var(--ink);
+  transform: translateY(-2px);
+}
+.header-phone {
+  gap: 8px;
+  padding: 0 12px 0 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.header-phone__icon {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+}
+.header-messenger {
+  width: 40px;
+  flex: 0 0 40px;
+  padding: 0;
+  border-radius: 50%;
+}
+.header-messenger__icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  object-fit: contain;
+}
+.header-contact__qr {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 148px;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--ink);
+  border-radius: 13px;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: 5px 6px 0 rgba(37, 36, 42, .22);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px) scale(.96);
+  transform-origin: top right;
+  transition: opacity .18s ease, visibility .18s ease, transform .18s ease;
+}
+.header-contact__qr img {
+  width: 100%;
+  display: block;
+  border-radius: 8px;
+  background: #fff;
+}
+.header-contact__qr b {
+  font-size: 11px;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.header-contact__qr small {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.header-messenger:hover .header-contact__qr,
+.header-messenger:focus-visible .header-contact__qr {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
 .hero {
   position: relative;
   min-height: calc(100svh - 78px);
@@ -1400,6 +1496,37 @@ footer small {
   .wordmark img {
     width: 78px;
   }
+  .header-contacts {
+    gap: 4px;
+    margin-right: 6px;
+  }
+  .header-contact,
+  .header-phone,
+  .header-messenger {
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    flex-basis: 34px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .header-phone__number { display: none; }
+  .header-phone__icon { width: 18px; height: 18px; }
+  .header-messenger__icon { width: 19px; height: 19px; }
+  .header-contact__qr { display: none; }
+  .header-contact,
+  .header-contact:hover,
+  .header-contact:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    color: var(--cream);
+    transform: none;
+  }
+  .header-contact:active {
+    color: var(--yellow);
+    transform: scale(.9);
+  }
+  .menu-button { padding: 10px 12px; font-size: 10px; }
   .hero {
     padding-bottom: 68px;
   }
@@ -1502,6 +1629,33 @@ footer small {
   }
   .ticker__track {
     animation-duration: 18s;
+  }
+}
+@media (max-width: 360px) {
+  .site-header { padding-right: 12px; padding-left: 12px; }
+  .wordmark { padding-right: 6px; padding-left: 6px; }
+  .wordmark img { width: 70px; }
+  .header-contacts { gap: 3px; margin-right: 4px; }
+  .header-contact,
+  .header-phone,
+  .header-messenger {
+    width: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    flex-basis: 32px;
+  }
+  .header-phone__icon { width: 17px; height: 17px; }
+  .header-messenger__icon { width: 18px; height: 18px; }
+  .menu-button {
+    width: 36px;
+    min-height: 34px;
+    padding: 0;
+    font-size: 0;
+  }
+  .menu-button::after {
+    content: "☰";
+    font-size: 16px;
+    line-height: 1;
   }
 }
 @media (min-width: 901px) {
@@ -4257,11 +4411,17 @@ footer small {
     justify-content: flex-start;
     gap: 24px;
   }
+  .header-contacts {
+    order: 3;
+    margin-left: 8px;
+    margin-right: 0;
+  }
   .menu-button {
     display: none;
   }
   .site-menu,
   .site-menu.is-open {
+    order: 2;
     position: static;
     display: flex;
     align-items: center;
@@ -4291,6 +4451,16 @@ footer small {
     background: rgba(242, 229, 111, .12);
     color: var(--yellow);
   }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  .header-phone {
+    width: 40px;
+    flex-basis: 40px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .header-phone__number { display: none; }
 }
 
 /* Финальная настройка hero-композиции и типографики каталогов */
