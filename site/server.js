@@ -179,6 +179,36 @@ const heroCartSettings = content => ({
   promoTitle: String(content.heroCartPromoTitle || 'Добавьте второго героя со скидкой').trim(),
   promoDescription: String(content.heroCartPromoDescription || 'Ещё один персонаж сделает праздник ещё ярче.').trim()
 });
+
+const showAnimatorSettings = (show, heroes) => {
+  const heroById = new Map(heroes.filter(visible).map(hero => [hero.id, hero]));
+  const offers = (Array.isArray(show.heroOffers) ? show.heroOffers : [])
+    .map((entry, index) => {
+      const hero = heroById.get(String(entry?.heroId || ''));
+      if (!hero) return null;
+      const prices = heroPrices(hero);
+      return {
+        id: hero.id,
+        name: hero.name,
+        image: hero.image || '',
+        imagePositionX: number(hero.imagePositionX, 50),
+        imagePositionY: number(hero.imagePositionY, 50),
+        imageScale: number(hero.imageScale, 100),
+        label: String(entry.label || '').trim(),
+        weekdayPrice: priceNumber(entry.weekdayPrice, prices.weekday),
+        weekendPrice: priceNumber(entry.weekendPrice, prices.weekend),
+        position: Math.max(1, Math.round(number(entry.position, index + 1)))
+      };
+    })
+    .filter(Boolean)
+    .sort((first, second) => first.position - second.position || first.name.localeCompare(second.name, 'ru'));
+  return {
+    enabled: show.heroUpsellEnabled === true && offers.length > 0,
+    title: String(show.heroOfferTitle || 'Добавьте любимого героя').trim(),
+    description: String(show.heroOfferDescription || 'Аниматор встретит гостей и сделает праздник ещё насыщеннее.').trim(),
+    offers
+  };
+};
 const minimumPriceLabel = items => {
   const prices = items.map(item => Number(item.price)).filter(price => Number.isFinite(price) && price > 0);
   return prices.length ? `от ${formatPrice(Math.min(...prices))}` : 'По запросу';
@@ -443,12 +473,23 @@ const renderAnimators = async () => {
   return layout(pageMeta({ title:'Аниматоры на детский праздник в Кемерово | ТЕМА', description:'Заказать аниматора на детский день рождения в Кемерово: супергерои, игровая программа, выезд на дом, в сад или школу.', path:'/animatory/' }), body, 'page--animatory');
 };
 
-const showCard = (show, index) => `<article class="show-offer-card show-offer-card--${escapeAttr(show.accent || 'yellow')}"><div class="show-offer-card__media">${image(show)}<span class="show-offer-card__number">0${index + 1}</span></div><div class="show-offer-card__summary"><span class="mono-tag">Интерактивная программа</span><h3>${escapeHtml(show.name)}</h3><p class="show-offer-card__price"><span>Стоимость</span><strong>от ${formatPrice(show.price)}</strong></p></div><div class="show-offer-card__details"><p>${escapeHtml(show.description)}</p>${programMediaGallery(show)}<a class="show-offer-card__seo-link" href="/show/${escapeAttr(show.slug)}/">Подробнее о шоу</a></div><div class="show-offer-card__action"><button class="show-offer-card__cta" data-open-form data-service="${escapeAttr(show.name)}" data-order-message="Хочу заказать: ${escapeAttr(show.name)}.">ЗАКАЗАТЬ ШОУ</button></div></article>`;
+const showCartDialog = (shows, heroes) => {
+  const catalog = shows.map(show => ({
+    id: show.id,
+    name: show.name,
+    price: priceNumber(show.price, 0),
+    ...showAnimatorSettings(show, heroes)
+  }));
+  return `<dialog class="hero-cart-dialog show-cart-dialog" data-show-cart data-show-cart-catalog="${escapeAttr(JSON.stringify(catalog))}"><button class="dialog-close" type="button" data-close-show-cart aria-label="Закрыть корзину">×</button><form class="hero-cart show-cart" data-lead-form data-show-cart-form>${honeypotField()}<header class="hero-cart__header"><span class="mono-tag">Ваш праздник</span><h2>Соберём<br>программу</h2><p>Добавьте аниматора, если он подходит к выбранному шоу. Сумма посчитается сразу.</p></header><fieldset class="hero-cart__day"><legend>Когда праздник?</legend><div><button type="button" class="is-selected" data-show-cart-day="weekday" aria-pressed="true">Будни</button><button type="button" data-show-cart-day="weekend" aria-pressed="false">Выходные</button></div></fieldset><section class="hero-cart__items" aria-live="polite"><div class="hero-cart__item"><span><small>Главная программа</small><strong data-show-cart-name>Выберите шоу</strong></span><b data-show-cart-price>—</b></div><div class="hero-cart__item hero-cart__item--second" data-show-cart-hero-item hidden><span><small>Аниматор</small><strong data-show-cart-hero-name></strong></span><b data-show-cart-hero-price></b></div></section><section class="hero-cart__upsell" data-show-cart-upsell hidden><div class="hero-cart__upsell-head"><div class="hero-cart__upsell-copy"><span class="mono-tag">Дополнение к шоу</span><h3 data-show-cart-offer-title>Добавьте любимого героя</h3><p data-show-cart-offer-description></p></div><button class="show-cart__no-hero" type="button" data-show-cart-no-hero aria-pressed="true">Только шоу</button></div><p class="hero-cart__upsell-help">Выберите героя — или продолжите только с шоу.</p><div class="hero-cart__mini-grid" role="group" aria-label="Выберите аниматора" data-show-cart-hero-options></div></section><section class="hero-cart__total"><span>Итого</span><strong data-show-cart-total>—</strong><small data-show-cart-summary>Выберите шоу.</small></section><section class="hero-cart__lead"><h3>Оставьте заявку</h3><div class="hero-cart__fields"><label>Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label>Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="hero-cart__field--wide">Комментарий<input name="comment" placeholder="Дата, район, пожелания"></label></div><input type="hidden" name="service"><input type="hidden" name="message">${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></section></form></dialog>`;
+};
+
+const showCard = (show, index) => `<article class="show-offer-card show-offer-card--${escapeAttr(show.accent || 'yellow')}" data-show-card data-show-id="${escapeAttr(show.id)}"><div class="show-offer-card__media">${image(show)}<span class="show-offer-card__number">0${index + 1}</span></div><div class="show-offer-card__summary"><span class="mono-tag">Интерактивная программа</span><h3>${escapeHtml(show.name)}</h3><p class="show-offer-card__price"><span>Стоимость</span><strong>от ${formatPrice(show.price)}</strong></p></div><div class="show-offer-card__details"><p>${escapeHtml(show.description)}</p>${programMediaGallery(show)}<a class="show-offer-card__seo-link" href="/show/${escapeAttr(show.slug)}/">Подробнее о шоу</a></div><div class="show-offer-card__action"><button class="show-offer-card__cta" type="button" data-select-show>ВЫБРАТЬ ШОУ</button></div></article>`;
 
 const renderShow = async () => {
-  const content = await loadContent(); const shows = (await loadCatalog('shows')).filter(visible);
+  const [content, catalog, heroes] = await Promise.all([loadContent(), loadCatalog('shows'), loadCatalog('heroes')]);
+  const shows = catalog.filter(visible);
   const heroCopy = pageHeroCopy(content, 'show');
-  const body = `${heroBlock({ tag:'Шоу в Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'showPhoto1'), mascot:'/assets/mascot-peek-show.png', service:'Подбор шоу', pageClass:'afisha-hero' })}<section class="show-catalog" id="show-catalog"><div class="show-offer-grid-wrap"><button class="show-catalog__mascot-cta" type="button" data-open-form data-service="Подбор шоу"><img src="/assets/mascot-game.png" alt="" aria-hidden="true"><span><small>Нужна подсказка?</small><strong>Подберём шоу</strong></span></button><div class="show-offer-grid">${shows.map(showCard).join('')}</div></div></section>${partyForm()}`;
+  const body = `${heroBlock({ tag:'Шоу в Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'showPhoto1'), mascot:'/assets/mascot-peek-show.png', service:'Подбор шоу', pageClass:'afisha-hero' })}<section class="show-catalog" id="show-catalog"><div class="show-offer-grid-wrap"><button class="show-catalog__mascot-cta" type="button" data-open-form data-service="Подбор шоу"><img src="/assets/mascot-game.png" alt="" aria-hidden="true"><span><small>Нужна подсказка?</small><strong>Подберём шоу</strong></span></button><div class="show-offer-grid">${shows.map(showCard).join('')}</div></div></section>${showCartDialog(shows, heroes)}${partyForm()}`;
   return layout(pageMeta({ title:'Шоу на праздник в Кемерово — заказать | ТЕМА', description:'Интерактивные и научные шоу на праздник в Кемерово: азотное шоу, неоновая дискотека, пенная вечеринка и другие программы.', path:'/show/' }), body, 'page--show');
 };
 
@@ -501,11 +542,14 @@ const renderAfisha = async () => {
   return layout(pageMeta({ title:'Афиша детских событий в Кемерово | ТЕМА', description:'Афиша праздников, спектаклей и детских событий в Кемерово. Билеты, программы и заявки.', path:'/afisha/' }), body, 'page--afisha');
 };
 
-const renderServiceDetail = ({ item, type }) => {
+const renderServiceDetail = ({ item, type, showCart = '' }) => {
   const isHero = type === 'heroes';
   const name = item.name;
   const label = isHero ? `Аниматор ${name}` : name;
-  const body = `<section class="event-detail seo-service-detail${isHero ? '' : ' seo-service-page--show'}"><a class="event-detail__back" href="/${isHero ? 'animatory' : 'show'}/">← НАЗАД В КАТАЛОГ</a><div class="event-detail__layout"><div class="event-detail__media">${image(item)}</div><article class="event-detail__copy"><span class="mono-tag">${isHero ? 'Аниматор на праздник' : 'Шоу на праздник'} · Кемерово</span><h1>${escapeHtml(label)}</h1><p class="seo-service-detail__lead">${escapeHtml(item.description)}</p><p>${isHero ? `${escapeHtml(item.duration || 40)} минут игры, яркий реквизит и герой, который вовлечёт детей в приключение.` : 'Программа на вашей площадке: ведущий, реквизит и эффектный финал.'}</p>${programMediaGallery(item)}<p><strong>${isHero ? `${escapeHtml(item.duration || 40)} минут · ` : ''}${formatPrice(item.price)}</strong></p><button class="outline-button" data-open-form data-service="${escapeAttr(label)}" data-order-message="Хочу заказать ${escapeAttr(label)}.">ЗАКАЗАТЬ</button></article></div></section>${partyForm()}`;
+  const action = isHero
+    ? `<button class="outline-button" data-open-form data-service="${escapeAttr(label)}" data-order-message="Хочу заказать ${escapeAttr(label)}.">ЗАКАЗАТЬ</button>`
+    : `<button class="outline-button" type="button" data-select-show data-show-id="${escapeAttr(item.id)}">ВЫБРАТЬ ШОУ</button>`;
+  const body = `<section class="event-detail seo-service-detail${isHero ? '' : ' seo-service-page--show'}"><a class="event-detail__back" href="/${isHero ? 'animatory' : 'show'}/">← НАЗАД В КАТАЛОГ</a><div class="event-detail__layout"><div class="event-detail__media">${image(item)}</div><article class="event-detail__copy"><span class="mono-tag">${isHero ? 'Аниматор на праздник' : 'Шоу на праздник'} · Кемерово</span><h1>${escapeHtml(label)}</h1><p class="seo-service-detail__lead">${escapeHtml(item.description)}</p><p>${isHero ? `${escapeHtml(item.duration || 40)} минут игры, яркий реквизит и герой, который вовлечёт детей в приключение.` : 'Программа на вашей площадке: ведущий, реквизит и эффектный финал.'}</p>${programMediaGallery(item)}<p><strong>${isHero ? `${escapeHtml(item.duration || 40)} минут · ` : ''}${formatPrice(item.price)}</strong></p>${action}</article></div></section>${showCart}${partyForm()}`;
   return layout(pageMeta({ title:item.seoTitle || `${label} в Кемерово | ТЕМА`, description:item.seoDescription || item.description, path:`/${isHero ? 'animatory' : 'show'}/${item.slug}/` }), body, isHero ? 'page--animatory' : 'page--show');
 };
 
@@ -671,7 +715,21 @@ const catalogPublicUrl = (type, item) => {
 
 const catalogEditorSection = (title, description, body, open = true) => `<details class="admin-editor-section" ${open ? 'open' : ''}><summary><span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(description)}</small></span><b aria-hidden="true">⌄</b></summary><div class="admin-editor-section__body">${body}</div></details>`;
 
-const catalogForm = (type, item = {}) => {
+const showHeroOfferEditor = (show, heroes) => {
+  const offers = new Map((Array.isArray(show.heroOffers) ? show.heroOffers : []).map(offer => [offer.heroId, offer]));
+  const availableHeroes = heroes.filter(visible);
+  const rows = availableHeroes.length
+    ? availableHeroes.map((hero, index) => {
+      const offer = offers.get(hero.id) || {};
+      const prices = heroPrices(hero);
+      const active = Boolean(offers.get(hero.id));
+      return `<article class="admin-show-hero-offer"><label class="admin-check admin-show-hero-offer__toggle"><input type="checkbox" name="heroOfferIds" value="${escapeAttr(hero.id)}" ${active ? 'checked' : ''}> <span><strong>${escapeHtml(hero.name)}</strong><small>По умолчанию: будни ${formatPrice(prices.weekday)} · выходные ${formatPrice(prices.weekend)}</small></span></label><div class="admin-grid admin-show-hero-offer__fields">${formField('Подпись в корзине (необязательно)', `heroOfferLabel-${hero.id}`, offer.label || '', { wide:true })}${formField('Будни, ₽', `heroOfferWeekday-${hero.id}`, offer.weekdayPrice ?? prices.weekday, { type:'number', step:'1' })}${formField('Выходные, ₽', `heroOfferWeekend-${hero.id}`, offer.weekendPrice ?? prices.weekend, { type:'number', step:'1' })}${formField('Порядок', `heroOfferPosition-${hero.id}`, offer.position ?? index + 1, { type:'number', step:'1' })}</div></article>`;
+    }).join('')
+    : '<p class="admin-empty">Сначала добавьте хотя бы одного видимого аниматора в каталоге.</p>';
+  return catalogEditorSection('Аниматоры к шоу', 'Выберите только подходящих персонажей. Для взрослой программы выключите предложение целиком.', `<div class="admin-panel__top"><label class="admin-check"><input type="checkbox" name="heroUpsellEnabled" ${show.heroUpsellEnabled === true ? 'checked' : ''}> Предлагать аниматора после выбора шоу</label></div><div class="admin-grid">${formField('Заголовок предложения', 'heroOfferTitle', show.heroOfferTitle || 'Добавьте любимого героя', { wide:true })}${formField('Текст предложения', 'heroOfferDescription', show.heroOfferDescription || 'Аниматор встретит гостей и сделает праздник ещё насыщеннее.', { textarea:true, wide:true })}</div><div class="admin-show-hero-offer-list">${rows}</div>`);
+};
+
+const catalogForm = (type, item = {}, heroes = []) => {
   const hero = type === 'heroes';
   const show = type === 'shows';
   const play = type === 'plays';
@@ -707,7 +765,7 @@ const catalogForm = (type, item = {}) => {
   }
 
   const status = item.published !== false ? 'Карточка видна посетителям.' : 'Карточка скрыта: её видите только вы в админке.';
-  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show || play ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${seo ? catalogEditorSection('Поисковая выдача', 'Необязательно. Если оставить пустым, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
+  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${show ? showHeroOfferEditor(item, heroes) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show || play ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${seo ? catalogEditorSection('Поисковая выдача', 'Необязательно. Если оставить пустым, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
 };
 
 const catalogItemCard = (type, item) => {
@@ -732,13 +790,13 @@ const renderAdminCatalog = async (type, query = {}) => {
 };
 
 const renderAdminCatalogEditor = async (type, id, query = {}) => {
-  const items = await loadCatalog(type);
+  const [items, heroes] = await Promise.all([loadCatalog(type), type === 'shows' ? loadCatalog('heroes') : Promise.resolve([])]);
   const isNew = id === 'new';
   const item = isNew ? { published:true } : items.find(entry => entry.id === id);
   if (!item) throw new Error('Карточка не найдена');
   const title = item.name || item.title || 'Новая карточка';
   const preview = catalogPublicUrl(type, item);
-  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/${escapeAttr(type)}">← Все карточки</a><span>Каталог</span><h1>${escapeHtml(isNew ? `Новая карточка` : title)}</h1><p>Заполните главное, загрузите обложку и при необходимости добавьте материалы. Поля для поиска спрятаны в отдельный блок.</p></div>${preview ? adminPreviewLink(preview, 'Открыть на сайте') : ''}</header>${adminSaveNotice(query)}<form class="admin-catalog-form admin-edit-form" method="post" action="/admin/catalog/${escapeAttr(type)}/save" enctype="multipart/form-data" data-admin-form>${catalogForm(type, item)}${adminSaveBar({ previewUrl:preview, submitLabel:isNew ? 'Создать карточку' : 'Сохранить изменения' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление уберёт карточку из каталога. Загруженные файлы сохранятся на сервере.</p><button class="admin-danger" type="submit" formaction="/admin/catalog/${escapeAttr(type)}/delete" formnovalidate onclick="return confirm('Удалить карточку?')">Удалить карточку</button></div>`}</form>`;
+  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/${escapeAttr(type)}">← Все карточки</a><span>Каталог</span><h1>${escapeHtml(isNew ? `Новая карточка` : title)}</h1><p>Заполните главное, загрузите обложку и при необходимости добавьте материалы. Поля для поиска спрятаны в отдельный блок.</p></div>${preview ? adminPreviewLink(preview, 'Открыть на сайте') : ''}</header>${adminSaveNotice(query)}<form class="admin-catalog-form admin-edit-form" method="post" action="/admin/catalog/${escapeAttr(type)}/save" enctype="multipart/form-data" data-admin-form>${catalogForm(type, item, heroes)}${adminSaveBar({ previewUrl:preview, submitLabel:isNew ? 'Создать карточку' : 'Сохранить изменения' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление уберёт карточку из каталога. Загруженные файлы сохранятся на сервере.</p><button class="admin-danger" type="submit" formaction="/admin/catalog/${escapeAttr(type)}/delete" formnovalidate onclick="return confirm('Удалить карточку?')">Удалить карточку</button></div>`}</form>`;
   return adminLayout(isNew ? `Новая карточка · ${catalogTitles[type]}` : title, body, type);
 };
 
@@ -776,7 +834,8 @@ const updateGallery = (source, body, files = []) => {
 const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = []) => {
   const name = String(body.name || '').trim();
   const itemsPromise = loadCatalog(type);
-  return itemsPromise.then(items => {
+  const heroesPromise = type === 'shows' ? loadCatalog('heroes') : Promise.resolve([]);
+  return Promise.all([itemsPromise, heroesPromise]).then(([items, heroes]) => {
     const source = oldItem || {};
     const supportsGallery = type === 'shows' || type === 'plays';
     const gallery = supportsGallery ? updateGallery(source, body, galleryFiles) : source.gallery;
@@ -815,10 +874,33 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       audience: ['all','boys','girls'].includes(body.audience) ? body.audience : 'all', accent: body.accent || source.accent || 'yellow',
       seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
     };
-    if (type === 'shows') return {
-      ...base, name, slug: uniqueSlug(body.slug || `${name}-kemerovo`, items, base.id), description: String(body.description || '').trim(),
-      price: priceNumber(body.price, source.price ?? 0), accent: body.accent || source.accent || 'cyan', seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
-    };
+    if (type === 'shows') {
+      const selectedHeroIds = [...new Set((Array.isArray(body.heroOfferIds) ? body.heroOfferIds : [body.heroOfferIds]).filter(Boolean).map(String))];
+      const heroById = new Map(heroes.filter(visible).map(hero => [hero.id, hero]));
+      const heroOffers = selectedHeroIds
+        .map((heroId, index) => {
+          const hero = heroById.get(heroId);
+          if (!hero) return null;
+          const prices = heroPrices(hero);
+          return {
+            heroId,
+            label: String(body[`heroOfferLabel-${heroId}`] || '').trim().slice(0, 120),
+            weekdayPrice: priceNumber(body[`heroOfferWeekday-${heroId}`], prices.weekday),
+            weekendPrice: priceNumber(body[`heroOfferWeekend-${heroId}`], prices.weekend),
+            position: Math.max(1, Math.round(number(body[`heroOfferPosition-${heroId}`], index + 1)))
+          };
+        })
+        .filter(Boolean)
+        .sort((first, second) => first.position - second.position || first.heroId.localeCompare(second.heroId));
+      return {
+        ...base, name, slug: uniqueSlug(body.slug || `${name}-kemerovo`, items, base.id), description: String(body.description || '').trim(),
+        price: priceNumber(body.price, source.price ?? 0), accent: body.accent || source.accent || 'cyan', seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim(),
+        heroUpsellEnabled: truthy(body.heroUpsellEnabled),
+        heroOfferTitle: String(body.heroOfferTitle || 'Добавьте любимого героя').trim().slice(0, 120),
+        heroOfferDescription: String(body.heroOfferDescription || 'Аниматор встретит гостей и сделает праздник ещё насыщеннее.').trim().slice(0, 280),
+        heroOffers
+      };
+    }
     return {
       ...base, name, slug: uniqueSlug(body.slug || name, items, base.id), description: String(body.description || '').trim(),
       age: String(body.age || '3+').trim(), price: priceNumber(body.price, source.price ?? 0), accent: body.accent || source.accent || 'violet'
@@ -1024,7 +1106,7 @@ app.get('/show/', async (_req, res, next) => { try { res.send(await renderShow()
 app.get('/spektakli/', async (_req, res, next) => { try { res.send(await renderPlays()); } catch (error) { next(error); } });
 app.get('/afisha/', async (_req, res, next) => { try { res.send(await renderAfisha()); } catch (error) { next(error); } });
 app.get('/animatory/:slug/', async (req, res, next) => { try { const item = (await loadCatalog('heroes')).find(hero => hero.slug === req.params.slug && visible(hero)); if (!item) return res.status(404).send('Программа не найдена'); res.send(renderServiceDetail({ item, type:'heroes' })); } catch (error) { next(error); } });
-app.get('/show/:slug/', async (req, res, next) => { try { const item = (await loadCatalog('shows')).find(show => show.slug === req.params.slug && visible(show)); if (!item) return res.status(404).send('Шоу не найдено'); res.send(renderServiceDetail({ item, type:'shows' })); } catch (error) { next(error); } });
+app.get('/show/:slug/', async (req, res, next) => { try { const [shows, heroes] = await Promise.all([loadCatalog('shows'), loadCatalog('heroes')]); const item = shows.find(show => show.slug === req.params.slug && visible(show)); if (!item) return res.status(404).send('Шоу не найдено'); res.send(renderServiceDetail({ item, type:'shows', showCart:showCartDialog([item], heroes) })); } catch (error) { next(error); } });
 app.get('/afisha/:slug/', async (req, res, next) => { try { const item = (await loadCatalog('events')).find(event => event.slug === req.params.slug && visible(event)); if (!item) return res.status(404).send('Афиша не найдена'); res.send(renderEventDetail(item)); } catch (error) { next(error); } });
 
 app.use((req, res) => res.status(404).send(layout(pageMeta({ title:'Страница не найдена', path:req.path }), '<section class="event-detail"><h1>404</h1><p>Эта страница не найдена.</p><a class="outline-button" href="/">НА ГЛАВНУЮ</a></section>')));

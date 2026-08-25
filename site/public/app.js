@@ -323,6 +323,145 @@ if (heroCart) {
   updateCart();
 }
 
+const showCart = document.querySelector("[data-show-cart]");
+
+if (showCart) {
+  const cartForm = showCart.querySelector("[data-show-cart-form]");
+  const optionGrid = showCart.querySelector("[data-show-cart-hero-options]");
+  const upsell = showCart.querySelector("[data-show-cart-upsell]");
+  const noHeroButton = showCart.querySelector("[data-show-cart-no-hero]");
+  let showCatalog = [];
+  try {
+    showCatalog = JSON.parse(showCart.dataset.showCartCatalog || "[]");
+  } catch {
+    showCatalog = [];
+  }
+
+  const state = { showId: "", heroId: "", day: "weekday" };
+  const money = value => new Intl.NumberFormat("ru-RU").format(Number(value || 0)) + " ₽";
+  const currentShow = () => showCatalog.find(show => show.id === state.showId);
+  const currentOffers = () => {
+    const show = currentShow();
+    return show?.enabled && Array.isArray(show.offers) ? show.offers : [];
+  };
+  const currentHero = () => currentOffers().find(hero => hero.id === state.heroId);
+  const showName = cartForm.querySelector("[data-show-cart-name]");
+  const showPrice = cartForm.querySelector("[data-show-cart-price]");
+  const heroItem = cartForm.querySelector("[data-show-cart-hero-item]");
+  const heroName = cartForm.querySelector("[data-show-cart-hero-name]");
+  const heroPrice = cartForm.querySelector("[data-show-cart-hero-price]");
+  const total = cartForm.querySelector("[data-show-cart-total]");
+  const summary = cartForm.querySelector("[data-show-cart-summary]");
+  const offerTitle = cartForm.querySelector("[data-show-cart-offer-title]");
+  const offerDescription = cartForm.querySelector("[data-show-cart-offer-description]");
+
+  const renderHeroOptions = offers => {
+    optionGrid.replaceChildren();
+    offers.forEach(hero => {
+      const button = document.createElement("button");
+      button.className = "hero-cart__mini-card";
+      button.type = "button";
+      button.dataset.showCartHero = hero.id;
+      button.setAttribute("aria-pressed", String(hero.id === state.heroId));
+      button.classList.toggle("is-selected", hero.id === state.heroId);
+      if (hero.image) {
+        const image = document.createElement("img");
+        image.src = hero.image;
+        image.alt = "";
+        image.style.objectPosition = `${Number(hero.imagePositionX || 50)}% ${Number(hero.imagePositionY || 50)}%`;
+        image.style.transform = `scale(${Number(hero.imageScale || 100) / 100})`;
+        button.append(image);
+      } else {
+        const placeholder = document.createElement("span");
+        placeholder.className = "hero-cart__mini-placeholder";
+        placeholder.setAttribute("aria-hidden", "true");
+        placeholder.textContent = "★";
+        button.append(placeholder);
+      }
+      const label = document.createElement("span");
+      label.textContent = hero.label ? `${hero.name} · ${hero.label}` : hero.name;
+      button.append(label);
+      button.addEventListener("click", () => {
+        state.heroId = hero.id;
+        updateCart();
+      });
+      optionGrid.append(button);
+    });
+  };
+
+  const updateCart = () => {
+    const show = currentShow();
+    const offers = currentOffers();
+    if (!offers.some(hero => hero.id === state.heroId)) state.heroId = "";
+    const hero = currentHero();
+    const heroAddOn = hero ? Number(hero[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] || 0) : 0;
+    const showBase = Number(show?.price || 0);
+    const dayLabel = state.day === "weekend" ? "Выходные" : "Будни";
+
+    showName.textContent = show?.name || "Выберите шоу";
+    showPrice.textContent = show ? money(showBase) : "—";
+    heroItem.hidden = !hero;
+    if (hero) {
+      heroName.textContent = hero.name;
+      heroPrice.textContent = `+ ${money(heroAddOn)}`;
+    }
+    upsell.hidden = !offers.length;
+    if (offers.length) {
+      offerTitle.textContent = show.title || "Добавьте любимого героя";
+      offerDescription.textContent = show.description || "Аниматор встретит гостей и сделает праздник ещё насыщеннее.";
+      noHeroButton.classList.toggle("is-selected", !hero);
+      noHeroButton.setAttribute("aria-pressed", String(!hero));
+      renderHeroOptions(offers);
+    }
+    total.textContent = show ? money(showBase + heroAddOn) : "—";
+    summary.textContent = !show
+      ? "Выберите шоу."
+      : hero
+        ? `${dayLabel} · шоу и аниматор.`
+        : `${dayLabel} · только шоу.`;
+
+    cartForm.dataset.showName = show?.name || "";
+    cartForm.dataset.heroName = hero?.name || "";
+    cartForm.dataset.dayLabel = dayLabel;
+    cartForm.dataset.total = String(showBase + heroAddOn);
+    cartForm.dataset.ready = String(Boolean(show));
+  };
+
+  const openShowCart = showId => {
+    if (!showCatalog.some(show => show.id === showId)) return;
+    state.showId = showId;
+    state.heroId = "";
+    updateCart();
+    if (!showCart.open) showCart.showModal();
+    (currentOffers().length ? optionGrid.querySelector("button") : cartForm.querySelector('[data-show-cart-day="weekday"]'))?.focus();
+  };
+
+  document.querySelectorAll("[data-select-show]").forEach(button => {
+    button.addEventListener("click", () => {
+      const showId = button.dataset.showId || button.closest("[data-show-card]")?.dataset.showId || "";
+      openShowCart(showId);
+    });
+  });
+  cartForm.querySelectorAll("[data-show-cart-day]").forEach(button => {
+    button.addEventListener("click", () => {
+      state.day = button.dataset.showCartDay;
+      cartForm.querySelectorAll("[data-show-cart-day]").forEach(item => {
+        const selected = item === button;
+        item.classList.toggle("is-selected", selected);
+        item.setAttribute("aria-pressed", String(selected));
+      });
+      updateCart();
+    });
+  });
+  noHeroButton?.addEventListener("click", () => {
+    state.heroId = "";
+    updateCart();
+  });
+  showCart.querySelector("[data-close-show-cart]")?.addEventListener("click", () => showCart.close());
+  showCart.addEventListener("click", event => { if (event.target === showCart) showCart.close(); });
+  updateCart();
+}
+
 dialog?.querySelector(".dialog-close")?.addEventListener("click", () => dialog.close());
 dialog?.addEventListener("click", event => {
   if (event.target === dialog) dialog.close();
@@ -333,7 +472,7 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
   form.addEventListener("input", () => {
     if (started) return;
     started = true;
-    metrikaGoal("form_start", { form: form.matches("[data-hero-cart-form]") ? "hero_cart" : form.matches("[data-party-form]") ? "planner" : "dialog" });
+    metrikaGoal("form_start", { form: form.matches("[data-hero-cart-form]") ? "hero_cart" : form.matches("[data-show-cart-form]") ? "show_cart" : form.matches("[data-party-form]") ? "planner" : "dialog" });
   });
   form.addEventListener("submit", async event => {
     event.preventDefault();
@@ -350,6 +489,22 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
         `Главный герой: ${form.dataset.primaryHeroName}`,
         `День: ${form.dataset.dayLabel}`,
         secondHero ? `Второй герой по акции: ${secondHero}` : "",
+        `Итого: ${total}`
+      ].filter(Boolean).join(". ") + ".";
+      const comment = form.querySelector('[name="comment"]')?.value.trim();
+      if (comment) form.elements.message.value += ` Комментарий: ${comment}`;
+    } else if (form.matches("[data-show-cart-form]")) {
+      if (form.dataset.ready !== "true") {
+        status.textContent = "Выберите шоу.";
+        return;
+      }
+      const hero = form.dataset.heroName;
+      const total = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.total || 0)) + " ₽";
+      form.elements.service.value = `Шоу · ${form.dataset.showName}${hero ? ` + аниматор ${hero}` : ""}`;
+      form.elements.message.value = [
+        `Шоу: ${form.dataset.showName}`,
+        `День: ${form.dataset.dayLabel}`,
+        hero ? `Аниматор: ${hero}` : "Без аниматора",
         `Итого: ${total}`
       ].filter(Boolean).join(". ") + ".";
       const comment = form.querySelector('[name="comment"]')?.value.trim();
@@ -380,7 +535,7 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
       if (!response.ok) throw new Error(result.error || "Ошибка отправки");
       status.textContent = result.message;
       form.reset();
-      metrikaGoal("form_submit", { form: form.matches("[data-hero-cart-form]") ? "hero_cart" : form.matches("[data-party-form]") ? "planner" : "dialog" });
+      metrikaGoal("form_submit", { form: form.matches("[data-hero-cart-form]") ? "hero_cart" : form.matches("[data-show-cart-form]") ? "show_cart" : form.matches("[data-party-form]") ? "planner" : "dialog" });
       const formDialog = form.closest("dialog");
       if (formDialog?.open) setTimeout(() => formDialog.close(), 1800);
     } catch (error) {

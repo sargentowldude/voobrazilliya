@@ -1229,3 +1229,24 @@ button { cursor: pointer; }
     font-size: 8px;
   }
 }
+
+.admin-show-hero-offer-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+.admin-show-hero-offer {
+  padding: 15px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+}
+.admin-show-hero-offer__toggle {
+  align-items: flex-start;
+}
+.admin-show-hero-offer__toggle span {
+  display: grid;
+  gap: 3px;
+}
+.admin-show-hero-offer__toggle small { color: var(--admin-muted); }
+.admin-show-hero-offer__fields { margin-top: 13px; }

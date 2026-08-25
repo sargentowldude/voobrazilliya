@@ -7,6 +7,32 @@
     "seoDescription": "Заказать азотное шоу на детский праздник в Кемерово. Театрализованная постановка с эффектными опытами и облаками пара, стоимость программы 3500 ₽.",
     "description": "Интерактивная театрализованная постановка с элементами азотного шоу: герои проводят безопасные эффектные опыты, выпускают облака пара и зовут детей помогать им в лаборатории чудес.",
     "price": 3500,
+    "heroUpsellEnabled": true,
+    "heroOfferTitle": "Добавьте супергероя к научному приключению",
+    "heroOfferDescription": "Герой встретит гостей, вовлечёт детей в игру и станет ярким продолжением азотного шоу.",
+    "heroOffers": [
+      {
+        "heroId": "hero-hulk",
+        "label": "лаборатория силы",
+        "weekdayPrice": 2500,
+        "weekendPrice": 3000,
+        "position": 1
+      },
+      {
+        "heroId": "hero-spider-man",
+        "label": "супергеройская миссия",
+        "weekdayPrice": 2500,
+        "weekendPrice": 3000,
+        "position": 2
+      },
+      {
+        "heroId": "hero-captain-america",
+        "label": "командное задание",
+        "weekdayPrice": 2500,
+        "weekendPrice": 3000,
+        "position": 3
+      }
+    ],
     "accent": "cyan",
     "image": "/uploads/1787078814392-b2a42da2-4e3a-4fa9-aff6-e20e7d50e9f3.webp",
     "imagePositionX": 50,
@@ -39,6 +65,25 @@
     "seoDescription": "Неоновая дискотека на детский праздник в Кемерово. Музыка, светящиеся аксессуары и танцевальные игры, цена 2000 ₽.",
     "description": "Музыка, светящиеся аксессуары, танцевальные задания и игры в неоновом настроении. Подходит для компании, которая хочет много двигаться, смеяться и устроить яркий танцевальный финал.",
     "price": 2000,
+    "heroUpsellEnabled": true,
+    "heroOfferTitle": "Добавьте героя в неоновую вечеринку",
+    "heroOfferDescription": "Аниматор встретит детей и задаст настроение перед ярким танцевальным финалом.",
+    "heroOffers": [
+      {
+        "heroId": "hero-spider-man",
+        "label": "неоновая миссия",
+        "weekdayPrice": 2500,
+        "weekendPrice": 3000,
+        "position": 1
+      },
+      {
+        "heroId": "hero-captain-america",
+        "label": "танцевальная команда",
+        "weekdayPrice": 2500,
+        "weekendPrice": 3000,
+        "position": 2
+      }
+    ],
     "accent": "purple",
     "image": "/uploads/1787078990606-50f45ee8-cb3b-4b21-986b-4023335fbc37.webp",
     "imagePositionX": 50,
@@ -56,6 +101,25 @@
     "seoDescription": "Заказать пенную вечеринку в Кемерово. Музыка, активности и облака пены на вашей площадке, стоимость программы 9000 ₽.",
     "description": "Большая танцевальная вечеринка в облаках пены с музыкой, активностями и мощным эффектом присутствия. Отличный вариант для просторной площадки и по-настоящему громкого праздника.",
     "price": 9000,
+    "heroUpsellEnabled": true,
+    "heroOfferTitle": "Позовите героя в пенное приключение",
+    "heroOfferDescription": "Герой встретит гостей, проведёт стартовые игры и присоединится к самому громкому финалу.",
+    "heroOffers": [
+      {
+        "heroId": "hero-hulk",
+        "label": "сильный старт",
+        "weekdayPrice": 2500,
+        "weekendPrice": 3000,
+        "position": 1
+      },
+      {
+        "heroId": "hero-spider-man",
+        "label": "пенная миссия",
+        "weekdayPrice": 2500,
+        "weekendPrice": 3000,
+        "position": 2
+      }
+    ],
     "accent": "pink",
     "image": "/uploads/1787078392179-e13e9db8-e046-4fd8-9cac-9fe10c583d59.webp",
     "imagePositionX": 50,
@@ -86,6 +150,10 @@
     "seoDescription": "Заказать Разнос-шоу на детский праздник в Кемерово. Активные испытания, командный азарт и яркий финал, цена 10000 ₽.",
     "description": "Максимально активная программа с неожиданными испытаниями, командным азартом и яркой подачей ведущего. Сценарий держит темп от первого задания до большого финала.",
     "price": 10000,
+    "heroUpsellEnabled": false,
+    "heroOfferTitle": "",
+    "heroOfferDescription": "",
+    "heroOffers": [],
     "accent": "yellow",
     "image": "/uploads/1787078755193-1f461a48-af9a-493f-b61e-76027349d0a3.webp",
     "imagePositionX": 50,
