@@ -324,12 +324,16 @@ if (heroCart) {
 }
 
 const showCart = document.querySelector("[data-show-cart]");
+const showHeroChoice = document.querySelector("[data-show-hero-choice]");
 
 if (showCart) {
   const cartForm = showCart.querySelector("[data-show-cart-form]");
   const optionGrid = showCart.querySelector("[data-show-cart-hero-options]");
+  const optionWrap = showCart.querySelector("[data-show-cart-hero-options-wrap]");
   const upsell = showCart.querySelector("[data-show-cart-upsell]");
-  const noHeroButton = showCart.querySelector("[data-show-cart-no-hero]");
+  const toggleHeroes = showCart.querySelector("[data-show-cart-toggle-heroes]");
+  const clearHeroes = showCart.querySelector("[data-show-cart-clear-heroes]");
+  const selectionHint = showCart.querySelector("[data-show-cart-selection-hint]");
   let showCatalog = [];
   try {
     showCatalog = JSON.parse(showCart.dataset.showCartCatalog || "[]");
@@ -337,33 +341,36 @@ if (showCart) {
     showCatalog = [];
   }
 
-  const state = { showId: "", heroId: "", day: "weekday" };
+  const state = { showId: "", heroIds: [], day: "weekday", heroPickerOpen: false };
   const money = value => new Intl.NumberFormat("ru-RU").format(Number(value || 0)) + " ₽";
   const currentShow = () => showCatalog.find(show => show.id === state.showId);
   const currentOffers = () => {
     const show = currentShow();
     return show?.enabled && Array.isArray(show.offers) ? show.offers : [];
   };
-  const currentHero = () => currentOffers().find(hero => hero.id === state.heroId);
+  const currentHeroes = () => currentOffers().filter(hero => state.heroIds.includes(hero.id));
+  const heroPrice = hero => Number(hero?.[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] || 0);
   const showName = cartForm.querySelector("[data-show-cart-name]");
   const showPrice = cartForm.querySelector("[data-show-cart-price]");
-  const heroItem = cartForm.querySelector("[data-show-cart-hero-item]");
-  const heroName = cartForm.querySelector("[data-show-cart-hero-name]");
-  const heroPrice = cartForm.querySelector("[data-show-cart-hero-price]");
+  const heroItems = cartForm.querySelector("[data-show-cart-hero-items]");
   const total = cartForm.querySelector("[data-show-cart-total]");
   const summary = cartForm.querySelector("[data-show-cart-summary]");
   const offerTitle = cartForm.querySelector("[data-show-cart-offer-title]");
   const offerDescription = cartForm.querySelector("[data-show-cart-offer-description]");
+  const choiceTitle = showHeroChoice?.querySelector("[data-show-choice-title]");
+  const choiceDescription = showHeroChoice?.querySelector("[data-show-choice-description]");
 
   const renderHeroOptions = offers => {
     optionGrid.replaceChildren();
     offers.forEach(hero => {
+      const selectedIndex = state.heroIds.indexOf(hero.id);
       const button = document.createElement("button");
       button.className = "hero-cart__mini-card";
       button.type = "button";
       button.dataset.showCartHero = hero.id;
-      button.setAttribute("aria-pressed", String(hero.id === state.heroId));
-      button.classList.toggle("is-selected", hero.id === state.heroId);
+      button.setAttribute("aria-pressed", String(selectedIndex >= 0));
+      button.setAttribute("aria-label", `${hero.name}, доплата ${money(heroPrice(hero))}`);
+      button.classList.toggle("is-selected", selectedIndex >= 0);
       if (hero.image) {
         const image = document.createElement("img");
         image.src = hero.image;
@@ -380,66 +387,113 @@ if (showCart) {
       }
       const label = document.createElement("span");
       label.textContent = hero.label ? `${hero.name} · ${hero.label}` : hero.name;
-      button.append(label);
+      const price = document.createElement("small");
+      price.className = "show-cart__hero-price";
+      price.textContent = `+ ${money(heroPrice(hero))}`;
+      button.append(label, price);
+      if (selectedIndex >= 0) {
+        const badge = document.createElement("b");
+        badge.className = "show-cart__hero-number";
+        badge.textContent = String(selectedIndex + 1);
+        badge.setAttribute("aria-label", `Выбор ${selectedIndex + 1}`);
+        button.append(badge);
+      }
       button.addEventListener("click", () => {
-        state.heroId = hero.id;
+        if (selectedIndex >= 0) {
+          state.heroIds = state.heroIds.filter(id => id !== hero.id);
+        } else if (state.heroIds.length < 2) {
+          state.heroIds = [...state.heroIds, hero.id];
+        }
         updateCart();
       });
       optionGrid.append(button);
     });
   };
 
+  const renderSelectedHeroes = heroes => {
+    heroItems.replaceChildren();
+    heroes.forEach((hero, index) => {
+      const item = document.createElement("div");
+      item.className = "hero-cart__item hero-cart__item--second";
+      const copy = document.createElement("span");
+      const label = document.createElement("small");
+      label.textContent = `Аниматор ${index + 1}`;
+      const name = document.createElement("strong");
+      name.textContent = hero.name;
+      const price = document.createElement("b");
+      price.textContent = `+ ${money(heroPrice(hero))}`;
+      copy.append(label, name);
+      item.append(copy, price);
+      heroItems.append(item);
+    });
+    heroItems.hidden = !heroes.length;
+  };
+
   const updateCart = () => {
     const show = currentShow();
     const offers = currentOffers();
-    if (!offers.some(hero => hero.id === state.heroId)) state.heroId = "";
-    const hero = currentHero();
-    const heroAddOn = hero ? Number(hero[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] || 0) : 0;
+    state.heroIds = state.heroIds.filter(id => offers.some(hero => hero.id === id));
+    const heroes = currentHeroes();
+    const heroAddOn = heroes.reduce((sum, hero) => sum + heroPrice(hero), 0);
     const showBase = Number(show?.price || 0);
     const dayLabel = state.day === "weekend" ? "Выходные" : "Будни";
 
     showName.textContent = show?.name || "Выберите шоу";
     showPrice.textContent = show ? money(showBase) : "—";
-    heroItem.hidden = !hero;
-    if (hero) {
-      heroName.textContent = hero.name;
-      heroPrice.textContent = `+ ${money(heroAddOn)}`;
-    }
+    renderSelectedHeroes(heroes);
     upsell.hidden = !offers.length;
     if (offers.length) {
       offerTitle.textContent = show.title || "Добавьте любимого героя";
       offerDescription.textContent = show.description || "Аниматор встретит гостей и сделает праздник ещё насыщеннее.";
-      noHeroButton.classList.toggle("is-selected", !hero);
-      noHeroButton.setAttribute("aria-pressed", String(!hero));
+      optionWrap.hidden = !state.heroPickerOpen;
+      toggleHeroes.textContent = state.heroPickerOpen ? "Скрыть выбор" : heroes.length ? "Изменить аниматоров" : "Выбрать аниматоров";
+      toggleHeroes.setAttribute("aria-expanded", String(state.heroPickerOpen));
+      selectionHint.textContent = heroes.length
+        ? `Выбрано: ${heroes.length} из 2. Нажмите на карточку, чтобы убрать аниматора.`
+        : "Можно выбрать до двух аниматоров.";
+      clearHeroes.hidden = !heroes.length;
       renderHeroOptions(offers);
     }
     total.textContent = show ? money(showBase + heroAddOn) : "—";
     summary.textContent = !show
       ? "Выберите шоу."
-      : hero
-        ? `${dayLabel} · шоу и аниматор.`
+      : heroes.length
+        ? `${dayLabel} · шоу + ${heroes.length} аниматор${heroes.length === 1 ? "" : "а"}.`
         : `${dayLabel} · только шоу.`;
 
     cartForm.dataset.showName = show?.name || "";
-    cartForm.dataset.heroName = hero?.name || "";
+    cartForm.dataset.heroNames = heroes.map(hero => hero.name).join(", ");
     cartForm.dataset.dayLabel = dayLabel;
     cartForm.dataset.total = String(showBase + heroAddOn);
     cartForm.dataset.ready = String(Boolean(show));
   };
 
-  const openShowCart = showId => {
+  const openShowCart = (showId, chooseHeroes = false) => {
     if (!showCatalog.some(show => show.id === showId)) return;
     state.showId = showId;
-    state.heroId = "";
+    state.heroIds = [];
+    state.heroPickerOpen = chooseHeroes;
     updateCart();
     if (!showCart.open) showCart.showModal();
-    (currentOffers().length ? optionGrid.querySelector("button") : cartForm.querySelector('[data-show-cart-day="weekday"]'))?.focus();
+    (chooseHeroes ? optionGrid.querySelector("button") : cartForm.querySelector('[data-show-cart-day="weekday"]'))?.focus();
+  };
+
+  const openShowChoice = showId => {
+    if (!showCatalog.some(show => show.id === showId)) return;
+    state.showId = showId;
+    state.heroIds = [];
+    const show = currentShow();
+    if (!currentOffers().length || !showHeroChoice) return openShowCart(showId);
+    choiceTitle.textContent = show.title || "Добавим аниматоров?";
+    choiceDescription.textContent = show.description || "К этому шоу можно добавить любимых персонажей.";
+    showHeroChoice.showModal();
+    showHeroChoice.querySelector("[data-show-choice-no]")?.focus();
   };
 
   document.querySelectorAll("[data-select-show]").forEach(button => {
     button.addEventListener("click", () => {
       const showId = button.dataset.showId || button.closest("[data-show-card]")?.dataset.showId || "";
-      openShowCart(showId);
+      openShowChoice(showId);
     });
   });
   cartForm.querySelectorAll("[data-show-cart-day]").forEach(button => {
@@ -453,10 +507,26 @@ if (showCart) {
       updateCart();
     });
   });
-  noHeroButton?.addEventListener("click", () => {
-    state.heroId = "";
+  toggleHeroes?.addEventListener("click", () => {
+    state.heroPickerOpen = !state.heroPickerOpen;
     updateCart();
   });
+  clearHeroes?.addEventListener("click", () => {
+    state.heroIds = [];
+    updateCart();
+  });
+  showHeroChoice?.querySelector("[data-show-choice-no]")?.addEventListener("click", () => {
+    const showId = state.showId;
+    showHeroChoice.close();
+    openShowCart(showId);
+  });
+  showHeroChoice?.querySelector("[data-show-choice-yes]")?.addEventListener("click", () => {
+    const showId = state.showId;
+    showHeroChoice.close();
+    openShowCart(showId, true);
+  });
+  showHeroChoice?.querySelector("[data-close-show-hero-choice]")?.addEventListener("click", () => showHeroChoice.close());
+  showHeroChoice?.addEventListener("click", event => { if (event.target === showHeroChoice) showHeroChoice.close(); });
   showCart.querySelector("[data-close-show-cart]")?.addEventListener("click", () => showCart.close());
   showCart.addEventListener("click", event => { if (event.target === showCart) showCart.close(); });
   updateCart();
@@ -498,13 +568,13 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
         status.textContent = "Выберите шоу.";
         return;
       }
-      const hero = form.dataset.heroName;
+      const heroes = form.dataset.heroNames;
       const total = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.total || 0)) + " ₽";
-      form.elements.service.value = `Шоу · ${form.dataset.showName}${hero ? ` + аниматор ${hero}` : ""}`;
+      form.elements.service.value = `Шоу · ${form.dataset.showName}${heroes ? ` + аниматоры: ${heroes}` : ""}`;
       form.elements.message.value = [
         `Шоу: ${form.dataset.showName}`,
         `День: ${form.dataset.dayLabel}`,
-        hero ? `Аниматор: ${hero}` : "Без аниматора",
+        heroes ? `Аниматоры: ${heroes}` : "Без аниматоров",
         `Итого: ${total}`
       ].filter(Boolean).join(". ") + ".";
       const comment = form.querySelector('[name="comment"]')?.value.trim();
