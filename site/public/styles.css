@@ -7407,6 +7407,7 @@ footer small {
     text-transform: uppercase;
   }
   .cart-mobile-stepper__continue strong { font-size: 16px; letter-spacing: -.04em; }
+  .cart-mobile-stepper__continue.is-submit { justify-content: center; }
   .cart-mobile-stepper__continue:disabled { opacity: .42; }
   .hero-cart[data-mobile-step="program"] > .hero-cart__lead { display: none; }
   .hero-cart[data-mobile-step="program"] > .hero-cart__header { display: none; }
@@ -7521,3 +7522,11 @@ footer small {
   }
   .hero-cart__lead { padding-bottom: 4px; }
 }
+
+/* Шоу-корзина: состав и выбор важнее поясняющего текста. */
+.show-cart { gap: 12px; }
+.show-cart > .hero-cart__header { display: none; }
+.show-cart .hero-cart__upsell { padding: 16px; }
+.show-cart .hero-cart__upsell .mono-tag,
+.show-cart .hero-cart__upsell-copy p { display: none; }
+.show-cart .hero-cart__upsell h3 { margin: 0; }

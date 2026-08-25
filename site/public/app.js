@@ -217,7 +217,9 @@ const setupMobileCartStepper = form => {
     back.hidden = !contacts;
     continueButton.type = contacts ? "submit" : "button";
     continueButton.disabled = !contacts && !latest.ready;
+    continueButton.classList.toggle("is-submit", contacts);
     actionLabel.textContent = contacts ? "Отправить заявку" : "К контактам";
+    actionTotal.hidden = contacts;
     actionTotal.textContent = latest.total;
     const dialog = form.closest("dialog");
     if (dialog) dialog.scrollTop = 0;
