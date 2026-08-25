@@ -1491,28 +1491,39 @@ footer small {
 @media (max-width: 600px) {
   .site-header {
     min-height: 72px;
-    padding: 7px 18px;
+    padding: 7px 12px;
   }
+  .wordmark { padding: 3px 5px; }
   .wordmark img {
-    width: 78px;
+    width: 68px;
   }
   .header-contacts {
-    gap: 4px;
-    margin-right: 6px;
+    gap: 3px;
+    margin-right: 4px;
   }
   .header-contact,
-  .header-phone,
   .header-messenger {
-    width: 34px;
-    min-width: 34px;
-    min-height: 34px;
-    flex-basis: 34px;
+    width: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    flex-basis: 30px;
     padding: 0;
     border-radius: 50%;
   }
-  .header-phone__number { display: none; }
-  .header-phone__icon { width: 18px; height: 18px; }
-  .header-messenger__icon { width: 19px; height: 19px; }
+  .header-phone {
+    width: auto;
+    min-width: 0;
+    flex: 0 0 auto;
+    gap: 5px;
+    padding: 0;
+    border-radius: 0;
+    font-size: 9px;
+    letter-spacing: .02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .header-phone__number { display: inline; }
+  .header-phone__icon { width: 17px; height: 17px; }
+  .header-messenger__icon { width: 18px; height: 18px; }
   .header-contact__qr { display: none; }
   .header-contact,
   .header-contact:hover,
@@ -1526,7 +1537,13 @@ footer small {
     color: var(--yellow);
     transform: scale(.9);
   }
-  .menu-button { padding: 10px 12px; font-size: 10px; }
+  .menu-button {
+    min-height: 34px;
+    padding: 9px 10px;
+    font-size: 9px;
+    line-height: 1;
+    white-space: nowrap;
+  }
   .hero {
     padding-bottom: 68px;
   }
@@ -1632,20 +1649,26 @@ footer small {
   }
 }
 @media (max-width: 360px) {
-  .site-header { padding-right: 12px; padding-left: 12px; }
-  .wordmark { padding-right: 6px; padding-left: 6px; }
-  .wordmark img { width: 70px; }
-  .header-contacts { gap: 3px; margin-right: 4px; }
+  .site-header { padding-right: 10px; padding-left: 10px; }
+  .wordmark { padding-right: 4px; padding-left: 4px; }
+  .wordmark img { width: 66px; }
+  .header-contacts { gap: 2px; margin-right: 3px; }
   .header-contact,
-  .header-phone,
   .header-messenger {
-    width: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    flex-basis: 32px;
+    width: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    flex-basis: 28px;
   }
-  .header-phone__icon { width: 17px; height: 17px; }
-  .header-messenger__icon { width: 18px; height: 18px; }
+  .header-phone {
+    width: auto;
+    min-width: 0;
+    flex-basis: auto;
+    gap: 4px;
+    font-size: 8px;
+  }
+  .header-phone__icon { width: 16px; height: 16px; }
+  .header-messenger__icon { width: 17px; height: 17px; }
   .menu-button {
     width: 36px;
     min-height: 34px;
