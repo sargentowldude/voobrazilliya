@@ -175,6 +175,66 @@ heroFilterButtons.forEach(button => {
 const requestedHeroFilter = new URLSearchParams(window.location.search).get("audience");
 if (["boys", "girls", "all"].includes(requestedHeroFilter)) applyHeroFilter(requestedHeroFilter);
 
+const setupMobileCartStepper = form => {
+  const lead = form.querySelector(".hero-cart__lead");
+  const desktopSubmit = lead?.querySelector('button[type="submit"]');
+  if (!lead || !desktopSubmit) return { update() {}, reset() {} };
+
+  desktopSubmit.dataset.cartDesktopSubmit = "";
+  const stepper = document.createElement("div");
+  stepper.className = "cart-mobile-stepper";
+  stepper.dataset.cartMobileStepper = "";
+  stepper.innerHTML = `<div class="cart-mobile-stepper__progress" aria-label="Шаг оформления"><span data-cart-mobile-program-step>1. Программа</span><span data-cart-mobile-contact-step>2. Контакты</span></div><p class="cart-mobile-stepper__summary" data-cart-mobile-summary hidden></p><div class="cart-mobile-stepper__actions"><button class="cart-mobile-stepper__back" type="button" data-cart-mobile-back hidden>← Изменить состав</button><button class="cart-mobile-stepper__continue" type="button" data-cart-mobile-continue><span data-cart-mobile-action-label>К контактам</span><strong data-cart-mobile-action-total>—</strong></button></div>`;
+  form.insertBefore(stepper, lead);
+
+  const programStep = stepper.querySelector("[data-cart-mobile-program-step]");
+  const contactStep = stepper.querySelector("[data-cart-mobile-contact-step]");
+  const compactSummary = stepper.querySelector("[data-cart-mobile-summary]");
+  const back = stepper.querySelector("[data-cart-mobile-back]");
+  const continueButton = stepper.querySelector("[data-cart-mobile-continue]");
+  const actionLabel = stepper.querySelector("[data-cart-mobile-action-label]");
+  const actionTotal = stepper.querySelector("[data-cart-mobile-action-total]");
+  let step = "program";
+  let latest = { summary:"", total:"—", ready:false };
+
+  const setStep = nextStep => {
+    step = nextStep;
+    form.dataset.mobileStep = step;
+    const contacts = step === "contacts";
+    programStep.classList.toggle("is-active", !contacts);
+    contactStep.classList.toggle("is-active", contacts);
+    compactSummary.hidden = !contacts;
+    compactSummary.textContent = latest.summary;
+    back.hidden = !contacts;
+    continueButton.type = contacts ? "submit" : "button";
+    continueButton.disabled = !contacts && !latest.ready;
+    actionLabel.textContent = contacts ? "Отправить заявку" : "К контактам";
+    actionTotal.textContent = latest.total;
+    const dialog = form.closest("dialog");
+    if (dialog) dialog.scrollTop = 0;
+  };
+
+  continueButton.addEventListener("click", event => {
+    if (step !== "program") return;
+    event.preventDefault();
+    if (!latest.ready) return;
+    setStep("contacts");
+    lead.querySelector('[name="name"]')?.focus();
+  });
+  back.addEventListener("click", () => setStep("program"));
+  setStep("program");
+
+  return {
+    update(next) {
+      latest = next;
+      actionTotal.textContent = latest.total;
+      compactSummary.textContent = latest.summary;
+      if (step === "program") continueButton.disabled = !latest.ready;
+    },
+    reset() { setStep("program"); }
+  };
+};
+
 const heroChoice = document.querySelector("[data-hero-choice]");
 const heroCart = document.querySelector("[data-hero-cart]");
 
@@ -199,6 +259,7 @@ if (heroCart) {
   const total = cartForm.querySelector("[data-cart-total]");
   const summary = cartForm.querySelector("[data-cart-summary]");
   const secondHeroPrice = Number(heroCart.dataset.secondHeroPrice || 0);
+  const mobileStepper = setupMobileCartStepper(cartForm);
 
   const syncSecondHeroOptions = () => {
     secondOptions.forEach(option => {
@@ -238,6 +299,11 @@ if (heroCart) {
     cartForm.dataset.ready = String(Boolean(hero && hasSecond));
     cartCards.forEach(card => card.classList.toggle("is-in-cart", card.dataset.heroId === state.primaryId));
     syncSecondHeroOptions();
+    mobileStepper.update({
+      summary: hero ? `${hero.name}${hasSecond ? ` + ${secondHero.name}` : ""} · ${dayLabel}` : "Выберите аниматоров",
+      total: hero ? money(basePrice + (hasSecond ? secondHeroPrice : 0)) : "—",
+      ready: Boolean(hero && hasSecond)
+    });
   };
 
   const setPrimaryHero = heroId => {
@@ -270,6 +336,7 @@ if (heroCart) {
 
   const openHeroCart = () => {
     heroChoice?.close();
+    mobileStepper.reset();
     if (!heroCart.open) heroCart.showModal();
     secondOptions.find(option => !option.hidden)?.focus();
   };
@@ -364,6 +431,7 @@ if (showCart) {
   const choiceLimit = showHeroChoice?.querySelector("[data-show-choice-limit]");
   const choiceBadge = showHeroChoice?.querySelector(".show-hero-choice");
   const choiceYes = showHeroChoice?.querySelector("[data-show-choice-yes]");
+  const mobileStepper = setupMobileCartStepper(cartForm);
 
   const renderHeroOptions = offers => {
     optionGrid.replaceChildren();
@@ -472,6 +540,11 @@ if (showCart) {
     cartForm.dataset.dayLabel = dayLabel;
     cartForm.dataset.total = String(showBase + heroAddOn);
     cartForm.dataset.ready = String(Boolean(show));
+    mobileStepper.update({
+      summary: show ? `${show.name}${heroes.length ? ` + ${heroes.map(hero => hero.name).join(", ")}` : ""} · ${dayLabel}` : "Выберите шоу",
+      total: show ? money(showBase + heroAddOn) : "—",
+      ready: Boolean(show)
+    });
   };
 
   const openShowCart = (showId, chooseHeroes = false) => {
@@ -479,6 +552,7 @@ if (showCart) {
     state.showId = showId;
     state.heroIds = [];
     state.heroPickerOpen = chooseHeroes;
+    mobileStepper.reset();
     updateCart();
     if (!showCart.open) showCart.showModal();
     (chooseHeroes ? optionGrid.querySelector("button") : cartForm.querySelector('[data-show-cart-day="weekday"]'))?.focus();
