@@ -7583,6 +7583,7 @@ footer small {
   padding: clamp(34px, 7vw, 98px);
   overflow: hidden;
   border-radius: 30px;
+  color: #140054;
   background: #f7e96d;
   isolation: isolate;
 }
