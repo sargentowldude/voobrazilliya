@@ -67,7 +67,7 @@ const files = {
 
 await fs.mkdir(uploadsDir, { recursive: true });
 app.disable('x-powered-by');
-if (trustProxy) app.set('trust proxy', 1);
+if (trustProxy) app.set('trust proxy', 'loopback');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '1mb' }));
 const legacyHtmlRedirects = {
@@ -972,7 +972,11 @@ const trySendEmail = async lead => {
       host: smtpHost,
       port: smtpPort,
       secure: smtpSecure,
-      auth: { user:smtpUser, pass:smtpPassword }
+      auth: { user:smtpUser, pass:smtpPassword },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
+      dnsTimeout: 10_000
     });
     await smtpTransport.sendMail({
       from: smtpFrom,
@@ -983,6 +987,7 @@ const trySendEmail = async lead => {
     void sendTelegramLeadNotification();
     return true;
   } catch (error) {
+    smtpTransport = undefined;
     console.error('Не удалось отправить заявку по SMTP:', error.message);
     return false;
   }
@@ -1042,12 +1047,10 @@ app.post('/api/leads', async (req, res, next) => {
       consentMethod:'required-checkbox'
     };
     await appendLead(lead);
-    const emailSent = await trySendEmail(lead);
+    void trySendEmail(lead);
     res.status(201).json({
       ok:true,
-      message: emailSent
-        ? 'Заявка отправлена. Скоро свяжемся с вами!'
-        : 'Заявка сохранена. Почтовое уведомление задерживается, но мы её увидим и свяжемся с вами.'
+      message: 'Заявка отправлена. Скоро свяжемся с вами!'
     });
   } catch (error) { next(error); }
 });
