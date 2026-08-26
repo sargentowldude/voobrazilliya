@@ -5744,6 +5744,61 @@ footer small {
 .hero-cart__field--wide { grid-column: 1 / -1; }
 .hero-cart__lead .consent { margin: 14px 0 13px; color: #625d5a; }
 .hero-cart__lead .cream-button { width: 100%; }
+.hero-cart--animators .hero-cart__upsell-price,
+.hero-cart--animators .hero-cart__upsell-benefits,
+.hero-cart--animators .hero-cart__upsell-help { display: none; }
+
+[data-lead-form].is-submitted {
+  min-height: min(340px, 54vh);
+  align-content: center;
+}
+[data-lead-form].is-submitted > :not(.form-success-panel) { display: none !important; }
+.form-success-panel {
+  width: min(100%, 470px);
+  margin: auto;
+  padding: clamp(24px, 4vw, 34px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px 16px;
+  border: 1px solid rgba(37, 36, 42, .18);
+  border-radius: 18px;
+  background: #fffdf8;
+  box-shadow: 8px 8px 0 rgba(37, 36, 42, .12);
+  animation: form-success-in .32s cubic-bezier(.2, .8, .2, 1) both;
+}
+.form-success-panel__mark {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5f1d0;
+  color: #25242a;
+  font-size: 26px;
+  font-weight: 900;
+}
+.form-success-panel h3 { margin: 0 0 4px; font-size: clamp(22px, 4vw, 29px); letter-spacing: -.055em; }
+.form-success-panel p { margin: 0; color: #625d5a; font-size: 14px; font-weight: 700; line-height: 1.45; }
+.form-success-panel__close {
+  grid-column: 1 / -1;
+  min-height: 46px;
+  border: 1px solid #25242a;
+  border-radius: 11px;
+  background: #25242a;
+  color: #fff9ee;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.form-success-panel__close:hover { transform: translateY(-2px); }
+@keyframes form-success-in {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 /* До 1280px заголовок и фото идут по очереди: рамка H1 не перекрывает кадр. */
 @media (min-width: 601px) and (max-width: 1280px) {
@@ -7395,7 +7450,7 @@ footer small {
     padding: 0 14px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 12px;
     border: 1px solid #25242a;
     border-radius: 11px;
@@ -7406,7 +7461,6 @@ footer small {
     letter-spacing: .04em;
     text-transform: uppercase;
   }
-  .cart-mobile-stepper__continue strong { font-size: 16px; letter-spacing: -.04em; }
   .cart-mobile-stepper__continue.is-submit { justify-content: center; }
   .cart-mobile-stepper__continue:disabled { opacity: .42; }
   .hero-cart[data-mobile-step="program"] > .hero-cart__lead { display: none; }

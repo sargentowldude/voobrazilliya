@@ -92,6 +92,30 @@ const metrikaGoal = (goal, params) => {
   window.ym(counterId, "reachGoal", goal, params);
 };
 
+const clearLeadFormSuccess = form => {
+  if (!form) return;
+  form.classList.remove("is-submitted");
+  form.querySelector(".form-success-panel")?.remove();
+  const status = form.querySelector(".form-status");
+  if (status) status.textContent = "";
+};
+
+const showLeadFormSuccess = form => {
+  clearLeadFormSuccess(form);
+  form.classList.add("is-submitted");
+  const panel = document.createElement("section");
+  panel.className = "form-success-panel";
+  panel.setAttribute("role", "status");
+  panel.innerHTML = `<span class="form-success-panel__mark" aria-hidden="true">✓</span><div><h3>Заявка отправлена</h3><p>Мы получили её и скоро свяжемся с вами.</p></div><button class="form-success-panel__close" type="button">Закрыть</button>`;
+  panel.querySelector("button")?.addEventListener("click", () => {
+    const dialog = form.closest("dialog");
+    if (dialog?.open) dialog.close();
+    else clearLeadFormSuccess(form);
+  });
+  form.append(panel);
+  requestAnimationFrame(() => panel.querySelector("button")?.focus());
+};
+
 // Убираем фиксированную CTA, когда в кадре появляется подвал: она не должна
 // закрывать правовые ссылки или контакты на коротких экранах.
 if (floatingPartyCta && siteFooter && "IntersectionObserver" in window) {
@@ -133,6 +157,7 @@ menuButton?.addEventListener("click", () => {
 document.querySelectorAll("[data-open-form]").forEach(button => {
   button.addEventListener("click", () => {
     if (!dialog) return;
+    clearLeadFormSuccess(dialog.querySelector("[data-lead-form]"));
     const serviceInput = dialog.querySelector('[name="service"]');
     const messageInput = dialog.querySelector('[name="message"]');
     const commentInput = dialog.querySelector('[name="comment"]');
@@ -184,7 +209,7 @@ const setupMobileCartStepper = form => {
   const stepper = document.createElement("div");
   stepper.className = "cart-mobile-stepper";
   stepper.dataset.cartMobileStepper = "";
-  stepper.innerHTML = `<div class="cart-mobile-stepper__progress" aria-label="Шаг оформления"><span data-cart-mobile-program-step>1. Программа</span><span data-cart-mobile-contact-step>2. Контакты</span></div><p class="cart-mobile-stepper__summary" data-cart-mobile-summary hidden></p><div class="cart-mobile-stepper__actions"><button class="cart-mobile-stepper__back" type="button" data-cart-mobile-back hidden>← Изменить состав</button><button class="cart-mobile-stepper__continue" type="button" data-cart-mobile-continue><span data-cart-mobile-action-label>К контактам</span><strong data-cart-mobile-action-total>—</strong></button></div>`;
+  stepper.innerHTML = `<div class="cart-mobile-stepper__progress" aria-label="Шаг оформления"><span data-cart-mobile-program-step>1. Программа</span><span data-cart-mobile-contact-step>2. Контакты</span></div><p class="cart-mobile-stepper__summary" data-cart-mobile-summary hidden></p><div class="cart-mobile-stepper__actions"><button class="cart-mobile-stepper__back" type="button" data-cart-mobile-back hidden>← Изменить состав</button><button class="cart-mobile-stepper__continue" type="button" data-cart-mobile-continue><span data-cart-mobile-action-label>К контактам</span></button></div>`;
   form.insertBefore(stepper, lead);
 
   const programStep = stepper.querySelector("[data-cart-mobile-program-step]");
@@ -193,9 +218,8 @@ const setupMobileCartStepper = form => {
   const back = stepper.querySelector("[data-cart-mobile-back]");
   const continueButton = stepper.querySelector("[data-cart-mobile-continue]");
   const actionLabel = stepper.querySelector("[data-cart-mobile-action-label]");
-  const actionTotal = stepper.querySelector("[data-cart-mobile-action-total]");
   let step = "program";
-  let latest = { summary:"", total:"—", ready:false };
+  let latest = { summary:"", ready:false };
 
   const updateScrollHints = () => {
     window.requestAnimationFrame(() => {
@@ -219,8 +243,6 @@ const setupMobileCartStepper = form => {
     continueButton.disabled = !contacts && !latest.ready;
     continueButton.classList.toggle("is-submit", contacts);
     actionLabel.textContent = contacts ? "Отправить заявку" : "К контактам";
-    actionTotal.hidden = contacts;
-    actionTotal.textContent = latest.total;
     const dialog = form.closest("dialog");
     if (dialog) dialog.scrollTop = 0;
   };
@@ -238,7 +260,6 @@ const setupMobileCartStepper = form => {
   return {
     update(next) {
       latest = next;
-      actionTotal.textContent = latest.total;
       compactSummary.textContent = latest.summary;
       if (step === "program") continueButton.disabled = !latest.ready;
       updateScrollHints();
@@ -259,7 +280,65 @@ if (heroCart) {
     weekdayPrice: Number(card.dataset.heroWeekdayPrice || 0),
     weekendPrice: Number(card.dataset.heroWeekendPrice || 0)
   }));
-  const state = { primaryId: "", secondaryId: "", day: "weekday" };
+  cartForm.classList.add("show-cart", "hero-cart--animators");
+  const animatorDay = cartForm.querySelector(".hero-cart__day");
+  const animatorItems = cartForm.querySelector(".hero-cart__items");
+  const animatorTotal = cartForm.querySelector("[data-cart-total]")?.closest(".hero-cart__total");
+  const originalAnimatorSummary = cartForm.querySelector("[data-cart-summary]");
+  if (animatorDay && animatorItems && animatorTotal && !cartForm.querySelector(".show-cart__order")) {
+    const order = document.createElement("section");
+    order.className = "show-cart__order";
+    order.setAttribute("aria-live", "polite");
+    const orderHeader = document.createElement("header");
+    const orderTitle = document.createElement("span");
+    const orderSummary = document.createElement("small");
+    orderTitle.textContent = "Состав заказа";
+    orderSummary.dataset.cartSummary = "";
+    orderSummary.textContent = "Выберите героя.";
+    orderHeader.append(orderTitle, orderSummary);
+    originalAnimatorSummary?.removeAttribute("data-cart-summary");
+    if (originalAnimatorSummary) originalAnimatorSummary.textContent = "Стоимость выбранной программы";
+    animatorDay.insertAdjacentElement("afterend", order);
+    order.append(orderHeader, animatorItems, animatorTotal);
+    cartForm.querySelector(".hero-cart__header")?.remove();
+  }
+
+  const animatorUpsell = cartForm.querySelector("[data-cart-upsell]");
+  const animatorMiniGrid = animatorUpsell?.querySelector(".hero-cart__mini-grid");
+  if (animatorUpsell && animatorMiniGrid && !animatorUpsell.querySelector("[data-cart-toggle-second]")) {
+    const toggle = document.createElement("button");
+    toggle.className = "show-cart__toggle-heroes";
+    toggle.type = "button";
+    toggle.dataset.cartToggleSecond = "";
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.textContent = "Выбрать второго героя";
+    animatorUpsell.querySelector(".hero-cart__upsell-head")?.append(toggle);
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "show-cart__selection-toolbar";
+    toolbar.dataset.cartSecondToolbar = "";
+    toolbar.hidden = true;
+    const hint = document.createElement("p");
+    hint.dataset.cartSecondHint = "";
+    hint.hidden = true;
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.dataset.cartClearSecond = "";
+    clear.hidden = true;
+    clear.textContent = "Убрать второго героя";
+    toolbar.append(hint, clear);
+
+    const optionsWrap = document.createElement("div");
+    optionsWrap.dataset.cartSecondOptionsWrap = "";
+    optionsWrap.hidden = true;
+    const upsellHead = animatorUpsell.querySelector(".hero-cart__upsell-head");
+    upsellHead?.insertAdjacentElement("afterend", toolbar);
+    toolbar.insertAdjacentElement("afterend", optionsWrap);
+    const scrollHint = animatorUpsell.querySelector("[data-cart-scroll-hint]");
+    if (scrollHint) optionsWrap.append(scrollHint);
+    optionsWrap.append(animatorMiniGrid);
+  }
+  const state = { primaryId: "", secondaryId: "", day: "weekday", secondPickerOpen: false };
   const money = value => new Intl.NumberFormat("ru-RU").format(Number(value || 0)) + " ₽";
   const currentHero = () => cartHeroes.find(hero => hero.id === state.primaryId);
   const secondOptions = [...cartForm.querySelectorAll("[data-cart-second-option]")];
@@ -270,6 +349,11 @@ if (heroCart) {
   const secondPrice = cartForm.querySelector("[data-cart-second-price]");
   const total = cartForm.querySelector("[data-cart-total]");
   const summary = cartForm.querySelector("[data-cart-summary]");
+  const secondOptionsWrap = cartForm.querySelector("[data-cart-second-options-wrap]");
+  const secondToggle = cartForm.querySelector("[data-cart-toggle-second]");
+  const secondToolbar = cartForm.querySelector("[data-cart-second-toolbar]");
+  const secondHint = cartForm.querySelector("[data-cart-second-hint]");
+  const clearSecond = cartForm.querySelector("[data-cart-clear-second]");
   const secondHeroPrice = Number(heroCart.dataset.secondHeroPrice || 0);
   const mobileStepper = setupMobileCartStepper(cartForm);
 
@@ -281,6 +365,22 @@ if (heroCart) {
       option.classList.toggle("is-selected", isSelected);
       option.setAttribute("aria-pressed", String(isSelected));
     });
+    const secondHero = cartHeroes.find(item => item.id === state.secondaryId && item.id !== state.primaryId);
+    if (secondOptionsWrap) secondOptionsWrap.hidden = !state.secondPickerOpen;
+    if (secondToggle) {
+      secondToggle.textContent = state.secondPickerOpen
+        ? "Скрыть выбор"
+        : secondHero
+          ? "Изменить состав"
+          : "Выбрать второго героя";
+      secondToggle.setAttribute("aria-expanded", String(state.secondPickerOpen));
+    }
+    if (secondToolbar) secondToolbar.hidden = !secondHero;
+    if (secondHint) {
+      secondHint.hidden = !secondHero;
+      secondHint.textContent = secondHero ? `Добавлен: ${secondHero.name}.` : "";
+    }
+    if (clearSecond) clearSecond.hidden = !secondHero;
   };
 
   const updateCart = () => {
@@ -299,22 +399,21 @@ if (heroCart) {
     }
     total.textContent = hero ? money(basePrice + (hasSecond ? secondHeroPrice : 0)) : "—";
     summary.textContent = !hero
-      ? "Выберите главного героя."
-      : !hasSecond
-        ? "Выберите второго героя для акции."
-        : `${dayLabel} · ${hasSecond ? "два героя" : "один герой"}.`;
+      ? "Выберите героя."
+      : hasSecond
+        ? `${dayLabel} · два героя.`
+        : `${dayLabel} · один герой.`;
 
     cartForm.dataset.primaryHeroName = hero?.name || "";
     cartForm.dataset.secondHeroName = hasSecond ? secondHero.name : "";
     cartForm.dataset.dayLabel = dayLabel;
     cartForm.dataset.total = String(basePrice + (hasSecond ? secondHeroPrice : 0));
-    cartForm.dataset.ready = String(Boolean(hero && hasSecond));
+    cartForm.dataset.ready = String(Boolean(hero));
     cartCards.forEach(card => card.classList.toggle("is-in-cart", card.dataset.heroId === state.primaryId));
     syncSecondHeroOptions();
     mobileStepper.update({
       summary: hero ? `${hero.name}${hasSecond ? ` + ${secondHero.name}` : ""} · ${dayLabel}` : "Выберите аниматоров",
-      total: hero ? money(basePrice + (hasSecond ? secondHeroPrice : 0)) : "—",
-      ready: Boolean(hero && hasSecond)
+      ready: Boolean(hero)
     });
   };
 
@@ -327,6 +426,7 @@ if (heroCart) {
   const clearCartSelection = () => {
     state.primaryId = "";
     state.secondaryId = "";
+    state.secondPickerOpen = false;
     updateCart();
   };
 
@@ -337,6 +437,7 @@ if (heroCart) {
     const message = `Хочу заказать аниматора ${hero.name}.`;
     heroChoice?.close();
     clearCartSelection();
+    clearLeadFormSuccess(dialog.querySelector("[data-lead-form]"));
     dialog.querySelector('[name="service"]').value = service;
     dialog.querySelector('[name="message"]').value = message;
     const comment = dialog.querySelector('[name="comment"]');
@@ -348,9 +449,12 @@ if (heroCart) {
 
   const openHeroCart = () => {
     heroChoice?.close();
+    clearLeadFormSuccess(cartForm);
+    state.secondPickerOpen = true;
     mobileStepper.reset();
+    updateCart();
     if (!heroCart.open) heroCart.showModal();
-    secondOptions.find(option => !option.hidden)?.focus();
+    (secondOptions.find(option => !option.hidden) || cartForm.querySelector('[data-cart-day="weekday"]'))?.focus();
   };
 
   const openHeroChoice = heroId => {
@@ -386,6 +490,14 @@ if (heroCart) {
     state.secondaryId = option.dataset.cartSecondOption || "";
     updateCart();
   }));
+  secondToggle?.addEventListener("click", () => {
+    state.secondPickerOpen = !state.secondPickerOpen;
+    updateCart();
+  });
+  clearSecond?.addEventListener("click", () => {
+    state.secondaryId = "";
+    updateCart();
+  });
   heroChoice?.querySelector("[data-choice-no]")?.addEventListener("click", openQuickHeroLead);
   heroChoice?.querySelector("[data-choice-yes]")?.addEventListener("click", openHeroCart);
   heroChoice?.querySelector("[data-close-hero-choice]")?.addEventListener("click", () => {
@@ -635,6 +747,7 @@ dialog?.addEventListener("click", event => {
 
 document.querySelectorAll("[data-lead-form]").forEach(form => {
   let started = false;
+  form.closest("dialog")?.addEventListener("close", () => clearLeadFormSuccess(form));
   form.addEventListener("input", () => {
     if (started) return;
     started = true;
@@ -688,10 +801,14 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
       status.textContent = "Проверьте обязательные поля.";
       return;
     }
-    const button = form.querySelector('button[type="submit"]');
-    const original = button.textContent;
+    const button = event.submitter instanceof HTMLButtonElement
+      ? event.submitter
+      : form.querySelector('button[type="submit"]');
+    const mobileButtonLabel = button?.querySelector("[data-cart-mobile-action-label]");
+    const original = mobileButtonLabel ? mobileButtonLabel.textContent : button.textContent;
     button.disabled = true;
-    button.textContent = "ОТПРАВЛЯЕМ…";
+    if (mobileButtonLabel) mobileButtonLabel.textContent = "Отправляем…";
+    else button.textContent = "ОТПРАВЛЯЕМ…";
     status.textContent = "";
     const payload = Object.fromEntries(new FormData(form));
     payload.consent = form.elements.consent.checked;
@@ -702,13 +819,13 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
       status.textContent = result.message;
       form.reset();
       metrikaGoal("form_submit", { form: form.matches("[data-hero-cart-form]") ? "hero_cart" : form.matches("[data-show-cart-form]") ? "show_cart" : form.matches("[data-party-form]") ? "planner" : "dialog" });
-      const formDialog = form.closest("dialog");
-      if (formDialog?.open) setTimeout(() => formDialog.close(), 1800);
+      showLeadFormSuccess(form);
     } catch (error) {
       status.textContent = error.message;
     } finally {
       button.disabled = false;
-      button.textContent = original;
+      if (mobileButtonLabel) mobileButtonLabel.textContent = original;
+      else button.textContent = original;
     }
   });
 });
