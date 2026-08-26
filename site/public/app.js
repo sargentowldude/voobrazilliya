@@ -72,6 +72,7 @@ const applyAnalyticsConsent = value => {
   if (value === "granted") loadMetrika();
   else stopMetrika();
   if (cookieBanner) cookieBanner.hidden = true;
+  document.dispatchEvent(new CustomEvent("analytics-consent-updated", { detail:{ value } }));
 };
 
 if (cookieBanner) {
@@ -91,30 +92,26 @@ const metrikaGoal = (goal, params) => {
   if (!Number.isSafeInteger(counterId) || counterId <= 0 || typeof window.ym !== "function") return;
   window.ym(counterId, "reachGoal", goal, params);
 };
-
-const clearLeadFormSuccess = form => {
-  if (!form) return;
-  form.classList.remove("is-submitted");
-  form.querySelector(".form-success-panel")?.remove();
-  const status = form.querySelector(".form-status");
-  if (status) status.textContent = "";
+const leadSuccessStorageKey = "voobrazillia_lead_success";
+const leadFormKind = form => form.matches("[data-hero-cart-form]")
+  ? "hero_cart"
+  : form.matches("[data-show-cart-form]")
+    ? "show_cart"
+    : form.matches("[data-party-form]")
+      ? "planner"
+      : "dialog";
+const trackThankYouLead = () => {
+  if (!document.querySelector("[data-thank-you-page]") || getCookie(analyticsConsentCookie) !== "granted") return;
+  try {
+    const form = window.sessionStorage.getItem(leadSuccessStorageKey);
+    if (!form) return;
+    window.sessionStorage.removeItem(leadSuccessStorageKey);
+    metrikaGoal("form_submit", { form });
+  } catch {}
 };
 
-const showLeadFormSuccess = form => {
-  clearLeadFormSuccess(form);
-  form.classList.add("is-submitted");
-  const panel = document.createElement("section");
-  panel.className = "form-success-panel";
-  panel.setAttribute("role", "status");
-  panel.innerHTML = `<span class="form-success-panel__mark" aria-hidden="true">✓</span><div><h3>Заявка отправлена</h3><p>Мы получили её и скоро свяжемся с вами.</p></div><button class="form-success-panel__close" type="button">Закрыть</button>`;
-  panel.querySelector("button")?.addEventListener("click", () => {
-    const dialog = form.closest("dialog");
-    if (dialog?.open) dialog.close();
-    else clearLeadFormSuccess(form);
-  });
-  form.append(panel);
-  requestAnimationFrame(() => panel.querySelector("button")?.focus());
-};
+trackThankYouLead();
+document.addEventListener("analytics-consent-updated", trackThankYouLead);
 
 // Убираем фиксированную CTA, когда в кадре появляется подвал: она не должна
 // закрывать правовые ссылки или контакты на коротких экранах.
@@ -157,7 +154,6 @@ menuButton?.addEventListener("click", () => {
 document.querySelectorAll("[data-open-form]").forEach(button => {
   button.addEventListener("click", () => {
     if (!dialog) return;
-    clearLeadFormSuccess(dialog.querySelector("[data-lead-form]"));
     const serviceInput = dialog.querySelector('[name="service"]');
     const messageInput = dialog.querySelector('[name="message"]');
     const commentInput = dialog.querySelector('[name="comment"]');
@@ -437,7 +433,6 @@ if (heroCart) {
     const message = `Хочу заказать аниматора ${hero.name}.`;
     heroChoice?.close();
     clearCartSelection();
-    clearLeadFormSuccess(dialog.querySelector("[data-lead-form]"));
     dialog.querySelector('[name="service"]').value = service;
     dialog.querySelector('[name="message"]').value = message;
     const comment = dialog.querySelector('[name="comment"]');
@@ -449,7 +444,6 @@ if (heroCart) {
 
   const openHeroCart = () => {
     heroChoice?.close();
-    clearLeadFormSuccess(cartForm);
     state.secondPickerOpen = true;
     mobileStepper.reset();
     updateCart();
@@ -747,7 +741,6 @@ dialog?.addEventListener("click", event => {
 
 document.querySelectorAll("[data-lead-form]").forEach(form => {
   let started = false;
-  form.closest("dialog")?.addEventListener("close", () => clearLeadFormSuccess(form));
   form.addEventListener("input", () => {
     if (started) return;
     started = true;
@@ -816,10 +809,11 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
       const response = await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Ошибка отправки");
-      status.textContent = result.message;
-      form.reset();
-      metrikaGoal("form_submit", { form: form.matches("[data-hero-cart-form]") ? "hero_cart" : form.matches("[data-show-cart-form]") ? "show_cart" : form.matches("[data-party-form]") ? "planner" : "dialog" });
-      showLeadFormSuccess(form);
+      try {
+        window.sessionStorage.setItem(leadSuccessStorageKey, leadFormKind(form));
+      } catch {}
+      window.location.assign("/spasibo/");
+      return;
     } catch (error) {
       status.textContent = error.message;
     } finally {
