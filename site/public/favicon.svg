@@ -1,33 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <title>ВообразилЛиЯ</title>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_Слой_1" data-name="Слой_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 455.32 467.77">
+  <!-- Generator: Adobe Illustrator 30.6.0, SVG Export Plug-In . SVG Version: 2.1.4 Build 109)  -->
   <defs>
-    <radialGradient id="orb" cx="31%" cy="24%" r="78%">
-      <stop offset="0" stop-color="#d9bbf5"/>
-      <stop offset=".29" stop-color="#996bce"/>
-      <stop offset=".72" stop-color="#6b359d"/>
-      <stop offset="1" stop-color="#140054"/>
-    </radialGradient>
-    <clipPath id="orb-clip"><circle cx="256" cy="256" r="228"/></clipPath>
+    <style>
+      .st0 {
+        fill: #18d4c1;
+        stroke-width: 13px;
+      }
+
+      .st0, .st1, .st2, .st3 {
+        stroke: #20134b;
+        stroke-linejoin: round;
+      }
+
+      .st1 {
+        fill: #ffd21a;
+      }
+
+      .st1, .st4, .st5, .st2, .st3, .st6 {
+        stroke-linecap: round;
+      }
+
+      .st1, .st2, .st3 {
+        stroke-width: 17px;
+      }
+
+      .st4 {
+        stroke: #ff8a1d;
+      }
+
+      .st4, .st5, .st6 {
+        fill: none;
+        stroke-width: 18px;
+      }
+
+      .st5 {
+        stroke: #18d4c1;
+      }
+
+      .st2 {
+        fill: #f738a5;
+      }
+
+      .st3 {
+        fill: #fff7d9;
+      }
+
+      .st6 {
+        stroke: #4a7cff;
+      }
+
+      .st7 {
+        fill: #20134b;
+      }
+    </style>
   </defs>
-  <circle cx="256" cy="256" r="244" fill="#140054"/>
-  <circle cx="256" cy="256" r="228" fill="url(#orb)"/>
-  <g clip-path="url(#orb-clip)">
-    <path d="M-12 199c77-71 167-70 233-9 58 53 104 54 178-7 57-47 109-41 150-20v159H-12z" fill="#ee3fbd" opacity=".94"/>
-    <path d="M-8 329c67-33 118-15 165 26 51 45 119 50 175 4 60-50 123-60 188-19v205H-8z" fill="#00c9bf" opacity=".9"/>
-    <path d="M19 84c53-30 105-18 139 27 28 37 60 53 111 43 69-14 123 14 164 76-43 6-79 31-109 68-46 56-102 76-170 45-50-23-94-21-145 12z" fill="#fed46c" opacity=".96"/>
-    <path d="M302 40c62 20 113 69 139 132-45-12-88 3-118 39-32 39-74 60-126 53 18-66 55-113 105-139z" fill="#f43630"/>
-    <circle cx="156" cy="126" r="35" fill="#fdf1a3" opacity=".85"/>
-    <circle cx="111" cy="168" r="13" fill="#feba05"/>
-    <path d="M398 202l18 19-18 19-19-19zm-286 87 16 17-16 17-17-17zm319 66 12 13-12 13-13-13z" fill="#fefefd" opacity=".84"/>
+  <g>
+    <path class="st6" d="M362.66,9l5.13,78.58"/>
+    <path class="st4" d="M446.32,39.19l-46.25,53.09"/>
+    <path class="st5" d="M446.32,122.29l-28.15,7.62"/>
   </g>
-  <circle cx="256" cy="256" r="228" fill="none" stroke="#140054" stroke-width="18"/>
-  <path d="M134 252l38-64 38 64zm206 0 38-64 38 64zM196 216l60-88 60 88z" fill="#ee3fbd" stroke="#140054" stroke-linejoin="round" stroke-width="16"/>
-  <path d="M256 128V84" stroke="#140054" stroke-width="14"/>
-  <path d="M256 84l44 17-44 17z" fill="#f43630" stroke="#140054" stroke-linejoin="round" stroke-width="10"/>
-  <path d="M142 242h60v162h-60zm168 0h60v162h-60z" fill="#fed46c" stroke="#140054" stroke-linejoin="round" stroke-width="16"/>
-  <path d="M196 208h120v196H196z" fill="#fefefd" stroke="#140054" stroke-linejoin="round" stroke-width="16"/>
-  <path d="M126 404h260v34H126z" fill="#fed46c" stroke="#140054" stroke-linejoin="round" stroke-width="16"/>
-  <path d="M228 404v-54c0-21 12-37 28-37s28 16 28 37v54z" fill="#140054"/>
-  <path d="M155 278h27v42h-27zm175 0h27v42h-27zm-94-28h40v43h-40z" rx="12" fill="#00c9bf" stroke="#140054" stroke-width="12"/>
-  <path d="M146 380h220" stroke="#fefefd" stroke-linecap="round" stroke-width="10" opacity=".78"/>
+  <g>
+    <path class="st6" d="M87.53,87.58l5.13-78.58"/>
+    <path class="st4" d="M55.25,92.28L9,39.19"/>
+    <path class="st5" d="M37.15,129.9l-28.15-7.62"/>
+  </g>
+  <g>
+    <path class="st1" d="M46.66,435.27v-229h91v229H46.66Z"/>
+    <path class="st1" d="M317.66,435.27v-229h91v229h-91Z"/>
+    <path class="st2" d="M35.66,207.27l57-91,57,91H35.66Z"/>
+    <path class="st2" d="M305.66,207.27l57-91,57,91h-114Z"/>
+    <path class="st3" d="M111.66,435.27v-255h232v255H111.66Z"/>
+    <path class="st2" d="M99.66,180.27L227.66,54.27l128,126H99.66Z"/>
+    <path class="st1" d="M29.66,418.27h396v41H29.66v-41Z"/>
+  </g>
+  <g>
+    <path class="st0" d="M75.66,313.27v-34c0-12,8-21,18-21s18,9,18,21v34h-36Z"/>
+    <path class="st0" d="M343.66,313.27v-34c0-12,8-21,18-21s18,9,18,21v34h-36Z"/>
+    <path class="st0" d="M208.66,294.27v-43c0-13,8-23,19-23s19,10,19,23v43h-38Z"/>
+  </g>
+  <path class="st7" d="M174.66,426.27v-75c0-35,24-62,53-62s53,27,53,62v75h-106Z"/>
 </svg>
