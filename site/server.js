@@ -24,6 +24,9 @@ const smtpUser = String(process.env.SMTP_USER || '').trim();
 const smtpPassword = String(process.env.SMTP_PASSWORD || '');
 const smtpFrom = String(process.env.SMTP_FROM || smtpUser).trim();
 const smtpTo = String(process.env.SMTP_TO || '').trim();
+const telegramLeadsBotToken = String(process.env.TELEGRAM_LEADS_BOT_TOKEN || '').trim();
+const telegramLeadsChatIdValue = String(process.env.TELEGRAM_LEADS_CHAT_ID || '').trim();
+const telegramLeadsChatId = /^\d+$/.test(telegramLeadsChatIdValue) ? telegramLeadsChatIdValue : '';
 const yandexMetrikaId = /^\d+$/.test(String(process.env.YANDEX_METRIKA_ID || '').trim())
   ? String(process.env.YANDEX_METRIKA_ID).trim()
   : '';
@@ -928,6 +931,28 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
 };
 
 let smtpTransport;
+const sendTelegramLeadNotification = async () => {
+  if (!telegramLeadsBotToken || !telegramLeadsChatId) return;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7_000);
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${telegramLeadsBotToken}/sendMessage`, {
+      method:'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        chat_id: telegramLeadsChatId,
+        text:'Новая заявка с сайта. Проверьте почту.',
+        disable_web_page_preview:true
+      }),
+      signal: controller.signal
+    });
+    if (!response.ok) console.error(`Не удалось отправить техническое уведомление в Telegram: HTTP ${response.status}`);
+  } catch {
+    console.error('Не удалось отправить техническое уведомление в Telegram.');
+  } finally {
+    clearTimeout(timeout);
+  }
+};
 const trySendEmail = async lead => {
   if (!smtpHost || !smtpUser || !smtpPassword || !smtpFrom || !smtpTo) {
     console.error('SMTP не настроен: заявка сохранена без почтового уведомления.');
@@ -946,6 +971,7 @@ const trySendEmail = async lead => {
       subject: `Новая заявка с сайта ${brandName}`,
       text: [`Имя: ${lead.name}`, `Телефон: ${lead.phone}`, `Услуга: ${lead.service || '—'}`, `Сообщение: ${lead.message || '—'}`, `Время: ${lead.createdAt}`].join('\n')
     });
+    void sendTelegramLeadNotification();
     return true;
   } catch (error) {
     console.error('Не удалось отправить заявку по SMTP:', error.message);

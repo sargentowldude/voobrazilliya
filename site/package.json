@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch server.js",
     "start": "node --env-file-if-exists=.env server.js",
-    "check": "node --check server.js && node --check public/app.js && node --check public/admin.js && node --check scripts/convert-images-to-webp.mjs",
-    "images:webp": "node scripts/convert-images-to-webp.mjs"
+    "check": "node --check server.js && node --check public/app.js && node --check public/admin.js && node --check scripts/convert-images-to-webp.mjs && node --check scripts/resolve-telegram-chat-id.mjs",
+    "images:webp": "node scripts/convert-images-to-webp.mjs",
+    "telegram:chat-id": "node --env-file-if-exists=.env scripts/resolve-telegram-chat-id.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",
