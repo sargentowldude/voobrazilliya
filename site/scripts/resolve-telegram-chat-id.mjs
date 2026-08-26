@@ -17,7 +17,9 @@ if (!recipientUsername) throw new Error('Set TELEGRAM_LEADS_RECIPIENT_USERNAME t
 if (!apiBaseUrl) throw new Error('Set TELEGRAM_LEADS_API_BASE_URL to a valid HTTPS endpoint.');
 
 const response = await fetch(`${apiBaseUrl}/bot${token}/getUpdates`, {
-  headers: { Accept:'application/json' },
+  method:'POST',
+  headers: { 'Content-Type':'application/json', Accept:'application/json' },
+  body: JSON.stringify({ allowed_updates:['message', 'edited_message'] }),
   signal: AbortSignal.timeout(7_000)
 });
 if (!response.ok) throw new Error(`Telegram getUpdates failed with HTTP ${response.status}.`);
