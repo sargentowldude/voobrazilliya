@@ -27,6 +27,15 @@ const smtpTo = String(process.env.SMTP_TO || '').trim();
 const telegramLeadsBotToken = String(process.env.TELEGRAM_LEADS_BOT_TOKEN || '').trim();
 const telegramLeadsChatIdValue = String(process.env.TELEGRAM_LEADS_CHAT_ID || '').trim();
 const telegramLeadsChatId = /^\d+$/.test(telegramLeadsChatIdValue) ? telegramLeadsChatIdValue : '';
+const telegramLeadsApiBaseUrlValue = String(process.env.TELEGRAM_LEADS_API_BASE_URL || 'https://api.telegram.org').trim();
+const telegramLeadsApiBaseUrl = (() => {
+  try {
+    const url = new URL(telegramLeadsApiBaseUrlValue);
+    return url.protocol === 'https:' ? url.toString().replace(/\/$/, '') : '';
+  } catch {
+    return '';
+  }
+})();
 const yandexMetrikaId = /^\d+$/.test(String(process.env.YANDEX_METRIKA_ID || '').trim())
   ? String(process.env.YANDEX_METRIKA_ID).trim()
   : '';
@@ -932,11 +941,11 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
 
 let smtpTransport;
 const sendTelegramLeadNotification = async () => {
-  if (!telegramLeadsBotToken || !telegramLeadsChatId) return;
+  if (!telegramLeadsBotToken || !telegramLeadsChatId || !telegramLeadsApiBaseUrl) return;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 7_000);
   try {
-    const response = await fetch(`https://api.telegram.org/bot${telegramLeadsBotToken}/sendMessage`, {
+    const response = await fetch(`${telegramLeadsApiBaseUrl}/bot${telegramLeadsBotToken}/sendMessage`, {
       method:'POST',
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({

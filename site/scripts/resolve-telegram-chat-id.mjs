@@ -3,11 +3,20 @@ const recipientUsername = String(process.env.TELEGRAM_LEADS_RECIPIENT_USERNAME |
   .trim()
   .replace(/^@/, '')
   .toLowerCase();
+const apiBaseUrlValue = String(process.env.TELEGRAM_LEADS_API_BASE_URL || 'https://api.telegram.org').trim();
+let apiBaseUrl = '';
+try {
+  const url = new URL(apiBaseUrlValue);
+  if (url.protocol === 'https:') apiBaseUrl = url.toString().replace(/\/$/, '');
+} catch {
+  // The error below intentionally does not repeat the configured address or the token.
+}
 
 if (!token) throw new Error('Set TELEGRAM_LEADS_BOT_TOKEN in .env before resolving the chat ID.');
 if (!recipientUsername) throw new Error('Set TELEGRAM_LEADS_RECIPIENT_USERNAME to the recipient username.');
+if (!apiBaseUrl) throw new Error('Set TELEGRAM_LEADS_API_BASE_URL to a valid HTTPS endpoint.');
 
-const response = await fetch(`https://api.telegram.org/bot${token}/getUpdates`, {
+const response = await fetch(`${apiBaseUrl}/bot${token}/getUpdates`, {
   headers: { Accept:'application/json' },
   signal: AbortSignal.timeout(7_000)
 });

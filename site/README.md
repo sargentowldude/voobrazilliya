@@ -57,5 +57,6 @@ npm start
 - `YANDEX_METRIKA_ID` — ID счётчика; Метрика загружается только после отдельного согласия посетителя.
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TO` — отправка заявок на почту.
 - `TELEGRAM_LEADS_BOT_TOKEN`, `TELEGRAM_LEADS_CHAT_ID` — необязательное нейтральное уведомление владельцу после принятия письма SMTP-сервисом. Чтобы однократно получить ID личного чата после `/start`, задайте токен и при необходимости `TELEGRAM_LEADS_RECIPIENT_USERNAME`, затем выполните `npm run telegram:chat-id`; его вывод добавьте в `.env` как `TELEGRAM_LEADS_CHAT_ID`.
+- `TELEGRAM_LEADS_API_BASE_URL` — адрес Telegram Bot API, по умолчанию `https://api.telegram.org`. Указывать иной адрес можно только для доверенного HTTPS-прокси: он получает токен бота и способен действовать от его имени.
 
 Файл `.env` уже исключён из Git; безопасный шаблон лежит в `.env.example`.
