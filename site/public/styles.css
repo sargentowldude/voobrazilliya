@@ -91,12 +91,21 @@ a {
   background: transparent;
   transform: translateY(-1px);
 }
+.wordmark picture {
+  display: block;
+  line-height: 0;
+}
 .wordmark img {
   display: block;
-  width: 100px;
+  width: clamp(150px, 13vw, 205px);
   height: auto;
   flex: 0 0 auto;
   object-fit: contain;
+}
+@media (max-width: 900px) {
+  .wordmark img {
+    width: 64px;
+  }
 }
 .menu-button {
   background: transparent;
@@ -1494,7 +1503,7 @@ footer small {
   }
   .wordmark { padding: 3px 5px; }
   .wordmark img {
-    width: 68px;
+    width: 52px;
   }
   .header-contacts {
     gap: 3px;
@@ -1650,7 +1659,7 @@ footer small {
 @media (max-width: 360px) {
   .site-header { padding-right: 10px; padding-left: 10px; }
   .wordmark { padding-right: 4px; padding-left: 4px; }
-  .wordmark img { width: 66px; }
+  .wordmark img { width: 46px; }
   .header-contacts { gap: 2px; margin-right: 3px; }
   .header-contact,
   .header-messenger {
