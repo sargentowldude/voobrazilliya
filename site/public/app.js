@@ -148,6 +148,7 @@ if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-mot
 menuButton?.addEventListener("click", () => {
   const open = menu.classList.toggle("is-open");
   menuButton.setAttribute("aria-expanded", String(open));
+  menuButton.setAttribute("aria-label", open ? "Закрыть меню" : "Открыть меню");
   menuButton.textContent = open ? "ЗАКРЫТЬ ×" : "МЕНЮ +";
 });
 
