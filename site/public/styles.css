@@ -12,6 +12,8 @@
   --brand-pink-hot: #ff2a85;
   --brand-pink-ui: #c20b5b;
   --brand-berry: #841543;
+  --brand-blush: #f7bfd4;
+  --surface-dark: #24141c;
   --accent: #ff77ad;
   --card-yellow: #f2e56f;
   --violet: #4a2738;
@@ -646,7 +648,11 @@ h1,
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 6vw;
-  background: var(--rose);
+  background: var(--brand-blush);
+  color: var(--ink);
+}
+.contact h2 {
+  color: var(--brand-berry);
 }
 .contact > div > p {
   font-size: 17px;
@@ -800,7 +806,9 @@ h1,
 }
 footer {
   padding: 58px 3vw 28px;
-  background: #4f6256;
+  background: var(--surface-dark);
+  color: var(--cream);
+  border-top: 1px solid rgba(255, 119, 173, .28);
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   gap: 30px;
