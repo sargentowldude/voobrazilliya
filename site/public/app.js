@@ -122,7 +122,7 @@ if (floatingPartyCta && siteFooter && "IntersectionObserver" in window) {
   footerObserver.observe(siteFooter);
 }
 
-const revealItems = document.querySelectorAll(".section-heading, .service-card, .photo-story__intro, .story-shot, .landing-intro, .character-card, .landing-facts, .hero-catalog__heading, .hero-program-card, .show-console, .show-round, .show-catalog__heading, .show-offer-card, .theater-stage, .theater-stage-card, .playbill-card, .poster-card, .birthday-format-card, .contact-form__planner-intro, .contact > div, .contact-form");
+const revealItems = document.querySelectorAll(".section-heading, .service-card, .photo-story__intro, .story-shot, .landing-intro, .character-card, .landing-facts, .hero-catalog__heading, .hero-program-card, .show-console, .show-round, .show-catalog__heading, .show-offer-card, .theater-stage, .theater-stage-card, .playbill-card, .poster-card, .birthday-format-card, .reviews__heading, .review-card, .contact-form__planner-intro, .contact > div, .contact-form");
 const revealVariant = item => {
   if (item.matches(".section-heading, .photo-story__intro, .landing-intro, .landing-facts, .hero-catalog__heading, .show-catalog__heading, .contact-form__planner-intro")) return "reveal--copy";
   if (item.matches(".story-shot, .theater-stage, .theater-stage-card")) return "reveal--media";
@@ -150,6 +150,40 @@ menuButton?.addEventListener("click", () => {
   menuButton.setAttribute("aria-expanded", String(open));
   menuButton.setAttribute("aria-label", open ? "Закрыть меню" : "Открыть меню");
   menuButton.textContent = open ? "ЗАКРЫТЬ ×" : "МЕНЮ +";
+});
+
+document.querySelectorAll("[data-reviews-carousel]").forEach(carousel => {
+  const viewport = carousel.querySelector("[data-reviews-viewport]");
+  const previous = carousel.querySelector("[data-reviews-prev]");
+  const next = carousel.querySelector("[data-reviews-next]");
+  const cards = [...carousel.querySelectorAll("[data-review-card]")];
+  if (!viewport || !previous || !next || !cards.length) return;
+
+  const step = () => {
+    const gap = Number.parseFloat(getComputedStyle(carousel.querySelector(".reviews__track")).columnGap) || 0;
+    return cards[0].getBoundingClientRect().width + gap;
+  };
+  const updateControls = () => {
+    const end = viewport.scrollWidth - viewport.clientWidth;
+    previous.disabled = viewport.scrollLeft <= 2;
+    next.disabled = viewport.scrollLeft >= end - 2;
+  };
+  const move = direction => viewport.scrollBy({ left: direction * step(), behavior:"smooth" });
+
+  previous.addEventListener("click", () => move(-1));
+  next.addEventListener("click", () => move(1));
+  viewport.addEventListener("keydown", event => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    move(event.key === "ArrowLeft" ? -1 : 1);
+  });
+  let frame;
+  viewport.addEventListener("scroll", () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(updateControls);
+  }, { passive:true });
+  window.addEventListener("resize", updateControls);
+  updateControls();
 });
 
 document.querySelectorAll("[data-open-form]").forEach(button => {

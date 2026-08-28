@@ -10,7 +10,15 @@ import sharp from 'sharp';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const siteUrl = (process.env.SITE_URL || `http://localhost:${port}`).replace(/\/$/, '');
+const siteUrl = (() => {
+  try {
+    const url = new URL(process.env.SITE_URL || `http://localhost:${port}`);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported SITE_URL protocol');
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return `http://localhost:${port}`;
+  }
+})();
 const adminUsername = String(process.env.ADMIN_USERNAME || 'admin').trim() || 'admin';
 const adminPassword = process.env.ADMIN_PASSWORD || 'tema-admin';
 const cookieSecret = process.env.ADMIN_COOKIE_SECRET || 'local-tema-secret';
@@ -61,6 +69,7 @@ const files = {
   heroes: path.join(dataDir, 'heroes.json'),
   shows: path.join(dataDir, 'shows.json'),
   plays: path.join(dataDir, 'plays.json'),
+  reviews: path.join(dataDir, 'reviews.json'),
   leads: path.join(dataDir, 'leads.jsonl'),
   leadDeletionLog: path.join(dataDir, 'leads-deletion-log.jsonl')
 };
@@ -73,8 +82,7 @@ app.use(express.json({ limit: '1mb' }));
 const legacyHtmlRedirects = {
   '/index.html': '/',
   '/animatory/index.html': '/animatory/',
-  '/show/index.html': '/show/',
-  '/spektakli/index.html': '/spektakli/'
+  '/show/index.html': '/show/'
 };
 app.get(Object.keys(legacyHtmlRedirects), (req, res) => res.redirect(301, legacyHtmlRedirects[req.path]));
 app.use(express.static(publicDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }));
@@ -337,12 +345,12 @@ const clearRateLimitAttempts = (bucketName, req) => rateLimitAttempts.delete(`${
 
 const pageMeta = ({ title, description, path = '/' }) => ({
   title: brandText(title || `${brandName} — детские праздники в Кемерово`),
-  description: description || 'Аниматоры, шоу и спектакли для детских праздников в Кемерово.',
+  description: description || 'Аниматоры и шоу для детских праздников в Кемерово.',
   canonical: `${siteUrl}${path}`
 });
 
 const phoneIcon = `<svg class="header-phone__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.1 3.9 8.6 3c.7-.3 1.5.1 1.7.8l1.2 4.4c.2.7-.2 1.4-.8 1.7l-1.8.8a14 14 0 0 0 4.5 4.5l.8-1.8c.3-.6 1-.9 1.7-.8l4.4 1.2c.7.2 1.1 1 .8 1.7l-.9 2.5c-.3.8-1.1 1.3-2 1.2C10.7 18.6 5.4 13.3 4.9 5.9c-.1-.9.4-1.7 1.2-2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.8 4.4c2.5.4 4.4 2.3 4.8 4.8M14.5 8.1c.8.2 1.4.8 1.6 1.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
-const nav = () => `<header class="site-header"><a class="wordmark" href="/" aria-label="${brandName}"><picture><source media="(max-width: 900px)" srcset="/logo/brand-logo-icon.png?v=20260828-mobile-logo-v3"><img src="/logo/brand-logo-horizontal.png?v=20260828-brand-v2" alt="" width="1600" height="489"></picture></a><nav class="site-menu" id="site-menu" aria-label="Основная навигация"><a href="/animatory/">Аниматоры</a><a href="/detskiy-den-rozhdeniya/">День рождения</a><a href="/show/">Шоу</a><a href="/spektakli/">Спектакли</a><a href="/afisha/">Афиша</a></nav><div class="header-contacts" aria-label="Связаться с нами"><a class="header-contact header-phone" href="tel:+79130789922" aria-label="Позвонить: 8 913 078-99-22">${phoneIcon}<span class="header-phone__number">8 (913) 078-99-22</span></a><a class="header-contact header-messenger" href="https://max.ru/u/f9LHodD0cOIRJLSa7d4VRvn920ZcfXNmLCtdobjJSwP_htHZYKv_rKIpH2s" target="_blank" rel="noopener noreferrer" aria-label="Написать в MAX"><img class="header-messenger__icon" src="/assets/contact/max.svg" alt=""><span class="header-contact__qr" aria-hidden="true"><img src="/assets/contact/max-qr.png" alt=""><b>MAX</b><small>Сканируйте, чтобы написать</small></span></a><a class="header-contact header-messenger" href="https://t.me/Penna_Dvizh" target="_blank" rel="noopener noreferrer" aria-label="Написать в Telegram @Penna_Dvizh"><img class="header-messenger__icon" src="/assets/contact/telegram.svg" alt=""><span class="header-contact__qr" aria-hidden="true"><img src="/assets/contact/telegram-qr.png" alt=""><b>Telegram</b><small>@Penna_Dvizh</small></span></a></div><button class="menu-button" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Открыть меню">МЕНЮ +</button></header>`;
+const nav = () => `<header class="site-header"><a class="wordmark" href="/" aria-label="${brandName}"><picture><source media="(max-width: 900px)" srcset="/logo/brand-logo-icon.png?v=20260828-mobile-logo-v3"><img src="/logo/brand-logo-horizontal.png?v=20260828-brand-v2" alt="" width="1600" height="489"></picture></a><nav class="site-menu" id="site-menu" aria-label="Основная навигация"><a href="/animatory/">Аниматоры</a><a href="/detskiy-den-rozhdeniya/">День рождения</a><a href="/show/">Шоу</a><a href="/afisha/">Афиша</a></nav><div class="header-contacts" aria-label="Связаться с нами"><a class="header-contact header-phone" href="tel:+79130789922" aria-label="Позвонить: 8 913 078-99-22">${phoneIcon}<span class="header-phone__number">8 (913) 078-99-22</span></a><a class="header-contact header-messenger" href="https://max.ru/u/f9LHodD0cOIRJLSa7d4VRvn920ZcfXNmLCtdobjJSwP_htHZYKv_rKIpH2s" target="_blank" rel="noopener noreferrer" aria-label="Написать в MAX"><img class="header-messenger__icon" src="/assets/contact/max.svg" alt=""><span class="header-contact__qr" aria-hidden="true"><img src="/assets/contact/max-qr.png" alt=""><b>MAX</b><small>Сканируйте, чтобы написать</small></span></a><a class="header-contact header-messenger" href="https://t.me/Penna_Dvizh" target="_blank" rel="noopener noreferrer" aria-label="Написать в Telegram @Penna_Dvizh"><img class="header-messenger__icon" src="/assets/contact/telegram.svg" alt=""><span class="header-contact__qr" aria-hidden="true"><img src="/assets/contact/telegram-qr.png" alt=""><b>Telegram</b><small>@Penna_Dvizh</small></span></a></div><button class="menu-button" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Открыть меню">МЕНЮ +</button></header>`;
 
 const personalDataContacts = () => `<dl class="legal-contacts"><dt>Электронная почта</dt><dd>${personalDataEmail ? `<a href="mailto:${escapeAttr(personalDataEmail)}">${escapeHtml(personalDataEmail)}</a>` : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_EMAIL</span>'}</dd><dt>Почтовый адрес для обращений</dt><dd>${personalDataPostalAddress ? escapeHtml(personalDataPostalAddress) : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_POSTAL_ADDRESS</span>'}</dd></dl>`;
 const consentField = () => `<label class="consent"><input required name="consent" type="checkbox"><span>Я даю <a href="/consent/" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и ознакомлен(а) с <a href="/privacy/" target="_blank" rel="noopener">Политикой</a>.</span></label>`;
@@ -354,7 +362,7 @@ const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox 
 
 const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
 const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-v2" sizes="16x16 32x32 48x48 64x64 128x128 256x256"><link rel="icon" href="/favicon-32x32.png?v=20260828-mask-v2" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png?v=20260828-mask-v2" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260828-mask-v2" sizes="180x180"><link rel="manifest" href="/site.webmanifest?v=20260828-pink-brand-v1"><meta name="theme-color" content="#121311">';
-const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css?v=20260828-show-surface-v2"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260828-mobile-nav-v1" defer></script></body></html>`;
+const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css?v=20260828-light-reviews-v1"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260828-reviews-carousel-v1" defer></script></body></html>`;
 
 const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
 const cookiesSection = () => {
@@ -404,7 +412,7 @@ const pageHeroDefaults = {
   },
   birthday: {
     title: 'ДЕНЬ РОЖДЕНИЯ\nДЛЯ ДЕТЕЙ\nВ КЕМЕРОВО',
-    intro: 'Детский день рождения в Кемерово с аниматором, шоу или спектаклем. Подберём программу по возрасту ребёнка, гостям и вашей площадке.'
+    intro: 'Детский день рождения в Кемерово с аниматором или шоу. Подберём программу по возрасту ребёнка, гостям и вашей площадке.'
   },
   homeAnimator: {
     title: 'ГЕРОЙ\nУЖЕ\nВ ПУТИ.',
@@ -429,43 +437,41 @@ const factIcons = {
 };
 const directionCard = ({ href, title, age, people, variant, photo, mascot }) => `<a class="service-card service-card--${variant}${mascot ? ' service-card--has-mascot' : ''}" href="${escapeAttr(href)}">${photo?.image ? `<div class="service-card__media">${image(photo)}</div>` : ''}<h3>${escapeHtml(title)}</h3><dl class="service-card__facts"><div><dt>${factIcons.age} Возраст</dt><dd>${escapeHtml(age)}</dd></div><div><dt>${factIcons.people} Гостей</dt><dd>${escapeHtml(people)}</dd></div></dl>${mascot ? `<img class="service-card__mascot-game" src="${escapeAttr(mascot)}" alt="" aria-hidden="true">` : ''}<span class="service-card__cta">ВЫБРАТЬ</span></a>`;
 
-const reviews = () => {
-  const items = [
-    ['Алексей', 'А', '1 июля', 'Всё было супер 😁👍 Наш праздник стал лучше на 300%! Спасибо тебе! Возвращайся скорее, будем ждать.'],
-    ['Татьяна Новикова', 'Т', '21 июня', 'Очень нам понравился Человек-паук, дети в восторге. Спасибо вам большое 😍'],
-    ['Инна', 'И', '2 июня', 'Это нереально крутой Человек-паук. Появление просто вау! Дети остались очень довольны — а это главное для родителей.'],
-    ['Михаил', 'М', '13 мая', 'Договорились за пару недель, за день созвонились — всё на высшем уровне. Аниматор приехал минута в минуту.'],
-    ['Татьяна', 'Т', '11 апреля', 'Пригласили на день рождения Человека-паука. Аниматор пришёл вовремя и отыграл программу на все 1000%.'],
-    ['Екатерина', 'Е', '2 мая', 'Спасибо за чудесный праздник для сына! Максим светился счастьем, а для мамы это самое главное.'],
-    ['Алина', 'А', '15 апреля', 'Спасибо аниматору! Всё прошло просто отлично. Ребёнок в полном восторге.']
-  ];
-  return `<section class="reviews" aria-labelledby="reviews-title"><div class="reviews__heading"><div><span class="mono-tag">Отзывы родителей</span><h2 id="reviews-title">Праздники,<br>о которых<br>говорят дома</h2></div><div class="reviews__score"><strong>5,0</strong><div><span aria-label="5 из 5 звёзд">★★★★★</span><p>Спасибо за доверие — это отзывы семей после настоящих праздников.</p></div></div></div><div class="reviews__grid">${items.map((item, index) => `<article class="review-card review-card--${['yellow','pink','violet','cream','sage','blue'][index % 6]}"><header class="review-card__header"><span class="review-card__avatar">${item[1]}</span><div><h3>${item[0]}</h3><time>${item[2]}</time></div></header><p class="review-card__rating" aria-label="Оценка: 5 из 5">★★★★★</p><blockquote>«${item[3]}»</blockquote></article>`).join('')}</div></section>`;
+const reviews = source => {
+  const items = source.filter(visible).sort((first, second) => number(first.position, 999) - number(second.position, 999));
+  if (!items.length) return '';
+  const cards = items.map((item, index) => {
+    const author = String(item.author || 'Гость').trim();
+    const initial = Array.from(author)[0]?.toUpperCase() || '★';
+    const rating = Math.max(1, Math.min(5, Math.round(Number(item.rating) || 5)));
+    return `<article class="review-card review-card--${['yellow','pink','violet','cream','sage','blue'][index % 6]}" data-review-card><header class="review-card__header"><span class="review-card__avatar" aria-hidden="true">${escapeHtml(initial)}</span><div><h3>${escapeHtml(author)}</h3>${item.date ? `<time>${escapeHtml(item.date)}</time>` : ''}</div></header><p class="review-card__rating" aria-label="Оценка: ${rating} из 5"><span aria-hidden="true">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span></p><blockquote>«${escapeHtml(item.text)}»</blockquote></article>`;
+  }).join('');
+  return `<section class="reviews" aria-labelledby="reviews-title" data-reviews-carousel><div class="reviews__heading"><div><span class="mono-tag">Отзывы родителей</span><h2 id="reviews-title">Праздники,<br>о которых<br>говорят дома</h2></div><p>Честные впечатления семей после праздников, шоу и встреч с любимыми героями.</p><div class="reviews__controls" aria-label="Управление отзывами"><button type="button" data-reviews-prev aria-label="Предыдущий отзыв">←</button><button type="button" data-reviews-next aria-label="Следующий отзыв">→</button></div></div><div class="reviews__viewport" data-reviews-viewport tabindex="0" aria-label="Отзывы родителей"><div class="reviews__track">${cards}</div></div><p class="reviews__hint">Листайте отзывы свайпом или кнопками</p></section>`;
 };
 
 const eventCards = events => `<div class="event-grid">${events.filter(visible).map((event, index) => `<article class="poster-card poster-card--${['yellow','pink','red'][index % 3]}">${event.image ? `<div class="poster-card__image ${event.imageFit === 'poster' ? 'poster-card__image--poster' : ''}">${image(event)}</div>` : ''}<span class="mono-tag">${escapeHtml(event.category || 'Афиша')}${event.date ? ` · ${escapeHtml(formatEventDate(event.date))}` : ''}</span><h3>${escapeHtml(event.title)}</h3>${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}${event.buttonUrl ? `<a class="poster-card__cta" href="${escapeAttr(event.buttonUrl)}"><span>${escapeHtml(event.buttonLabel || 'Открыть')}</span></a>` : `<a class="poster-card__cta" href="/afisha/${escapeAttr(event.slug)}/"><span>${escapeHtml(event.buttonLabel || 'Открыть афишу')}</span></a>`}</article>`).join('')}</div>`;
 
 const renderHome = async () => {
-  const content = await loadContent();
-  const events = await loadCatalog('events');
+  const [content, events, reviewItems] = await Promise.all([loadContent(), loadCatalog('events'), loadCatalog('reviews')]);
   const directionCards = [
     directionCard({ href:'/animatory/?audience=boys#hero-catalog', title:'Аниматор для мальчика', age:'0+', people:'от 1 до 15', variant:'yellow', photo:photoWithFallback(content, 'homeBoyPhoto', 'animatoryPhoto1') }),
     directionCard({ href:'/animatory/?audience=girls#hero-catalog', title:'Аниматор для девочки', age:'0+', people:'от 1 до 15', variant:'cream', photo:photoWithFallback(content, 'homeGirlPhoto', 'animatoryPhoto2') }),
     directionCard({ href:'/show/#show-catalog', title:'Шоу для взрослых', age:'12+', people:'от 2 до 50', variant:'pink', photo:photoWithFallback(content, 'homeAdultShowPhoto', 'showPhoto1'), mascot:'/assets/mascot-game.png' }),
-    directionCard({ href:'/show/#show-catalog', title:'Пенная вечеринка', age:'3+', people:'от 1 до 200', variant:'foam', photo:photoWithFallback(content, 'homeFoamPhoto', 'showPhoto2') }),
-    directionCard({ href:'/spektakli/', title:'Спектакли к вам', age:'3+', people:'от 30 до 150', variant:'birthday', photo:photoWithFallback(content, 'homeTheaterPhoto', 'theaterPhoto1') })
+    directionCard({ href:'/show/#show-catalog', title:'Пенная вечеринка', age:'3+', people:'от 1 до 200', variant:'foam', photo:photoWithFallback(content, 'homeFoamPhoto', 'showPhoto2') })
   ].join('');
-  const formats = 'АНИМАТОРЫ <i>✦</i> ШОУ <i>✦</i> СПЕКТАКЛИ <i>✦</i> ДЕНЬ РОЖДЕНИЯ <i>✦</i> ПЕННАЯ ВЕЧЕРИНКА <i>✦</i> КЕМЕРОВО';
+  const formats = 'АНИМАТОРЫ <i>✦</i> ШОУ <i>✦</i> ДЕНЬ РОЖДЕНИЯ <i>✦</i> ПЕННАЯ ВЕЧЕРИНКА <i>✦</i> КЕМЕРОВО';
   const conditions = '40 минут игры <i>·</i> от 2 000 ₽ <i>·</i> дом / сад / школа <i>·</i> Кемерово';
   const homeTicker = `<div class="ticker" aria-label="Направления"><div class="ticker__track"><div class="ticker__group">${formats}</div><div class="ticker__group" aria-hidden="true">${formats}</div></div></div>`;
   const homePulse = `<div class="home-pulse" aria-label="Условия"><div class="home-pulse__track"><div class="home-pulse__group">${conditions}</div><div class="home-pulse__group" aria-hidden="true">${conditions}</div></div></div>`;
   const homeMosaic = `<section class="photo-story"><div class="photo-story__intro"><span class="mono-tag">НЕ ПОСТАНОВКА · ЖИВЫЕ ЭМОЦИИ</span><h2>Дети не позируют.<br>Они живут внутри истории.</h2></div><div class="photo-story__mosaic"><figure class="story-shot story-shot--wide"><div class="image-slot">${image(photoFromContent(content, 'photo5'), 'managed-photo')}</div><figcaption><b>01</b> Момент, когда весь зал играет вместе</figcaption></figure><figure class="story-shot story-shot--portrait"><div class="image-slot">${image(photoFromContent(content, 'photo6'), 'managed-photo')}</div></figure><figure class="story-shot story-shot--detail"><div class="image-slot">${image(photoFromContent(content, 'photo7'), 'managed-photo')}</div><figcaption><b>03</b> Маленькие вещи делают мир убедительным</figcaption></figure></div></section>`;
   const body = [
-    heroBlock({ tag:'Праздники · Кемерово', lines:['ПРАЗДНИКИ', 'В КЕМЕРОВО'], intro:content.heroIntro || 'Организация детских праздников в Кемерово: аниматоры, шоу и спектакли на вашей площадке.', photo:photoFromContent(content, 'photo1'), service:'Праздник в Кемерово', pageClass:'hero--home' }),
+    heroBlock({ tag:'Праздники · Кемерово', lines:['ПРАЗДНИКИ', 'В КЕМЕРОВО'], intro:content.heroIntro || 'Организация детских праздников в Кемерово: аниматоры и шоу на вашей площадке.', photo:photoFromContent(content, 'photo1'), service:'Праздник в Кемерово', pageClass:'hero--home' }),
     homeTicker,
     `<section class="services"><div class="section-heading section-heading--home-formats"><span class="mono-tag">Выберите формат праздника</span><h2>И начнём игру</h2></div><div class="service-grid service-grid--home">${directionCards}</div></section>`,
     homePulse,
     homeMosaic,
     `<section class="events events--home"><div class="events__head"><h2>Афиша впечатлений</h2><a class="events__all" href="/afisha/">Вся афиша</a></div>${eventCards(events.slice(0, 3))}</section>`,
+    reviews(reviewItems),
     partyForm()
   ].join('');
   return layout(pageMeta({ path:'/', title:content.heroTitle ? `${content.heroTitle} | ТЕМА` : undefined, description:content.heroIntro }), body, 'page--home');
@@ -539,15 +545,14 @@ const renderBirthdayLegacy = async () => {
 const renderBirthday = async () => {
   const content = await loadContent();
   const heroCopy = pageHeroCopy(content, 'birthday');
-  const [heroes, shows, plays] = await Promise.all([loadCatalog('heroes'), loadCatalog('shows'), loadCatalog('plays')]);
+  const [heroes, shows] = await Promise.all([loadCatalog('heroes'), loadCatalog('shows')]);
   const birthdayFormatCard = ({ href, title, description, age, duration, guests, price, includes, variant, photo }) => `<a class="birthday-format-card birthday-format-card--${escapeAttr(variant)}" href="${escapeAttr(href)}"><div class="birthday-format-card__media">${image(photo)}</div><div class="birthday-format-card__copy"><span class="mono-tag">Формат праздника</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><dl class="birthday-format-card__facts"><div><dt>Возраст</dt><dd>${escapeHtml(age)}</dd></div><div><dt>Длительность</dt><dd>${escapeHtml(duration)}</dd></div><div><dt>Гостей</dt><dd>${escapeHtml(guests)}</dd></div><div><dt>Стоимость</dt><dd>${escapeHtml(price)}</dd></div></dl><div class="birthday-format-card__includes"><small>В программе</small><strong>${escapeHtml(includes)}</strong></div><span class="birthday-format-card__cta">ВЫБРАТЬ</span></a>`;
   const serviceCards = [
     birthdayFormatCard({ href:'/animatory/#hero-catalog', title:'Аниматор', description:'Любимый герой ведёт игру и вовлекает каждого ребёнка.', age:'3–12 лет', duration:'40 минут', guests:'до 15', price:minimumPriceLabel(heroes.filter(visible)), includes:'герой, игры, реквизит', variant:'yellow', photo:photoFromContent(content,'animatoryPhoto1') }),
-    birthdayFormatCard({ href:'/show/#show-catalog', title:'Шоу', description:'Эффектная программа для детей, которые любят удивляться.', age:'3+ лет', duration:'30–45 минут', guests:'до 50', price:minimumPriceLabel(shows.filter(visible)), includes:'ведущий, эффекты, участие детей', variant:'pink', photo:photoFromContent(content,'showPhoto1') }),
-    birthdayFormatCard({ href:'/spektakli/', title:'Спектакль', description:'Интерактивная история, в которой дети помогают героям.', age:plays.find(visible)?.age || '4+ лет', duration:'45–60 минут', guests:'от 30', price:minimumPriceLabel(plays.filter(visible)), includes:'актёры, сюжет, реквизит', variant:'cream', photo:photoFromContent(content,'theaterPhoto1') })
+    birthdayFormatCard({ href:'/show/#show-catalog', title:'Шоу', description:'Эффектная программа для детей, которые любят удивляться.', age:'3+ лет', duration:'30–45 минут', guests:'до 50', price:minimumPriceLabel(shows.filter(visible)), includes:'ведущий, эффекты, участие детей', variant:'pink', photo:photoFromContent(content,'showPhoto1') })
   ].join('');
   const body = `${heroBlock({ tag:'Детский день рождения · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'photoBirthday'), mascot:'/assets/mascot-peek-birthday.png', service:'Детский день рождения', pageClass:'afisha-hero' })}<section class="birthday-formats"><header class="birthday-formats__head"><div><span class="mono-tag">Форматы праздника</span><h2>Что добавить<br>в день рождения</h2></div><p>Выберите основу программы — подскажем, какой формат подойдёт возрасту ребёнка, гостям и площадке.</p></header><div class="birthday-format-grid">${serviceCards}</div></section>${partyForm()}`;
-  return layout(pageMeta({ title:'Детский день рождения в Кемерово | ТЕМА', description:'Организация детского дня рождения в Кемерово: аниматоры, шоу и спектакли на дом, в сад или на площадку.', path:'/detskiy-den-rozhdeniya/' }), body, 'page--birthday');
+  return layout(pageMeta({ title:'Детский день рождения в Кемерово | ТЕМА', description:'Организация детского дня рождения в Кемерово: аниматоры и шоу на дом, в сад или на площадку.', path:'/detskiy-den-rozhdeniya/' }), body, 'page--birthday');
 };
 
 const renderHomeAnimator = async () => {
@@ -582,7 +587,7 @@ const renderEventDetail = event => {
 
 const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
-const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'theater-page' ? 'is-active' : ''}" href="/admin/page/theater">Спектакли — первый экран</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'plays' ? 'is-active' : ''}" href="/admin/catalog/plays">Спектакли</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
+const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
 const selectField = (label, name, value, values) => `<label class="admin-field">${escapeHtml(label)}<select name="${escapeAttr(name)}">${values.map(([itemValue, itemLabel]) => `<option value="${escapeAttr(itemValue)}" ${itemValue === value ? 'selected' : ''}>${escapeHtml(itemLabel)}</option>`).join('')}</select></label>`;
 const visibilityField = value => `<label class="admin-check"><input type="checkbox" name="published" ${value !== false ? 'checked' : ''}> Показывать на сайте</label>`;
@@ -635,8 +640,7 @@ const adminPageConfig = {
         ['homeBoyPhoto','Главная → плитка «Аниматор для мальчика»'],
         ['homeGirlPhoto','Главная → плитка «Аниматор для девочки» (сейчас используется резерв аниматоров)'],
         ['homeAdultShowPhoto','Главная → плитка «Шоу для взрослых» (сейчас используется главное фото шоу)'],
-        ['homeFoamPhoto','Главная → плитка «Пенная вечеринка»'],
-        ['homeTheaterPhoto','Главная → плитка «Спектакли к вам» (сейчас используется главное фото спектаклей)']
+        ['homeFoamPhoto','Главная → плитка «Пенная вечеринка»']
       ]},
       { title:'Фотомозаика «Живые эмоции»', description:'Три кадра ниже плиток на главной странице.', items:[
         ['photo5','Главная → мозаика, широкий кадр'],
@@ -647,7 +651,7 @@ const adminPageConfig = {
   },
   birthday: {
     active:'birthday', title:'День рождения', eyebrow:'Страницы сайта',
-    intro:'Первый экран страницы дня рождения. Карточки «Аниматор», «Шоу» и «Спектакль» ниже используют общие фото из соответствующих разделов.',
+    intro:'Первый экран страницы дня рождения. Карточки «Аниматор» и «Шоу» ниже используют общие фото из соответствующих разделов.',
     publicUrl:'/detskiy-den-rozhdeniya/', adminUrl:'/admin/birthday',
     hero:{ key:'birthday', title:'Первый экран', hint:'Каждая новая строка H1 станет новой строкой в дизайне.' },
     photoGroups:[{ title:'Первый экран', description:'Главная фотография страницы дня рождения.', items:[['photoBirthday','День рождения → первое большое фото']] }]
@@ -729,6 +733,23 @@ const renderAdminShowHeroUpsells = async (query = {}) => {
     : '<p class="admin-empty">Сначала добавьте хотя бы одно шоу в каталоге.</p>';
   const body = `<header class="admin-page-head"><div><span>Продажи</span><h1>Аниматоры к шоу</h1><p>Выберите подходящих героев для каждого шоу и настройте доплату. Новый аниматор из каталога автоматически появится здесь для выбора.</p></div>${adminPreviewLink('/show/', 'Посмотреть каталог')}</header>${adminSaveNotice(query)}<div class="admin-sales-show-list">${cards}</div>`;
   return adminLayout('Аниматоры к шоу', body, 'show-animators');
+};
+
+const reviewAdminCard = item => `<article class="admin-catalog-row"><span class="admin-catalog-item__media admin-review-avatar">${escapeHtml(Array.from(String(item.author || 'Гость'))[0]?.toUpperCase() || '★')}</span><div class="admin-catalog-item__copy"><small>${escapeHtml(item.date || 'Дата не указана')} · ${Math.max(1, Math.min(5, Math.round(Number(item.rating) || 5)))} из 5</small><strong>${escapeHtml(item.author || 'Гость')}</strong><p>${escapeHtml(item.text || '')}</p></div><span class="admin-catalog-item__status ${item.published !== false ? 'is-live' : ''}">${item.published !== false ? 'На сайте' : 'Скрыт'}</span><div class="admin-catalog-row__actions"><a class="admin-row-action" href="/admin/reviews/edit/${escapeAttr(item.id)}">Редактировать</a></div></article>`;
+
+const renderAdminReviews = async (query = {}) => {
+  const items = (await loadCatalog('reviews')).sort((first, second) => number(first.position, 999) - number(second.position, 999));
+  const body = `<header class="admin-page-head"><div><span>Главная страница</span><h1>Отзывы</h1><p>Добавляйте отзывы в карусель на главной, меняйте их порядок или временно скрывайте.</p></div><a class="admin-primary-link" href="/admin/reviews/new">+ Добавить отзыв</a></header>${adminSaveNotice(query)}<section class="admin-catalog-list" aria-label="Отзывы">${items.length ? items.map(reviewAdminCard).join('') : '<p class="admin-empty">Пока нет отзывов. Добавьте первый.</p>'}</section>`;
+  return adminLayout('Отзывы', body, 'reviews');
+};
+
+const renderAdminReviewEditor = async (id, query = {}) => {
+  const items = await loadCatalog('reviews');
+  const isNew = id === 'new';
+  const item = isNew ? { published:true, rating:5, position:items.length + 1 } : items.find(entry => entry.id === id);
+  if (!item) throw new Error('Отзыв не найден');
+  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/reviews">← Все отзывы</a><span>Отзывы</span><h1>${isNew ? 'Новый отзыв' : escapeHtml(item.author || 'Отзыв')}</h1><p>Текст появится в карусели на главной сразу после сохранения.</p></div>${adminPreviewLink('/#reviews-title', 'Открыть отзывы')}</header>${adminSaveNotice(query)}<form class="admin-edit-form" method="post" action="/admin/reviews/save" data-admin-form><input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка отзыва</span><h2>${isNew ? 'Добавить впечатление' : 'Редактировать отзыв'}</h2><p>Имя, дата и текст видны посетителям сайта.</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыт'}</span></div><div class="admin-grid">${formField('Имя автора', 'author', item.author || '', { required:true, wide:true })}${formField('Дата или подпись', 'date', item.date || '', { wide:true })}${selectField('Оценка', 'rating', String(item.rating || 5), [['5','5 звёзд'],['4','4 звезды'],['3','3 звезды'],['2','2 звезды'],['1','1 звезда']])}${formField('Порядок в карусели', 'position', item.position || 1, { type:'number', step:'1', required:true })}${formField('Текст отзыва', 'text', item.text || '', { textarea:true, wide:true, required:true })}</div></section>${adminSaveBar({ previewUrl:'/#reviews-title', submitLabel:isNew ? 'Добавить отзыв' : 'Сохранить отзыв' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление окончательно уберёт отзыв из админки и с сайта.</p><button class="admin-danger" type="submit" formaction="/admin/reviews/delete" formnovalidate onclick="return confirm('Удалить отзыв?')">Удалить отзыв</button></div>`}</form>`;
+  return adminLayout(isNew ? 'Новый отзыв' : item.author || 'Отзыв', body, 'reviews');
 };
 
 const catalogTitles = { heroes:'Аниматоры', shows:'Шоу', plays:'Спектакли', events:'Афиша' };
@@ -1005,8 +1026,8 @@ app.get('/robots.txt', (_req, res) => res.type('text/plain').send(`User-agent: Y
 app.get('/sitemap.xml', async (_req, res, next) => {
   try {
     const [heroes, shows, events] = await Promise.all([loadCatalog('heroes'), loadCatalog('shows'), loadCatalog('events')]);
-    const paths = ['/', '/privacy/', '/consent/', '/animatory/', '/animatory-na-dom/', '/detskiy-den-rozhdeniya/', '/show/', '/spektakli/', '/afisha/', ...heroes.filter(visible).map(item => `/animatory/${item.slug}/`), ...shows.filter(visible).map(item => `/show/${item.slug}/`), ...events.filter(visible).map(item => `/afisha/${item.slug}/`)];
-    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(item => `<url><loc>${escapeHtml(`${siteUrl}${item}`)}</loc></url>`).join('')}</urlset>`);
+    const paths = ['/', '/privacy/', '/consent/', '/animatory/', '/animatory-na-dom/', '/detskiy-den-rozhdeniya/', '/show/', '/afisha/', ...heroes.filter(visible).map(item => `/animatory/${item.slug}/`), ...shows.filter(visible).map(item => `/show/${item.slug}/`), ...events.filter(visible).map(item => `/afisha/${item.slug}/`)];
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(item => `<url><loc>${escapeHtml(new URL(item, `${siteUrl}/`).href)}</loc></url>`).join('')}</urlset>`);
   } catch (error) { next(error); }
 });
 
@@ -1076,22 +1097,25 @@ app.post('/admin/logout', (_req, res) => { res.setHeader('Set-Cookie', 'tema_adm
 app.get('/admin/', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminContent(req.query)); } catch (error) { next(error); } });
 app.get('/admin/birthday', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminBirthday(req.query)); } catch (error) { next(error); } });
 app.get('/admin/page/:page', requireAdmin, async (req, res, next) => {
-  const pageKey = { animatory:'animatory', 'home-animator':'homeAnimator', show:'show', theater:'theater' }[req.params.page];
+  const pageKey = { animatory:'animatory', 'home-animator':'homeAnimator', show:'show' }[req.params.page];
   if (!pageKey) return res.status(404).send('Страница админки не найдена');
   try { res.send(await renderAdminPage(pageKey, req.query)); } catch (error) { next(error); }
 });
 app.get('/admin/cart', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminHeroCart(req.query)); } catch (error) { next(error); } });
 app.get('/admin/sales/show-animators', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminShowHeroUpsells(req.query)); } catch (error) { next(error); } });
+app.get('/admin/reviews', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviews(req.query)); } catch (error) { next(error); } });
+app.get('/admin/reviews/new', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviewEditor('new', req.query)); } catch (error) { next(error); } });
+app.get('/admin/reviews/edit/:id', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviewEditor(req.params.id, req.query)); } catch (error) { next(error); } });
 app.get('/admin/catalog/:type/new', requireAdmin, async (req, res, next) => {
-  if (!['heroes','shows','plays','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
+  if (!['heroes','shows','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
   try { res.send(await renderAdminCatalogEditor(req.params.type, 'new', req.query)); } catch (error) { next(error); }
 });
 app.get('/admin/catalog/:type/edit/:id', requireAdmin, async (req, res, next) => {
-  if (!['heroes','shows','plays','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
+  if (!['heroes','shows','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
   try { res.send(await renderAdminCatalogEditor(req.params.type, req.params.id, req.query)); } catch (error) { next(error); }
 });
 app.get('/admin/catalog/:type', requireAdmin, async (req, res, next) => {
-  if (!['heroes','shows','plays','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
+  if (!['heroes','shows','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
   try { res.send(await renderAdminCatalog(req.params.type, req.query)); } catch (error) { next(error); }
 });
 
@@ -1149,13 +1173,44 @@ app.post('/admin/sales/show-animators/:id', requireAdmin, async (req, res, next)
     res.redirect(`/admin/sales/show-animators?saved=1#show-${encodeURIComponent(current.id)}`);
   } catch (error) { next(error); }
 });
+app.post('/admin/reviews/save', requireAdmin, async (req, res, next) => {
+  try {
+    const items = await loadCatalog('reviews');
+    const current = items.find(item => item.id === req.body.id);
+    if (req.body.id && !current) return res.status(404).send('Отзыв не найден');
+    const author = String(req.body.author || '').trim().slice(0, 100);
+    const text = String(req.body.text || '').trim().slice(0, 1200);
+    if (!author || !text) return res.status(400).send('Укажите имя автора и текст отзыва');
+    const item = {
+      ...(current || {}),
+      id: current?.id || crypto.randomUUID(),
+      author,
+      date: String(req.body.date || '').trim().slice(0, 80),
+      text,
+      rating: Math.max(1, Math.min(5, Math.round(Number(req.body.rating) || 5))),
+      position: Math.max(1, Math.round(number(req.body.position, items.length + 1))),
+      published: truthy(req.body.published),
+      updatedAt: now(),
+      createdAt: current?.createdAt || now()
+    };
+    await saveCatalog('reviews', current ? items.map(entry => entry.id === current.id ? item : entry) : [...items, item]);
+    res.redirect(`/admin/reviews/edit/${item.id}?saved=1`);
+  } catch (error) { next(error); }
+});
+app.post('/admin/reviews/delete', requireAdmin, async (req, res, next) => {
+  try {
+    const items = await loadCatalog('reviews');
+    await saveCatalog('reviews', items.filter(item => item.id !== req.body.id));
+    res.redirect('/admin/reviews?deleted=1');
+  } catch (error) { next(error); }
+});
 app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image', maxCount:1 }, { name:'galleryMedia', maxCount:8 }]), async (req, res, next) => {
   const type = req.params.type;
   const uploaded = req.files || {};
   const uploadedCover = uploaded.image?.[0];
   const uploadedGallery = uploaded.galleryMedia || [];
   const allUploaded = [uploadedCover, ...uploadedGallery].filter(Boolean);
-  if (!['heroes','shows','plays','events'].includes(type)) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(404).send('Каталог не найден'); }
+  if (!['heroes','shows','events'].includes(type)) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(404).send('Каталог не найден'); }
   try {
     await convertUploadedImagesToWebp(allUploaded);
     const items = await loadCatalog(type);
@@ -1169,7 +1224,7 @@ app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image
 });
 app.post('/admin/catalog/:type/delete', requireAdmin, async (req, res, next) => {
   const type = req.params.type;
-  if (!['heroes','shows','plays','events'].includes(type)) return res.status(404).send('Каталог не найден');
+  if (!['heroes','shows','events'].includes(type)) return res.status(404).send('Каталог не найден');
   try { const items = await loadCatalog(type); await saveCatalog(type, items.filter(item => item.id !== req.body.id)); res.redirect(`/admin/catalog/${type}?deleted=1`); } catch (error) { next(error); }
 });
 
@@ -1181,7 +1236,6 @@ app.get('/animatory/', async (_req, res, next) => { try { res.send(await renderA
 app.get('/animatory-na-dom/', async (_req, res, next) => { try { res.send(await renderHomeAnimator()); } catch (error) { next(error); } });
 app.get('/detskiy-den-rozhdeniya/', async (_req, res, next) => { try { res.send(await renderBirthday()); } catch (error) { next(error); } });
 app.get('/show/', async (_req, res, next) => { try { res.send(await renderShow()); } catch (error) { next(error); } });
-app.get('/spektakli/', async (_req, res, next) => { try { res.send(await renderPlays()); } catch (error) { next(error); } });
 app.get('/afisha/', async (_req, res, next) => { try { res.send(await renderAfisha()); } catch (error) { next(error); } });
 app.get('/animatory/:slug/', async (req, res, next) => { try { const item = (await loadCatalog('heroes')).find(hero => hero.slug === req.params.slug && visible(hero)); if (!item) return res.status(404).send('Программа не найдена'); res.send(renderServiceDetail({ item, type:'heroes' })); } catch (error) { next(error); } });
 app.get('/show/:slug/', async (req, res, next) => { try { const [shows, heroes] = await Promise.all([loadCatalog('shows'), loadCatalog('heroes')]); const item = shows.find(show => show.slug === req.params.slug && visible(show)); if (!item) return res.status(404).send('Шоу не найдено'); res.send(renderServiceDetail({ item, type:'shows', showCart:showCartDialog([item], heroes) })); } catch (error) { next(error); } });

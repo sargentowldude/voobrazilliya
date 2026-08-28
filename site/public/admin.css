@@ -1261,3 +1261,20 @@ button { cursor: pointer; }
   position: static;
   margin-top: 12px;
 }
+
+.admin-review-avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f7bfd4;
+  color: #841543;
+  font-size: 24px;
+  font-weight: 800;
+}
+.admin-catalog-item__copy p {
+  max-width: 72ch;
+  margin: 7px 0 0;
+  color: rgba(18, 19, 17, .68);
+  font-size: 12px;
+  line-height: 1.45;
+}
