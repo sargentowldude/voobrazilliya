@@ -13,6 +13,7 @@
   --brand-pink-ui: #c20b5b;
   --brand-berry: #841543;
   --brand-blush: #f7bfd4;
+  --show-surface: #c20b5b;
   --surface-dark: #24141c;
   --accent: #ff77ad;
   --card-yellow: #f2e56f;
@@ -2732,7 +2733,13 @@ footer small {
   background: var(--violet);
 }
 .page--show {
-  background: var(--violet-deep);
+  background: var(--show-surface);
+}
+.page--show .hero h1 {
+  color: var(--cream);
+}
+.page--show .hero h1 .soft {
+  color: var(--card-yellow);
 }
 .page--theater {
   background: #705366;
