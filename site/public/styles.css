@@ -334,7 +334,7 @@ h1,
   top: 10%;
   mix-blend-mode: multiply;
   opacity: 0.82;
-  filter: saturate(0.58) contrast(0.95);
+  filter: saturate(0.8);
   transform-origin: 50% 70%;
   animation:
     mascot-in 1.15s 0.3s var(--ease) both,
@@ -1023,7 +1023,7 @@ footer small {
   right: 1vw;
   top: 17%;
   opacity: 0.66;
-  filter: saturate(0.45) contrast(0.92);
+  filter: saturate(0.8);
 }
 .ticker {
   overflow: hidden;
@@ -2227,7 +2227,7 @@ footer small {
   width: 58%;
   right: -7%;
   bottom: 44px;
-  filter: saturate(0.72);
+  filter: saturate(0.8);
 }
 .service-card:hover .card-mascot--game {
   transform: translate(-7px, -9px) rotate(-3deg);
@@ -2236,7 +2236,7 @@ footer small {
   position: absolute;
   z-index: 4;
   pointer-events: none;
-  filter: saturate(0.72);
+  filter: saturate(0.8);
   transform-origin: center;
   transition: transform 0.5s var(--ease);
 }
@@ -2295,7 +2295,7 @@ footer small {
     left: auto;
     right: -5%;
     width: 210px;
-    opacity: 0.55;
+    opacity: 0.82;
   }
 }
 @media (max-width: 600px) {
@@ -2310,7 +2310,7 @@ footer small {
     width: 170px;
     right: -45px;
     top: 12px;
-    opacity: 0.72;
+    opacity: 0.92;
   }
   .section-mascot--contact {
     display: none;
@@ -2628,7 +2628,7 @@ footer small {
   left: 50%;
   top: -1.36em;
   width: clamp(175px, 19vw, 300px);
-  opacity: 0.9;
+  opacity: 1;
   transform: translate(-50%, 50%);
   transition: transform 0.55s var(--ease);
   will-change: transform;
