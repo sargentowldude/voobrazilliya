@@ -3,8 +3,8 @@
   "short_name": "ВообразилЛиЯ",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#140054",
-  "theme_color": "#140054",
+  "background_color": "#121311",
+  "theme_color": "#121311",
   "icons": [
     {
       "src": "/icon-192.png?v=20260828-mask-v2",

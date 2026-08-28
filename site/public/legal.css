@@ -4,8 +4,8 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.5rem clamp(1.25rem, 4vw, 4rem);
-  color: #fff8e8;
-  background: #172315;
+  color: var(--cream);
+  background: var(--ink);
   font-size: 0.8rem;
 }
 
@@ -25,7 +25,7 @@
 
 .consent a,
 .legal-page a {
-  color: #5e5f8f;
+  color: var(--brand-pink-ui);
 }
 
 .consent > input {
@@ -40,15 +40,15 @@
 body.legal-body {
   min-height: 100svh;
   background:
-    radial-gradient(circle at 90% 12%, rgba(242, 229, 111, 0.23), transparent 24rem),
-    radial-gradient(circle at 8% 82%, rgba(232, 170, 169, 0.28), transparent 30rem),
-    linear-gradient(135deg, #5e5f8f 0%, #7777ad 56%, #65679b 100%);
+    radial-gradient(circle at 90% 12%, rgba(249, 26, 122, 0.2), transparent 24rem),
+    radial-gradient(circle at 8% 82%, rgba(246, 180, 207, 0.26), transparent 30rem),
+    linear-gradient(135deg, #121311 0%, #4a2738 56%, #6a2446 100%);
 }
 
 .legal-body .site-header {
-  border-bottom-color: rgba(250, 245, 237, 0.32);
-  background: rgba(37, 36, 42, 0.08);
-  backdrop-filter: blur(10px);
+  border-bottom-color: rgba(18, 19, 17, 0.16);
+  background: rgba(255, 249, 252, 0.94);
+  backdrop-filter: blur(14px);
 }
 
 .legal-body main {
@@ -61,8 +61,8 @@ body.legal-body {
 }
 
 .legal-body .site-footer {
-  background: rgba(37, 36, 42, 0.9);
-  border-top: 1px solid rgba(250, 245, 237, 0.2);
+  background: rgba(18, 19, 17, 0.94);
+  border-top: 1px solid rgba(255, 249, 252, 0.2);
 }
 
 .legal-page {
@@ -71,11 +71,11 @@ body.legal-body {
   margin: 0 auto;
   padding: clamp(2rem, 5vw, 4.75rem) clamp(1.25rem, 5vw, 5rem);
   overflow: hidden;
-  color: #403e4b;
-  background: #fffaf3;
-  border: 1px solid rgba(37, 36, 42, 0.12);
+  color: #3f3337;
+  background: var(--cream);
+  border: 1px solid rgba(18, 19, 17, 0.12);
   border-radius: clamp(1.25rem, 3vw, 2.25rem);
-  box-shadow: 0 1.25rem 3.75rem rgba(37, 36, 42, 0.28);
+  box-shadow: 0 1.25rem 3.75rem rgba(18, 19, 17, 0.28);
 }
 
 .legal-page::before {
@@ -84,7 +84,7 @@ body.legal-body {
   right: -4rem;
   width: 15rem;
   aspect-ratio: 1;
-  border: 1.25rem solid rgba(242, 229, 111, 0.56);
+  border: 1.25rem solid rgba(249, 26, 122, 0.18);
   border-radius: 50%;
   content: "";
 }
@@ -99,16 +99,16 @@ body.legal-body {
   align-items: center;
   min-height: 2rem;
   padding: 0.45rem 0.7rem;
-  color: #25242a;
-  background: #f2e56f;
-  border: 1px solid #25242a;
+  color: var(--ink);
+  background: var(--butter);
+  border: 1px solid var(--ink);
   border-radius: 100px;
 }
 
 .legal-page h1 {
   max-width: 15ch;
   margin: 1.25rem 0 1.5rem;
-  color: #4f4d78;
+  color: var(--brand-pink-ui);
   font-size: clamp(2.25rem, 5.2vw, 4.8rem);
   font-weight: 800;
   letter-spacing: -0.06em;
@@ -118,7 +118,7 @@ body.legal-body {
 
 .legal-page h2 {
   margin: 0 0 0.85rem;
-  color: #5e5f8f;
+  color: var(--ink);
   font-size: clamp(1.25rem, 2vw, 1.65rem);
   font-weight: 800;
   letter-spacing: -0.035em;
@@ -144,27 +144,27 @@ body.legal-body {
 }
 
 .legal-page strong {
-  color: #25242a;
+  color: var(--ink);
 }
 
 .legal-page__lead {
   max-width: 62ch;
   margin: 0 !important;
   padding: 1rem 0 1rem 1.25rem;
-  color: #555276;
-  border-left: 4px solid #e8aaa9;
+  color: #5f4c53;
+  border-left: 4px solid var(--pink);
   font-size: clamp(1.08rem, 2vw, 1.25rem) !important;
   font-weight: 600;
   line-height: 1.55 !important;
 }
 
 .legal-page a {
-  color: #5e5f8f;
+  color: var(--brand-pink-ui);
   font-weight: 700;
 }
 
 .legal-page a:hover {
-  color: #b9647e;
+  color: var(--brand-berry);
 }
 
 .legal-page table {
@@ -196,8 +196,8 @@ body.legal-body {
 }
 
 .legal-page th {
-  color: #4f4d78;
-  background: #eeebf7;
+  color: var(--ink);
+  background: #f9e8ed;
   font-weight: 800;
 }
 
@@ -207,13 +207,13 @@ body.legal-body {
   gap: 0.55rem 1.25rem;
   margin-top: 1.15rem;
   padding: 1.25rem;
-  background: #f2effa;
-  border: 1px solid #d9d2ed;
+  background: #fbeef2;
+  border: 1px solid #eccbd5;
   border-radius: 1rem;
 }
 
 .legal-contacts dt {
-  color: #4f4d78;
+  color: var(--brand-berry);
   font-weight: 800;
 }
 
