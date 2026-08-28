@@ -362,7 +362,7 @@ const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox 
 
 const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
 const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-v2" sizes="16x16 32x32 48x48 64x64 128x128 256x256"><link rel="icon" href="/favicon-32x32.png?v=20260828-mask-v2" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png?v=20260828-mask-v2" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260828-mask-v2" sizes="180x180"><link rel="manifest" href="/site.webmanifest?v=20260828-pink-brand-v1"><meta name="theme-color" content="#121311">';
-const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css?v=20260828-light-reviews-v1"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260828-reviews-carousel-v1" defer></script></body></html>`;
+const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><link rel="stylesheet" href="/styles.css?v=20260829-afisha-layout-v1"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}">${nav()}<main>${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260828-reviews-carousel-v1" defer></script></body></html>`;
 
 const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
 const cookiesSection = () => {
@@ -453,6 +453,10 @@ const eventCards = events => `<div class="event-grid">${events.filter(visible).m
 
 const renderHome = async () => {
   const [content, events, reviewItems] = await Promise.all([loadContent(), loadCatalog('events'), loadCatalog('reviews')]);
+  const homeEvents = events
+    .filter(visible)
+    .sort((first, second) => (Date.parse(second.createdAt || second.updatedAt || second.date) || 0) - (Date.parse(first.createdAt || first.updatedAt || first.date) || 0))
+    .slice(0, 3);
   const directionCards = [
     directionCard({ href:'/animatory/?audience=boys#hero-catalog', title:'Аниматор для мальчика', age:'0+', people:'от 1 до 15', variant:'yellow', photo:photoWithFallback(content, 'homeBoyPhoto', 'animatoryPhoto1') }),
     directionCard({ href:'/animatory/?audience=girls#hero-catalog', title:'Аниматор для девочки', age:'0+', people:'от 1 до 15', variant:'cream', photo:photoWithFallback(content, 'homeGirlPhoto', 'animatoryPhoto2') }),
@@ -467,10 +471,10 @@ const renderHome = async () => {
   const body = [
     heroBlock({ tag:'Праздники · Кемерово', lines:['ПРАЗДНИКИ', 'В КЕМЕРОВО'], intro:content.heroIntro || 'Организация детских праздников в Кемерово: аниматоры и шоу на вашей площадке.', photo:photoFromContent(content, 'photo1'), service:'Праздник в Кемерово', pageClass:'hero--home' }),
     homeTicker,
-    `<section class="services"><div class="section-heading section-heading--home-formats"><span class="mono-tag">Выберите формат праздника</span><h2>И начнём игру</h2></div><div class="service-grid service-grid--home">${directionCards}</div></section>`,
+    `<section class="services"><div class="section-heading section-heading--home-formats"><span class="mono-tag">Аниматоры и шоу</span><h2>Выберите программу</h2></div><div class="service-grid service-grid--home">${directionCards}</div></section>`,
     homePulse,
     homeMosaic,
-    `<section class="events events--home"><div class="events__head"><h2>Афиша впечатлений</h2><a class="events__all" href="/afisha/">Вся афиша</a></div>${eventCards(events.slice(0, 3))}</section>`,
+    `<section class="events events--home"><div class="events__head"><h2>Афиша впечатлений</h2><a class="events__all" href="/afisha/">Вся афиша</a></div>${eventCards(homeEvents)}</section>`,
     reviews(reviewItems),
     partyForm()
   ].join('');
@@ -564,7 +568,7 @@ const renderHomeAnimator = async () => {
 
 const renderAfisha = async () => {
   const events = (await loadCatalog('events')).filter(visible);
-  const body = `<section class="afisha-catalog afisha-catalog--compact" id="afisha-catalog"><header class="afisha-catalog__head"><div><span class="mono-tag">Кемерово</span><h1>Афиша</h1></div><p>${events.length ? 'Выберите событие и откройте афишу — внутри подробности программы и заявка.' : 'Новые события появятся здесь совсем скоро.'}</p></header>${events.length ? eventCards(events) : '<p class="empty-state">Афиша обновляется — скоро добавим новые события.</p>'}</section>`;
+  const body = `<section class="afisha-catalog afisha-catalog--large" id="afisha-catalog"><header class="afisha-catalog__head"><div><span class="mono-tag">Кемерово</span><h1>Афиша</h1></div><p>${events.length ? 'Выберите событие и откройте афишу — внутри подробности программы и заявка.' : 'Новые события появятся здесь совсем скоро.'}</p></header>${events.length ? eventCards(events) : '<p class="empty-state">Афиша обновляется — скоро добавим новые события.</p>'}</section>`;
   return layout(pageMeta({ title:'Афиша детских событий в Кемерово | ТЕМА', description:'Афиша праздников, спектаклей и детских событий в Кемерово. Билеты, программы и заявки.', path:'/afisha/' }), body, 'page--afisha');
 };
 
