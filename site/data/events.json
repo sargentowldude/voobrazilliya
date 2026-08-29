@@ -55,5 +55,24 @@
     "buttonUrl": "/show/pennaya-vecherinka-kemerovo/",
     "imageFit": "poster",
     "accent": "yellow"
+  },
+  {
+    "id": "3df0afee-d4da-41ec-8590-6678ece71b96",
+    "published": true,
+    "image": "/uploads/1787937739621-c5bcb334-0a0f-4e2a-bc11-327f51324a7c.webp",
+    "imagePositionX": 50,
+    "imagePositionY": 8,
+    "imageScale": 100,
+    "updatedAt": "2026-08-28T17:33:54.834Z",
+    "createdAt": "2026-08-28T17:22:20.532Z",
+    "title": "Проведем шоу для взрослых у Вас!",
+    "slug": "provedem-shou-dlya-vzroslyh-u-vas",
+    "date": "2026-06-01",
+    "category": "Событие",
+    "description": "«100 к 1», «Своя игра», «Угадай мелодию», весёлые челленджи, задания и игровые наказания — соберём программу под вашу компанию и любую тему праздника. Дома, в офисе, в баре или на площадке: много смеха, азарта и участия каждого.",
+    "buttonLabel": "Попробовать Разнос Шоу!",
+    "buttonUrl": "https://аниматоры-кемерово.рф/show/raznos-show-kemerovo/",
+    "imageFit": "poster",
+    "accent": "yellow"
   }
 ]
