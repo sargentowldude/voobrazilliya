@@ -136,3 +136,39 @@ document.querySelectorAll('[data-image-fit]').forEach(select => {
     if (hint) hint.textContent = `${files[0].name} · ${total} МБ`;
   }));
 })();
+
+/* FAQ editors: add and remove question-answer pairs without leaving the page */
+(() => {
+  const refreshNumbers = list => list.querySelectorAll('[data-faq-row]').forEach((row, index) => {
+    const number = row.querySelector('[data-faq-number]');
+    if (number) number.textContent = String(index + 1);
+  });
+  const markDirty = list => list.closest('form')?.dispatchEvent(new Event('input', { bubbles:true }));
+
+  document.querySelectorAll('[data-faq-list]').forEach(refreshNumbers);
+  document.addEventListener('click', event => {
+    const add = event.target.closest('[data-faq-add]');
+    if (add) {
+      const editor = add.closest('[data-faq-editor]');
+      const list = editor?.querySelector('[data-faq-list]');
+      const template = editor?.querySelector('[data-faq-template]');
+      if (!list || !template) return;
+      const index = Number(list.dataset.faqNextIndex || list.querySelectorAll('[data-faq-row]').length);
+      list.insertAdjacentHTML('beforeend', template.innerHTML.replaceAll('__INDEX__', String(index)));
+      list.dataset.faqNextIndex = String(index + 1);
+      refreshNumbers(list);
+      markDirty(list);
+      list.querySelector('[data-faq-row]:last-child input, [data-faq-row]:last-child textarea')?.focus();
+      return;
+    }
+    const remove = event.target.closest('[data-faq-remove]');
+    if (!remove) return;
+    const row = remove.closest('[data-faq-row]');
+    const list = row?.closest('[data-faq-list]');
+    row?.remove();
+    if (list) {
+      refreshNumbers(list);
+      markDirty(list);
+    }
+  });
+})();

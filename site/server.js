@@ -376,6 +376,45 @@ const faqSchema = items => ({
   '@type':'FAQPage',
   mainEntity:items.map(item => ({ '@type':'Question', name:item.question, acceptedAnswer:{ '@type':'Answer', text:item.answer } }))
 });
+const staticFaqDefaults = {
+  home: [
+    { question:'Куда выезжают аниматоры?', answer:'Проводим программы дома, в кафе, детских садах, школах и на других подходящих площадках в Кемерово. Условия выезда за город уточняются при заказе.' },
+    { question:'Сколько стоит детский праздник?', answer:'Стоимость зависит от выбранного аниматора или шоу, дня недели, продолжительности и состава программы. Актуальные цены указаны в карточках услуг.' },
+    { question:'Как выбрать программу по возрасту?', answer:'Сообщите возраст ребёнка, число гостей и место проведения — подскажем подходящий формат и героя.' }
+  ],
+  animatory: [
+    { question:'Сколько стоит аниматор в Кемерово?', answer:'Цена зависит от героя и дня недели. Стоимость буднего и выходного дня указана в каждой карточке, итоговая сумма видна до отправки заявки.' },
+    { question:'Можно ли заказать аниматора на дом?', answer:'Да. Аниматор приезжает домой, в кафе, детский сад, школу или на другую согласованную площадку в Кемерово.' },
+    { question:'Что входит в программу?', answer:'В базовую программу входят выбранный герой, игры, тематические задания и реквизит. Продолжительность указана в карточке персонажа.' },
+    { question:'Можно пригласить двух героев?', answer:'Да. Выберите основного героя, а затем добавьте второго — сайт сразу покажет состав программы и стоимость.' }
+  ],
+  show: [
+    { question:'Какие шоу можно заказать в Кемерово?', answer:'В каталоге представлены азотное шоу, неоновая дискотека, пенная вечеринка и Разнос-шоу. Состав доступных программ и цены указаны на странице.' },
+    { question:'Шоу проводится на нашей площадке?', answer:'Да. Программы проводятся на подходящей площадке заказчика в Кемерово. До бронирования согласуем место, число гостей и технические условия.' },
+    { question:'Можно добавить аниматора?', answer:'Для подходящих шоу можно выбрать одного или двух аниматоров. Сайт покажет итоговый состав и стоимость программы.' }
+  ],
+  birthday: [
+    { question:'Где отметить детский день рождения в Кемерово?', answer:'Программу можно провести дома, в кафе, лофте, детском центре или на другой подходящей площадке. Мы приезжаем к вам с ведущим и реквизитом.' },
+    { question:'Что выбрать: аниматора или шоу?', answer:'Для небольшой компании и активной игры подойдёт аниматор. Для яркого общего номера или большой группы можно выбрать шоу. Форматы можно комбинировать.' },
+    { question:'За сколько бронировать дату?', answer:'Чем раньше вы оставите заявку, тем больше выбор героев и времени. Для выходных и популярных дат лучше бронировать заранее.' }
+  ],
+  birthdayPlaces: [
+    { question:'У вас есть собственная площадка?', answer:'Собственного зала нет. Мы проводим анимационные программы и шоу на площадке заказчика в Кемерово.' },
+    { question:'Можно провести праздник дома?', answer:'Да, если в комнате достаточно свободного места для игр. До заказа сообщите число детей и примерный размер помещения.' },
+    { question:'Можно пригласить аниматора в кафе или детский центр?', answer:'Да, если площадка разрешает приглашённых ведущих. Уточните у администратора правила по музыке, реквизиту и времени монтажа.' },
+    { question:'Где проводить пенную вечеринку?', answer:'Нужна просторная площадка, где разрешено использование пены. Место и технические условия обязательно согласовываются до бронирования.' }
+  ],
+  homeAnimator: [
+    { question:'Сколько места нужно дома?', answer:'Для небольшой программы достаточно освободить игровую зону от хрупких предметов и лишней мебели. Точные требования зависят от числа детей.' },
+    { question:'Что привозит аниматор?', answer:'Аниматор приезжает в костюме с игровой программой и необходимым реквизитом. Состав конкретной программы согласуем заранее.' },
+    { question:'Есть ли доплата за выезд?', answer:'Выезд по Кемерово входит в согласованные условия заказа. Стоимость поездки в пригород зависит от адреса и подтверждается до бронирования.' }
+  ]
+};
+const normalizeFaqs = source => Array.isArray(source)
+  ? source.map(item => ({ question:String(item?.question || '').trim().slice(0, 300), answer:String(item?.answer || '').trim().slice(0, 1600) })).filter(item => item.question && item.answer).slice(0, 12)
+  : [];
+const pageFaqs = (content, key) => Array.isArray(content?.faqs?.[key]) ? normalizeFaqs(content.faqs[key]) : staticFaqDefaults[key];
+const faqSchemas = items => items.length ? [faqSchema(items)] : [];
 const pageMeta = ({ title, description, path = '/', image = defaultSocialImage, robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', schemas = [] }) => ({
   title: brandText(title || `${brandName} — детские праздники в Кемерово`),
   description: description || 'Аниматоры и шоу для детских праздников в Кемерово.',
@@ -471,7 +510,28 @@ const partyForm = () => `<section class="contact" id="zayavka"><div><span class=
 
 const seoCopySection = ({ eyebrow = 'Полезно знать', title, paragraphs = [], items = [], links = [] }) => `<section class="seo-copy"><header><span class="mono-tag">${escapeHtml(eyebrow)}</span><h2>${escapeHtml(title)}</h2></header><div class="seo-copy__body">${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}${items.length ? `<ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}${links.length ? `<nav class="seo-copy__links" aria-label="Связанные услуги">${links.map(link => `<a href="${escapeAttr(link.href)}">${escapeHtml(link.label)}</a>`).join('')}</nav>` : ''}</div></section>`;
 
-const faqSection = (items, title = 'Ответы на частые вопросы') => `<section class="seo-faq"><header><span class="mono-tag">Вопросы и ответы</span><h2>${escapeHtml(title)}</h2></header><div class="seo-faq__list">${items.map(item => `<details><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`).join('')}</div></section>`;
+const faqSection = (items, title = 'Ответы на частые вопросы') => items.length ? `<section class="seo-faq"><header><span class="mono-tag">Вопросы и ответы</span><h2>${escapeHtml(title)}</h2></header><div class="seo-faq__list">${items.map(item => `<details><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`).join('')}</div></section>` : '';
+const defaultDetailFaqs = (item, type) => {
+  const isHero = type === 'heroes';
+  const isFoam = !isHero && item.slug === 'pennaya-vecherinka-kemerovo';
+  if (isHero) return [
+    { question:`Сколько стоит аниматор ${item.name}?`, answer:`Стоимость программы — от ${formatPrice(item.price)}. Продолжительность — ${item.duration || 40} минут. Итог зависит от дня недели и выбранных дополнений.` },
+    { question:`Куда может приехать ${item.name}?`, answer:'Аниматор выезжает домой, в кафе, детский сад, школу или на другую согласованную площадку в Кемерово.' },
+    { question:'Что подготовить к приезду?', answer:'Освободите место для игр, предупредите площадку о приглашённом ведущем и сообщите нам возраст и количество детей.' }
+  ];
+  if (isFoam) return [
+    { question:'Сколько стоит пенная вечеринка в Кемерово?', answer:`Стоимость программы — от ${formatPrice(item.price)}. Итоговые условия зависят от площадки, продолжительности и адреса проведения.` },
+    { question:'Подходит ли пенная вечеринка для детей?', answer:'Да, формат подходит детям от 3 лет при соблюдении правил площадки и под присмотром взрослых.' },
+    { question:'Где можно провести пенную вечеринку?', answer:'Нужна просторная площадка, где разрешено использование пены. Возможность проведения в помещении или на улице согласовывается заранее.' },
+    { question:'Что взять с собой?', answer:'Рекомендуем сменную одежду, нескользящую обувь или обувь по правилам площадки и полотенца. Точный список сообщим после согласования места.' }
+  ];
+  return [
+    { question:`Сколько стоит ${item.name}?`, answer:`Стоимость программы — от ${formatPrice(item.price)}. Итог зависит от площадки и выбранных дополнений.` },
+    { question:'Где проводится шоу?', answer:'Ведущий приезжает на согласованную площадку в Кемерово. До бронирования уточняются число гостей и технические условия.' },
+    { question:'Можно добавить аниматора?', answer:'Если программа поддерживает дополнение, после выбора шоу можно добавить одного или двух героев и сразу увидеть общую стоимость.' }
+  ];
+};
+const detailFaqs = (item, type) => Array.isArray(item?.faq) ? normalizeFaqs(item.faq) : defaultDetailFaqs(item, type);
 
 const breadcrumbs = items => `<nav class="breadcrumbs" aria-label="Хлебные крошки">${items.map((item, index) => index === items.length - 1 ? `<span aria-current="page">${escapeHtml(item.name)}</span>` : `<a href="${escapeAttr(item.path)}">${escapeHtml(item.name)}</a>`).join('<i aria-hidden="true">/</i>')}</nav>`;
 
@@ -512,11 +572,7 @@ const renderHome = async () => {
   const homeTicker = `<div class="ticker" aria-label="Направления"><div class="ticker__track"><div class="ticker__group">${formats}</div><div class="ticker__group" aria-hidden="true">${formats}</div></div></div>`;
   const homePulse = `<div class="home-pulse" aria-label="Условия"><div class="home-pulse__track"><div class="home-pulse__group">${conditions}</div><div class="home-pulse__group" aria-hidden="true">${conditions}</div></div></div>`;
   const homeMosaic = `<section class="photo-story"><div class="photo-story__intro"><span class="mono-tag">ЖИВЫЕ ЭМОЦИИ</span><h2>Дети не позируют.<br>Они живут внутри праздника.</h2></div><div class="photo-story__mosaic"><figure class="story-shot story-shot--wide"><div class="image-slot">${image(photoFromContent(content, 'photo5'), 'managed-photo', { alt:'Дети участвуют в праздничной программе в Кемерово' })}</div><figcaption><b>01</b> Момент, когда весь зал играет вместе</figcaption></figure><figure class="story-shot story-shot--portrait"><div class="image-slot">${image(photoFromContent(content, 'photo6'), 'managed-photo', { alt:'Аниматор проводит детский праздник' })}</div></figure><figure class="story-shot story-shot--detail"><div class="image-slot">${image(photoFromContent(content, 'photo7'), 'managed-photo', { alt:'Реквизит для детского праздника' })}</div><figcaption><b>03</b> Маленькие детали делают праздник убедительным</figcaption></figure></div></section>`;
-  const homeFaq = [
-    { question:'Куда выезжают аниматоры?', answer:'Проводим программы дома, в кафе, детских садах, школах и на других подходящих площадках в Кемерово. Условия выезда за город уточняются при заказе.' },
-    { question:'Сколько стоит детский праздник?', answer:'Стоимость зависит от выбранного аниматора или шоу, дня недели, продолжительности и состава программы. Актуальные цены указаны в карточках услуг.' },
-    { question:'Как выбрать программу по возрасту?', answer:'Сообщите возраст ребёнка, число гостей и место проведения — подскажем подходящий формат и героя.' }
-  ];
+  const homeFaq = pageFaqs(content, 'home');
   const homeHeroLines = String(content.heroTitle || 'Организация детских праздников в Кемерово').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   const homeSeo = `${seoCopySection({ eyebrow:'Детские праздники в Кемерово', title:'Аниматоры и шоу с выездом на вашу площадку', paragraphs:['Организуем детский день рождения в Кемерово: подберём аниматора или шоу по возрасту ребёнка, количеству гостей и месту проведения. Программы можно провести дома, в кафе, детском саду или школе.','На сайте указаны реальные форматы и цены. Выберите программу или оставьте заявку — уточним свободную дату и поможем собрать праздник.'], items:['аниматоры с программой и реквизитом','шоу для детей и взрослых','пенная вечеринка на подходящей площадке','выезд по Кемерово и согласованному пригороду'], links:[{ href:'/animatory/', label:'Выбрать аниматора' },{ href:'/detskiy-den-rozhdeniya/', label:'Организовать день рождения' },{ href:'/show/pennaya-vecherinka-kemerovo/', label:'Заказать пенную вечеринку' }] })}${faqSection(homeFaq)}`;
   const body = [
@@ -530,7 +586,7 @@ const renderHome = async () => {
     reviews(reviewItems),
     partyForm()
   ].join('');
-  return layout(pageMeta({ path:'/', title:'Организация детских праздников в Кемерово | ТЕМА', description:'Аниматоры и шоу на детский день рождения в Кемерово. Выезд на дом, в кафе, детский сад или школу. Программы и цены на сайте.', schemas:[serviceSchema({ name:'Организация детских праздников в Кемерово', description:'Аниматоры и шоу с выездом на площадку заказчика в Кемерово.', path:'/' }), faqSchema(homeFaq)] }), body, 'page--home');
+  return layout(pageMeta({ path:'/', title:'Организация детских праздников в Кемерово | ТЕМА', description:'Аниматоры и шоу на детский день рождения в Кемерово. Выезд на дом, в кафе, детский сад или школу. Программы и цены на сайте.', schemas:[serviceSchema({ name:'Организация детских праздников в Кемерово', description:'Аниматоры и шоу с выездом на площадку заказчика в Кемерово.', path:'/' }), ...faqSchemas(homeFaq)] }), body, 'page--home');
 };
 
 const heroCard = (hero, index) => {
@@ -550,15 +606,10 @@ const renderAnimators = async () => {
   const content = await loadContent(); const heroes = (await loadCatalog('heroes')).filter(visible);
   const heroCopy = pageHeroCopy(content, 'animatory');
   const cartSettings = heroCartSettings(content);
-  const animatorFaq = [
-    { question:'Сколько стоит аниматор в Кемерово?', answer:'Цена зависит от героя и дня недели. Стоимость буднего и выходного дня указана в каждой карточке, итоговая сумма видна до отправки заявки.' },
-    { question:'Можно ли заказать аниматора на дом?', answer:'Да. Аниматор приезжает домой, в кафе, детский сад, школу или на другую согласованную площадку в Кемерово.' },
-    { question:'Что входит в программу?', answer:'В базовую программу входят выбранный герой, игры, тематические задания и реквизит. Продолжительность указана в карточке персонажа.' },
-    { question:'Можно пригласить двух героев?', answer:'Да. Выберите основного героя, а затем добавьте второго — сайт сразу покажет состав программы и стоимость.' }
-  ];
+  const animatorFaq = pageFaqs(content, 'animatory');
   const animatorSeo = `${seoCopySection({ eyebrow:'Условия и цены', title:'Детские аниматоры с выездом по Кемерово', paragraphs:['Аниматор проведёт день рождения или другой детский праздник на вашей площадке. Подберём персонажа по возрасту ребёнка и формату компании, привезём игровой реквизит и заранее согласуем программу.','Для каждого героя указаны продолжительность и цены на будни и выходные. Вы можете заказать одного аниматора или добавить второго героя.'], items:['программа для детей 3–12 лет','выезд домой, в кафе, детский сад или школу','понятная стоимость до отправки заявки','подбор героя под возраст и интересы ребёнка'], links:[{ href:'/animatory-na-dom/', label:'Аниматор на дом' },{ href:'/detskiy-den-rozhdeniya/', label:'Аниматор на день рождения' }] })}${faqSection(animatorFaq)}`;
   const body = `${heroBlock({ tag:'Аниматоры на праздник · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'animatoryPhoto1'), photoAlt:'Детский аниматор на празднике в Кемерово', mascot:'/assets/mascot-peek-animator.png', service:'Подбор аниматора', pageClass:'afisha-hero' })}<section class="hero-catalog" id="hero-catalog"><div class="hero-catalog__heading"><h2>Выберите своего героя</h2><aside class="hero-filter" aria-label="Фильтр героев"><span class="hero-filter__label">Фильтр героев</span><div class="hero-filter__options" role="group" aria-label="Категория героя"><button class="hero-filter__button is-active" type="button" data-hero-filter="all" aria-pressed="true">Все герои</button><button class="hero-filter__button" type="button" data-hero-filter="boys" aria-pressed="false">Для мальчиков</button><button class="hero-filter__button" type="button" data-hero-filter="girls" aria-pressed="false">Для девочек</button></div></aside></div><div class="hero-program-grid">${heroes.map(heroCard).join('')}</div><p class="hero-filter__empty" data-hero-empty hidden>В этой категории герои скоро появятся.</p></section>${animatorSeo}${heroChoiceDialog(cartSettings)}${heroCartDialog(heroes, cartSettings)}${partyForm()}`;
-  return layout(pageMeta({ title:'Аниматоры в Кемерово на детский праздник — цены | ТЕМА', description:'Заказать детского аниматора в Кемерово с выездом на дом, в кафе, сад или школу. Герои, программы на день рождения и актуальные цены.', path:'/animatory/', schemas:[serviceSchema({ name:'Аниматоры на детский праздник в Кемерово', description:'Детские аниматоры с игровой программой и выездом на площадку заказчика.', path:'/animatory/', price:minimumPriceValue(heroes.map(hero => ({ price:heroPrices(hero).weekday }))) }), faqSchema(animatorFaq)] }), body, 'page--animatory');
+  return layout(pageMeta({ title:'Аниматоры в Кемерово на детский праздник — цены | ТЕМА', description:'Заказать детского аниматора в Кемерово с выездом на дом, в кафе, сад или школу. Герои, программы на день рождения и актуальные цены.', path:'/animatory/', schemas:[serviceSchema({ name:'Аниматоры на детский праздник в Кемерово', description:'Детские аниматоры с игровой программой и выездом на площадку заказчика.', path:'/animatory/', price:minimumPriceValue(heroes.map(hero => ({ price:heroPrices(hero).weekday }))) }), ...faqSchemas(animatorFaq)] }), body, 'page--animatory');
 };
 
 const showHeroChoiceDialog = () => `<dialog class="hero-choice-dialog show-hero-choice-dialog" data-show-hero-choice><button class="dialog-close" type="button" data-close-show-hero-choice aria-label="Закрыть">×</button><div class="hero-choice show-hero-choice" data-show-choice-badge="+2"><span class="mono-tag">Дополнение к шоу</span><h2 data-show-choice-title>Добавим<br>аниматоров?</h2><p data-show-choice-description>К этому шоу можно добавить любимых персонажей.</p><section class="show-hero-choice__note"><strong data-show-choice-limit>До двух аниматоров</strong><span>Вы сами увидите каждого в составе заказа и общую сумму до отправки заявки.</span></section><div class="hero-choice__actions"><button class="hero-choice__no" type="button" data-show-choice-no>Только<br>шоу</button><button class="hero-choice__yes" type="button" data-show-choice-yes>Выбрать<br>аниматоров</button></div></div></dialog>`;
@@ -579,14 +630,10 @@ const renderShow = async () => {
   const [content, catalog, heroes] = await Promise.all([loadContent(), loadCatalog('shows'), loadCatalog('heroes')]);
   const shows = catalog.filter(visible);
   const heroCopy = pageHeroCopy(content, 'show');
-  const showFaq = [
-    { question:'Какие шоу можно заказать в Кемерово?', answer:'В каталоге представлены азотное шоу, неоновая дискотека, пенная вечеринка и Разнос-шоу. Состав доступных программ и цены указаны на странице.' },
-    { question:'Шоу проводится на нашей площадке?', answer:'Да. Программы проводятся на подходящей площадке заказчика в Кемерово. До бронирования согласуем место, число гостей и технические условия.' },
-    { question:'Можно добавить аниматора?', answer:'Для подходящих шоу можно выбрать одного или двух аниматоров. Сайт покажет итоговый состав и стоимость программы.' }
-  ];
+  const showFaq = pageFaqs(content, 'show');
   const showSeo = `${seoCopySection({ eyebrow:'Шоу-программы в Кемерово', title:'Выберите шоу на день рождения или большой праздник', paragraphs:['Интерактивные шоу вовлекают гостей в программу, а не оставляют их зрителями. В карточках указаны описание, фотографии или видео и актуальная стоимость.','Самый заметный сезонный формат — пенная вечеринка для детей и взрослых. Для неё подготовлена отдельная страница с ценой и условиями проведения.'], items:['азотное шоу с эффектными опытами','неоновая дискотека с играми и музыкой','пенная вечеринка на просторной площадке','Разнос-шоу для активной компании'], links:[{ href:'/show/pennaya-vecherinka-kemerovo/', label:'Пенная вечеринка в Кемерово' },{ href:'/detskiy-den-rozhdeniya/', label:'Шоу на детский день рождения' }] })}${faqSection(showFaq)}`;
   const body = `${heroBlock({ tag:'Шоу на праздник · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'showPhoto1'), photoAlt:'Шоу-программа на праздник в Кемерово', mascot:'/assets/mascot-peek-show.png', service:'Подбор шоу', pageClass:'afisha-hero' })}<section class="show-catalog" id="show-catalog"><div class="show-offer-grid-wrap"><button class="show-catalog__mascot-cta" type="button" data-open-form data-service="Подбор шоу"><img src="/assets/mascot-game.png" alt="" aria-hidden="true"><span><small>Нужна подсказка?</small><strong>Подберём шоу</strong></span></button><div class="show-offer-grid">${shows.map(showCard).join('')}</div></div></section>${showSeo}${showCartDialog(shows, heroes)}${partyForm()}`;
-  return layout(pageMeta({ title:'Шоу на праздник в Кемерово — программы и цены | ТЕМА', description:'Заказать шоу на праздник в Кемерово: азотное шоу, неоновая дискотека, пенная вечеринка и Разнос-шоу. Описание программ и цены.', path:'/show/', schemas:[serviceSchema({ name:'Шоу на праздник в Кемерово', description:'Интерактивные шоу-программы с выездом на площадку заказчика в Кемерово.', path:'/show/', price:minimumPriceValue(shows) }), faqSchema(showFaq)] }), body, 'page--show');
+  return layout(pageMeta({ title:'Шоу на праздник в Кемерово — программы и цены | ТЕМА', description:'Заказать шоу на праздник в Кемерово: азотное шоу, неоновая дискотека, пенная вечеринка и Разнос-шоу. Описание программ и цены.', path:'/show/', schemas:[serviceSchema({ name:'Шоу на праздник в Кемерово', description:'Интерактивные шоу-программы с выездом на площадку заказчика в Кемерово.', path:'/show/', price:minimumPriceValue(shows) }), ...faqSchemas(showFaq)] }), body, 'page--show');
 };
 
 const renderBirthday = async () => {
@@ -598,38 +645,25 @@ const renderBirthday = async () => {
     birthdayFormatCard({ href:'/animatory/#hero-catalog', title:'Аниматор', description:'Любимый герой ведёт игру и вовлекает каждого ребёнка.', age:'3–12 лет', duration:'40 минут', guests:'до 15', price:minimumPriceLabel(heroes.filter(visible)), includes:'герой, игры, реквизит', variant:'yellow', photo:photoFromContent(content,'animatoryPhoto1') }),
     birthdayFormatCard({ href:'/show/#show-catalog', title:'Шоу', description:'Эффектная программа для детей, которые любят удивляться.', age:'3+ лет', duration:'30–45 минут', guests:'до 50', price:minimumPriceLabel(shows.filter(visible)), includes:'ведущий, эффекты, участие детей', variant:'pink', photo:photoFromContent(content,'showPhoto1') })
   ].join('');
-  const birthdayFaq = [
-    { question:'Где отметить детский день рождения в Кемерово?', answer:'Программу можно провести дома, в кафе, лофте, детском центре или на другой подходящей площадке. Мы приезжаем к вам с ведущим и реквизитом.' },
-    { question:'Что выбрать: аниматора или шоу?', answer:'Для небольшой компании и активной игры подойдёт аниматор. Для яркого общего номера или большой группы можно выбрать шоу. Форматы можно комбинировать.' },
-    { question:'За сколько бронировать дату?', answer:'Чем раньше вы оставите заявку, тем больше выбор героев и времени. Для выходных и популярных дат лучше бронировать заранее.' }
-  ];
+  const birthdayFaq = pageFaqs(content, 'birthday');
   const birthdaySeo = `${seoCopySection({ eyebrow:'Организация дня рождения', title:'Детский день рождения под ключ на вашей площадке', paragraphs:['Поможем собрать программу дня рождения в Кемерово: выберем аниматора или шоу, учтём возраст ребёнка, число гостей и место проведения. Стоимость основы программы видна в каталоге.','Если площадка ещё не выбрана, посмотрите варианты проведения и требования к помещению. Мы не сдаём зал, но можем провести программу на подходящей площадке заказчика.'], items:['дома — для небольшой компании','в кафе или лофте — когда нужен отдельный зал','в детском центре — если на площадке разрешены приглашённые ведущие','на улице — для сезонных форматов и пенной вечеринки'], links:[{ href:'/gde-otmetit-detskiy-den-rozhdeniya/', label:'Где отметить день рождения' },{ href:'/animatory/', label:'Выбрать аниматора' },{ href:'/show/', label:'Выбрать шоу' }] })}${faqSection(birthdayFaq)}`;
   const body = `${heroBlock({ tag:'Детский день рождения · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'photoBirthday'), photoAlt:'Детский день рождения в Кемерово', mascot:'/assets/mascot-peek-birthday.png', service:'Детский день рождения', pageClass:'afisha-hero' })}<section class="birthday-formats"><header class="birthday-formats__head"><div><span class="mono-tag">Форматы праздника</span><h2>Что добавить<br>в день рождения</h2></div><p>Выберите основу программы — подскажем, какой формат подойдёт возрасту ребёнка, гостям и площадке.</p></header><div class="birthday-format-grid">${serviceCards}</div></section>${birthdaySeo}${partyForm()}`;
-  return layout(pageMeta({ title:'Детский день рождения в Кемерово — программы и цены | ТЕМА', description:'Организация детского дня рождения в Кемерово: аниматоры и шоу с выездом домой, в кафе, детский сад или на площадку. Форматы и цены.', path:'/detskiy-den-rozhdeniya/', schemas:[serviceSchema({ name:'Организация детского дня рождения в Кемерово', description:'Аниматоры и шоу для детского дня рождения на площадке заказчика.', path:'/detskiy-den-rozhdeniya/' }), faqSchema(birthdayFaq)] }), body, 'page--birthday');
+  return layout(pageMeta({ title:'Детский день рождения в Кемерово — программы и цены | ТЕМА', description:'Организация детского дня рождения в Кемерово: аниматоры и шоу с выездом домой, в кафе, детский сад или на площадку. Форматы и цены.', path:'/detskiy-den-rozhdeniya/', schemas:[serviceSchema({ name:'Организация детского дня рождения в Кемерово', description:'Аниматоры и шоу для детского дня рождения на площадке заказчика.', path:'/detskiy-den-rozhdeniya/' }), ...faqSchemas(birthdayFaq)] }), body, 'page--birthday');
 };
 
 const renderBirthdayPlaces = async () => {
   const content = await loadContent();
-  const placeFaq = [
-    { question:'У вас есть собственная площадка?', answer:'Собственного зала нет. Мы проводим анимационные программы и шоу на площадке заказчика в Кемерово.' },
-    { question:'Можно провести праздник дома?', answer:'Да, если в комнате достаточно свободного места для игр. До заказа сообщите число детей и примерный размер помещения.' },
-    { question:'Можно пригласить аниматора в кафе или детский центр?', answer:'Да, если площадка разрешает приглашённых ведущих. Уточните у администратора правила по музыке, реквизиту и времени монтажа.' },
-    { question:'Где проводить пенную вечеринку?', answer:'Нужна просторная площадка, где разрешено использование пены. Место и технические условия обязательно согласовываются до бронирования.' }
-  ];
+  const placeFaq = pageFaqs(content, 'birthdayPlaces');
   const body = `${breadcrumbs([{ name:'Главная', path:'/' },{ name:'Детский день рождения', path:'/detskiy-den-rozhdeniya/' },{ name:'Где отметить', path:'/gde-otmetit-detskiy-den-rozhdeniya/' }])}${heroBlock({ tag:'Выбор площадки · Кемерово', lines:['ГДЕ ОТМЕТИТЬ', 'ДЕТСКИЙ ДЕНЬ РОЖДЕНИЯ', 'В КЕМЕРОВО'], intro:'Сравните варианты площадок и выберите место, куда мы приедем с аниматором или шоу.', photo:photoFromContent(content,'photoBirthday'), photoAlt:'Площадка для детского дня рождения в Кемерово', service:'Подбор программы на день рождения', pageClass:'afisha-hero' })}${seoCopySection({ eyebrow:'Площадки для праздника', title:'Дом, кафе, лофт, детский центр или улица', paragraphs:['Выбирайте площадку по возрасту детей, числу гостей и формату программы. Для активного аниматора важно свободное место, для шоу — возможность безопасно разместить реквизит, а для пенной вечеринки — отдельные технические условия.','Мы не сдаём собственный зал: аниматор или ведущий приезжает на выбранную вами площадку в Кемерово. Перед бронированием согласуем адрес, помещение и ограничения площадки.'], items:['дом — уютно и без аренды, но нужно освободить место для игр','кафе или лофт — удобно для большой компании и праздничного стола','детский центр — уточните возможность пригласить стороннего аниматора','улица — подходит для тёплого сезона и масштабных программ'], links:[{ href:'/animatory-na-dom/', label:'Заказать аниматора на дом' },{ href:'/animatory/', label:'Посмотреть аниматоров' },{ href:'/show/pennaya-vecherinka-kemerovo/', label:'Пенная вечеринка' }] })}${faqSection(placeFaq)}${partyForm()}`;
-  return layout(pageMeta({ title:'Где отметить детский день рождения в Кемерово | ТЕМА', description:'Где провести детский день рождения в Кемерово: дома, в кафе, лофте, детском центре или на улице. Аниматоры и шоу с выездом.', path:'/gde-otmetit-detskiy-den-rozhdeniya/', schemas:[serviceSchema({ name:'Программа для детского дня рождения в Кемерово', description:'Аниматоры и шоу с выездом на выбранную площадку в Кемерово.', path:'/gde-otmetit-detskiy-den-rozhdeniya/' }), breadcrumbSchema([{ name:'Главная', path:'/' },{ name:'Детский день рождения', path:'/detskiy-den-rozhdeniya/' },{ name:'Где отметить', path:'/gde-otmetit-detskiy-den-rozhdeniya/' }]), faqSchema(placeFaq)] }), body, 'page--birthday');
+  return layout(pageMeta({ title:'Где отметить детский день рождения в Кемерово | ТЕМА', description:'Где провести детский день рождения в Кемерово: дома, в кафе, лофте, детском центре или на улице. Аниматоры и шоу с выездом.', path:'/gde-otmetit-detskiy-den-rozhdeniya/', schemas:[serviceSchema({ name:'Программа для детского дня рождения в Кемерово', description:'Аниматоры и шоу с выездом на выбранную площадку в Кемерово.', path:'/gde-otmetit-detskiy-den-rozhdeniya/' }), breadcrumbSchema([{ name:'Главная', path:'/' },{ name:'Детский день рождения', path:'/detskiy-den-rozhdeniya/' },{ name:'Где отметить', path:'/gde-otmetit-detskiy-den-rozhdeniya/' }]), ...faqSchemas(placeFaq)] }), body, 'page--birthday');
 };
 
 const renderHomeAnimator = async () => {
   const content = await loadContent();
   const heroCopy = pageHeroCopy(content, 'homeAnimator');
-  const homeAnimatorFaq = [
-    { question:'Сколько места нужно дома?', answer:'Для небольшой программы достаточно освободить игровую зону от хрупких предметов и лишней мебели. Точные требования зависят от числа детей.' },
-    { question:'Что привозит аниматор?', answer:'Аниматор приезжает в костюме с игровой программой и необходимым реквизитом. Состав конкретной программы согласуем заранее.' },
-    { question:'Есть ли доплата за выезд?', answer:'Выезд по Кемерово входит в согласованные условия заказа. Стоимость поездки в пригород зависит от адреса и подтверждается до бронирования.' }
-  ];
+  const homeAnimatorFaq = pageFaqs(content, 'homeAnimator');
   const body = `${heroBlock({ tag:'Аниматор на дом · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'animatoryPhoto3'), photoAlt:'Аниматор с выездом на дом в Кемерово', mascot:'/assets/mascot-peek-animator.png', service:'Аниматор на дом', pageClass:'afisha-hero' })}<section class="landing-intro"><span class="mono-tag">Выезд на вашу площадку</span><h2>Герой приедет<br>туда, где<br>удобно вам</h2><p>Привезём реквизит и игровую программу домой, в кафе, детский сад или школу. До заказа уточним адрес, возраст ребёнка, число гостей и свободную дату.</p></section>${seoCopySection({ eyebrow:'Как проходит выезд', title:'Аниматор на день рождения ребёнка дома', paragraphs:['Домашний праздник подходит небольшой компании: ребёнок находится в знакомой обстановке, а вам не нужно арендовать отдельный зал. Подготовьте свободное место для активных игр и уберите хрупкие предметы.','Стоимость зависит от выбранного героя, дня недели и состава программы. Цены указаны в каталоге аниматоров, а итог согласовывается до выезда.'], items:['выберите героя и удобную дату','сообщите возраст и количество детей','подготовьте свободную игровую зону','встретьте аниматора за несколько минут до начала'], links:[{ href:'/animatory/', label:'Герои и цены' },{ href:'/detskiy-den-rozhdeniya/', label:'День рождения под ключ' }] })}${faqSection(homeAnimatorFaq)}${partyForm()}`;
-  return layout(pageMeta({ title:'Аниматор на дом в Кемерово — выезд и цены | ТЕМА', description:'Заказать аниматора на дом в Кемерово: любимый герой, игры и реквизит. Выезд домой, в кафе, детский сад или школу, цены на сайте.', path:'/animatory-na-dom/', schemas:[serviceSchema({ name:'Аниматор на дом в Кемерово', description:'Детский аниматор с игровой программой и реквизитом на площадке заказчика.', path:'/animatory-na-dom/' }), faqSchema(homeAnimatorFaq)] }), body, 'page--animatory');
+  return layout(pageMeta({ title:'Аниматор на дом в Кемерово — выезд и цены | ТЕМА', description:'Заказать аниматора на дом в Кемерово: любимый герой, игры и реквизит. Выезд домой, в кафе, детский сад или школу, цены на сайте.', path:'/animatory-na-dom/', schemas:[serviceSchema({ name:'Аниматор на дом в Кемерово', description:'Детский аниматор с игровой программой и реквизитом на площадке заказчика.', path:'/animatory-na-dom/' }), ...faqSchemas(homeAnimatorFaq)] }), body, 'page--animatory');
 };
 
 const renderAfisha = async () => {
@@ -648,20 +682,7 @@ const renderServiceDetail = ({ item, type, showCart = '' }) => {
   const action = isHero
     ? `<button class="outline-button" data-open-form data-service="${escapeAttr(label)}" data-order-message="Хочу заказать ${escapeAttr(label)}.">ЗАКАЗАТЬ</button>`
     : `<button class="outline-button" type="button" data-select-show data-show-id="${escapeAttr(item.id)}">ВЫБРАТЬ ШОУ</button>`;
-  const detailFaq = isHero ? [
-    { question:`Сколько стоит аниматор ${name}?`, answer:`Стоимость программы — от ${formatPrice(item.price)}. Продолжительность — ${item.duration || 40} минут. Итог зависит от дня недели и выбранных дополнений.` },
-    { question:`Куда может приехать ${name}?`, answer:'Аниматор выезжает домой, в кафе, детский сад, школу или на другую согласованную площадку в Кемерово.' },
-    { question:'Что подготовить к приезду?', answer:'Освободите место для игр, предупредите площадку о приглашённом ведущем и сообщите нам возраст и количество детей.' }
-  ] : isFoam ? [
-    { question:'Сколько стоит пенная вечеринка в Кемерово?', answer:`Стоимость программы — от ${formatPrice(item.price)}. Итоговые условия зависят от площадки, продолжительности и адреса проведения.` },
-    { question:'Подходит ли пенная вечеринка для детей?', answer:'Да, формат подходит детям от 3 лет при соблюдении правил площадки и под присмотром взрослых.' },
-    { question:'Где можно провести пенную вечеринку?', answer:'Нужна просторная площадка, где разрешено использование пены. Возможность проведения в помещении или на улице согласовывается заранее.' },
-    { question:'Что взять с собой?', answer:'Рекомендуем сменную одежду, нескользящую обувь или обувь по правилам площадки и полотенца. Точный список сообщим после согласования места.' }
-  ] : [
-    { question:`Сколько стоит ${name}?`, answer:`Стоимость программы — от ${formatPrice(item.price)}. Итог зависит от площадки и выбранных дополнений.` },
-    { question:'Где проводится шоу?', answer:'Ведущий приезжает на согласованную площадку в Кемерово. До бронирования уточняются число гостей и технические условия.' },
-    { question:'Можно добавить аниматора?', answer:'Если программа поддерживает дополнение, после выбора шоу можно добавить одного или двух героев и сразу увидеть общую стоимость.' }
-  ];
+  const detailFaq = detailFaqs(item, type);
   const detailSeo = seoCopySection({
     eyebrow:isHero ? 'Программа аниматора' : 'Условия программы',
     title:isFoam ? 'Пенная вечеринка для детей и взрослых в Кемерово' : `${label} на праздник в Кемерово`,
@@ -675,7 +696,7 @@ const renderServiceDetail = ({ item, type, showCart = '' }) => {
   });
   const crumbItems = [{ name:'Главная', path:'/' },{ name:isHero ? 'Аниматоры' : 'Шоу', path:catalogPath },{ name:label, path }];
   const body = `${breadcrumbs(crumbItems)}<section class="event-detail seo-service-detail${isHero ? '' : ' seo-service-page--show'}"><a class="event-detail__back" href="${catalogPath}">← НАЗАД В КАТАЛОГ</a><div class="event-detail__layout"><div class="event-detail__media">${image(item, '', { alt:`${label} в Кемерово`, loading:'eager' })}</div><article class="event-detail__copy"><span class="mono-tag">${isHero ? 'Аниматор на праздник' : 'Шоу на праздник'} · Кемерово</span><h1>${escapeHtml(label)} в Кемерово</h1><p class="seo-service-detail__lead">${escapeHtml(item.description)}</p><p>${isHero ? `${escapeHtml(item.duration || 40)} минут игры, тематический реквизит и герой, который вовлечёт детей в приключение.` : 'Программа на вашей площадке: ведущий, реквизит и участие гостей.'}</p>${programMediaGallery(item)}<p><strong>${isHero ? `${escapeHtml(item.duration || 40)} минут · ` : ''}от ${formatPrice(item.price)}</strong></p>${action}</article></div></section>${detailSeo}${faqSection(detailFaq)}${showCart}${partyForm()}`;
-  return layout(pageMeta({ title:item.seoTitle || `${label} в Кемерово | ТЕМА`, description:item.seoDescription || item.description, path, image:item.image || defaultSocialImage, schemas:[serviceSchema({ name:`${label} в Кемерово`, description:item.seoDescription || item.description, path, price:item.price }), breadcrumbSchema(crumbItems), faqSchema(detailFaq)] }), body, isHero ? 'page--animatory' : 'page--show');
+  return layout(pageMeta({ title:item.seoTitle || `${label} в Кемерово | ТЕМА`, description:item.seoDescription || item.description, path, image:item.image || defaultSocialImage, schemas:[serviceSchema({ name:`${label} в Кемерово`, description:item.seoDescription || item.description, path, price:item.price }), breadcrumbSchema(crumbItems), ...faqSchemas(detailFaq)] }), body, isHero ? 'page--animatory' : 'page--show');
 };
 
 const renderEventDetail = event => {
@@ -684,12 +705,14 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js" defer></script></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260829-faq-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260829-faq-v1" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
-const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
+const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'faq' ? 'is-active' : ''}" href="/admin/faq">FAQ всех страниц</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
 const selectField = (label, name, value, values) => `<label class="admin-field">${escapeHtml(label)}<select name="${escapeAttr(name)}">${values.map(([itemValue, itemLabel]) => `<option value="${escapeAttr(itemValue)}" ${itemValue === value ? 'selected' : ''}>${escapeHtml(itemLabel)}</option>`).join('')}</select></label>`;
 const visibilityField = value => `<label class="admin-check"><input type="checkbox" name="published" ${value !== false ? 'checked' : ''}> Показывать на сайте</label>`;
+const faqEditorRow = (prefix, index, item = {}) => `<fieldset class="admin-faq-row" data-faq-row><legend>Вопрос <span data-faq-number>${Number(index) + 1 || ''}</span></legend><div class="admin-faq-row__fields">${formField('Вопрос', `${prefix}-question-${index}`, item.question || '', { wide:true, required:true })}${formField('Ответ', `${prefix}-answer-${index}`, item.answer || '', { textarea:true, wide:true, required:true })}</div><button class="admin-faq-remove" type="button" data-faq-remove>Убрать вопрос</button></fieldset>`;
+const faqEditor = (prefix, items) => `<div class="admin-faq-editor" data-faq-editor><div class="admin-faq-list" data-faq-list data-faq-prefix="${escapeAttr(prefix)}" data-faq-next-index="${items.length}">${items.map((item, index) => faqEditorRow(prefix, index, item)).join('')}</div><template data-faq-template>${faqEditorRow(prefix, '__INDEX__')}</template><button class="admin-faq-add" type="button" data-faq-add>+ Добавить вопрос</button></div>`;
 const mediaEditor = (key, item, { poster = false } = {}) => `<div class="photo-editor" data-fit-preview="${escapeAttr(key)}"><div class="admin-photo-preview ${poster && item.imageFit === 'poster' ? 'is-poster' : ''}">${item.image ? `<img data-crop-preview="${escapeAttr(key)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>'}</div><label class="upload-field">Загрузить фотографию<input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(key)}"><span>JPG, PNG, WEBP или GIF → WebP · до 12 МБ</span></label><div class="crop-grid">${formField('Горизонт', 'imagePositionX', number(item.imagePositionX), { type:'range', step:'1' }).replace(`name=\"imagePositionX\"`, `name=\"imagePositionX\" data-crop-x=\"${escapeAttr(key)}\"`)}${formField('Вертикаль', 'imagePositionY', number(item.imagePositionY), { type:'range', step:'1' }).replace(`name=\"imagePositionY\"`, `name=\"imagePositionY\" data-crop-y=\"${escapeAttr(key)}\"`)}${formField('Масштаб', 'imageScale', number(item.imageScale, 100), { type:'range', step:'1' }).replace(`name=\"imageScale\"`, `name=\"imageScale\" data-crop-scale=\"${escapeAttr(key)}\"`)}<output data-scale-output="${escapeAttr(key)}">${number(item.imageScale, 100)}%</output></div>${poster ? selectField('Как показывать афишу', 'imageFit', item.imageFit || 'cover', [['cover','Заполнить карточку (кадрирование)'],['poster','Целая афиша без обрезки']]).replace(`name=\"imageFit\"`, `name=\"imageFit\" data-image-fit=\"${escapeAttr(key)}\"`) : ''}</div>`;
 
 const galleryCropControls = (key, index, item) => {
@@ -804,6 +827,23 @@ const renderAdminPage = async (key, query = {}) => {
 
 const renderAdminContent = query => renderAdminPage('home', query);
 const renderAdminBirthday = query => renderAdminPage('birthday', query);
+const faqPageConfig = [
+  { key:'home', title:'Главная', description:'FAQ под блоком с полезной информацией.', publicUrl:'/' },
+  { key:'animatory', title:'Аниматоры', description:'FAQ на странице каталога аниматоров.', publicUrl:'/animatory/' },
+  { key:'homeAnimator', title:'Аниматор на дом', description:'FAQ на странице выезда аниматора.', publicUrl:'/animatory-na-dom/' },
+  { key:'show', title:'Шоу', description:'FAQ на странице каталога шоу.', publicUrl:'/show/' },
+  { key:'birthday', title:'День рождения', description:'FAQ на странице форматов праздника.', publicUrl:'/detskiy-den-rozhdeniya/' },
+  { key:'birthdayPlaces', title:'Где отметить день рождения', description:'FAQ на странице выбора площадки.', publicUrl:'/gde-otmetit-detskiy-den-rozhdeniya/' }
+];
+const renderAdminFaq = async (query = {}) => {
+  const content = await loadContent();
+  const sections = faqPageConfig.map((config, index) => {
+    const items = pageFaqs(content, config.key);
+    return `<details class="admin-editor-section admin-faq-section" ${index === 0 ? 'open' : ''}><summary><span><strong>${escapeHtml(config.title)}</strong><small>${escapeHtml(config.description)} · ${items.length} ${items.length === 1 ? 'вопрос' : items.length < 5 ? 'вопроса' : 'вопросов'}</small></span><b aria-hidden="true">⌄</b></summary><div class="admin-editor-section__body"><div class="admin-faq-section__top"><p>Вопросы и ответы показываются посетителям и используются в разметке FAQ для поиска.</p>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</div>${faqEditor(`faq-${config.key}`, items)}</div></details>`;
+  }).join('');
+  const body = `<header class="admin-page-head"><div><span>SEO и контент</span><h1>FAQ всех страниц</h1><p>Редактируйте вопросы и ответы без кода. Удаление вопроса уберёт его и с сайта, и из Schema.org.</p></div></header>${adminSaveNotice(query)}<form class="admin-edit-form" method="post" action="/admin/faq" data-admin-form>${sections}${adminSaveBar({ submitLabel:'Сохранить FAQ' })}</form>`;
+  return adminLayout('FAQ всех страниц', body, 'faq');
+};
 
 const renderAdminHeroCart = async (query = {}) => {
   const settings = heroCartSettings(await loadContent());
@@ -932,8 +972,9 @@ const catalogForm = (type, item = {}) => {
       + formField('Описание для поиска', 'seoDescription', item.seoDescription || '', { textarea:true, wide:true });
   }
 
+  const faq = !event ? catalogEditorSection('Вопросы и ответы', 'FAQ этой конкретной программы. Они показываются на её странице и попадают в разметку для поиска.', faqEditor('faq', detailFaqs(item, type)), false) : '';
   const status = item.published !== false ? 'Карточка видна посетителям.' : 'Карточка скрыта: её видите только вы в админке.';
-  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${seo ? catalogEditorSection('Поисковая выдача', 'Необязательно. Если оставить пустым, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
+  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${faq}${seo ? catalogEditorSection('Поисковая выдача', 'Необязательно. Если оставить пустым, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
 };
 
 const catalogItemCard = (type, item) => {
@@ -999,6 +1040,16 @@ const updateGallery = (source, body, files = []) => {
   return gallery;
 };
 
+const faqFromBody = (body, prefix = 'faq') => {
+  const questionSuffix = '-question-';
+  const indexes = Object.keys(body)
+    .filter(key => key.startsWith(prefix + questionSuffix))
+    .map(key => key.slice((prefix + questionSuffix).length))
+    .filter(index => /^\d+$/.test(index))
+    .sort((first, second) => Number(first) - Number(second));
+  return normalizeFaqs(indexes.map(index => ({ question:body[`${prefix}-question-${index}`], answer:body[`${prefix}-answer-${index}`] })));
+};
+
 const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = []) => {
   const name = String(body.name || '').trim();
   return loadCatalog(type).then(items => {
@@ -1018,7 +1069,8 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       ...(supportsGallery ? {
         gallery,
         galleryTitle: String(body.galleryTitle ?? source.galleryTitle ?? 'Материалы программы').trim().slice(0, 120) || 'Материалы программы'
-      } : {})
+      } : {}),
+      ...(type !== 'events' ? { faq:faqFromBody(body) } : {})
     };
     if (type === 'events') return {
       ...base,
@@ -1191,6 +1243,7 @@ app.post('/admin/login', (req, res) => {
 app.post('/admin/logout', (_req, res) => { res.setHeader('Set-Cookie', 'tema_admin=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'); res.redirect('/admin/login'); });
 app.get('/admin/', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminContent(req.query)); } catch (error) { next(error); } });
 app.get('/admin/birthday', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminBirthday(req.query)); } catch (error) { next(error); } });
+app.get('/admin/faq', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminFaq(req.query)); } catch (error) { next(error); } });
 app.get('/admin/page/:page', requireAdmin, async (req, res, next) => {
   const pageKey = { animatory:'animatory', 'home-animator':'homeAnimator', show:'show' }[req.params.page];
   if (!pageKey) return res.status(404).send('Страница админки не найдена');
@@ -1243,6 +1296,14 @@ app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) =>
     const redirectTo = Object.values(adminPageConfig).some(config => config.adminUrl === requestedRedirect) ? requestedRedirect : '/admin/';
     res.redirect(`${redirectTo}?saved=1`);
   } catch (error) { await Promise.all(allUploaded.map(deleteUploaded)); next(error); }
+});
+app.post('/admin/faq', requireAdmin, async (req, res, next) => {
+  try {
+    const previous = await loadContent();
+    const faqs = Object.fromEntries(faqPageConfig.map(config => [config.key, faqFromBody(req.body, `faq-${config.key}`)]));
+    await writeJson(files.content, { ...previous, faqs:{ ...(previous.faqs || {}), ...faqs } });
+    res.redirect('/admin/faq?saved=1');
+  } catch (error) { next(error); }
 });
 app.post('/admin/cart', requireAdmin, async (req, res, next) => {
   try {
