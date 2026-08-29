@@ -6,6 +6,123 @@
   font-display: swap;
 }
 
+/* SEO: полезный текст, внутренняя перелинковка и FAQ */
+.seo-copy,
+.seo-faq {
+  padding: clamp(64px, 8vw, 120px) max(5vw, 24px);
+  background: #fff9fc;
+  color: var(--ink);
+  border-top: 1px solid rgba(18, 19, 17, .16);
+}
+.seo-copy {
+  display: grid;
+  grid-template-columns: minmax(240px, .8fr) minmax(300px, 1.2fr);
+  gap: clamp(36px, 8vw, 120px);
+}
+.seo-copy header,
+.seo-faq header {
+  max-width: 780px;
+}
+.seo-copy h2,
+.seo-faq h2 {
+  margin: 18px 0 0;
+  font-size: clamp(38px, 5vw, 78px);
+  line-height: .95;
+  letter-spacing: -.055em;
+  text-wrap: balance;
+}
+.seo-copy__body {
+  max-width: 760px;
+  font-size: clamp(16px, 1.35vw, 20px);
+  line-height: 1.7;
+}
+.seo-copy__body p {
+  margin: 0 0 22px;
+}
+.seo-copy__body ul {
+  margin: 28px 0;
+  padding-left: 1.25em;
+}
+.seo-copy__body li + li {
+  margin-top: 9px;
+}
+.seo-copy__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 32px;
+}
+.seo-copy__links a {
+  padding: 12px 18px;
+  border: 1px solid currentColor;
+  border-radius: var(--pill);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.seo-copy__links a:hover {
+  background: var(--brand-pink-ui);
+  border-color: var(--brand-pink-ui);
+  color: var(--cream);
+}
+.seo-faq {
+  background: #f7bfd4;
+}
+.seo-faq__list {
+  max-width: 980px;
+  margin-top: 42px;
+  border-top: 1px solid rgba(18, 19, 17, .35);
+}
+.seo-faq details {
+  border-bottom: 1px solid rgba(18, 19, 17, .35);
+}
+.seo-faq summary {
+  cursor: pointer;
+  padding: 24px 44px 24px 0;
+  font-size: clamp(18px, 2vw, 26px);
+  font-weight: 800;
+}
+.seo-faq details p {
+  max-width: 760px;
+  margin: 0;
+  padding: 0 0 28px;
+  font-size: 17px;
+  line-height: 1.7;
+}
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 3vw;
+  background: #fff9fc;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.breadcrumbs a {
+  color: var(--brand-berry);
+}
+.breadcrumbs i {
+  font-style: normal;
+  opacity: .45;
+}
+img[loading="lazy"] {
+  content-visibility: auto;
+}
+@media (max-width: 760px) {
+  .seo-copy {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .seo-copy,
+  .seo-faq {
+    padding: 56px 20px;
+  }
+  .seo-faq__list {
+    margin-top: 28px;
+  }
+}
+
 :root {
   /* Brand core sampled from the unicorn logo, with accessible UI shades. */
   --brand-pink: #f91a7a;

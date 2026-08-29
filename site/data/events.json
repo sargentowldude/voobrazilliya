@@ -14,8 +14,8 @@
     "published": true,
     "updatedAt": "2026-08-20T07:53:45.630Z",
     "createdAt": "2026-08-18T17:45:05.795Z",
-    "buttonLabel": "Открыть афишу",
-    "buttonUrl": "",
+    "buttonLabel": "Посмотреть аниматоров",
+    "buttonUrl": "/animatory-na-dom/",
     "imageFit": "poster"
   },
   {
@@ -30,7 +30,7 @@
     "imagePositionX": 50,
     "imagePositionY": 46,
     "imageScale": 100,
-    "published": true,
+    "published": false,
     "updatedAt": "2026-08-18T18:07:07.268Z",
     "createdAt": "2026-08-18T17:43:51.696Z",
     "buttonLabel": "Открыть афишу",
@@ -51,8 +51,8 @@
     "date": "2026-06-01",
     "category": "Событие",
     "description": "Пенные вечеринки на улице или в помещении у вас!",
-    "buttonLabel": "Открыть афишу",
-    "buttonUrl": "",
+    "buttonLabel": "Заказать пенную вечеринку",
+    "buttonUrl": "/show/pennaya-vecherinka-kemerovo/",
     "imageFit": "poster",
     "accent": "yellow"
   }
