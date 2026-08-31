@@ -159,6 +159,23 @@ document.querySelectorAll("[data-reviews-carousel]").forEach(carousel => {
   const cards = [...carousel.querySelectorAll("[data-review-card]")];
   if (!viewport || !previous || !next || !cards.length) return;
 
+  cards.forEach(card => {
+    const quote = card.querySelector("[data-review-quote]");
+    const more = card.querySelector("[data-review-more]");
+    if (!quote || !more) return;
+    const updateMoreVisibility = () => {
+      if (card.classList.contains("is-review-expanded")) return;
+      more.hidden = quote.scrollHeight <= quote.clientHeight + 1;
+    };
+    more.addEventListener("click", () => {
+      const expanded = card.classList.toggle("is-review-expanded");
+      more.setAttribute("aria-expanded", String(expanded));
+      more.textContent = expanded ? "Свернуть" : "Читать полностью";
+    });
+    requestAnimationFrame(updateMoreVisibility);
+    document.fonts?.ready.then(updateMoreVisibility);
+  });
+
   const step = () => {
     const gap = Number.parseFloat(getComputedStyle(carousel.querySelector(".reviews__track")).columnGap) || 0;
     return cards[0].getBoundingClientRect().width + gap;

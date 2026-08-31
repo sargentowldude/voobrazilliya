@@ -4156,6 +4156,7 @@ footer small {
   grid-auto-flow: column;
   grid-auto-columns: minmax(320px, calc((100% - 44px) / 3));
   gap: 22px;
+  align-items: start;
   padding: 8px 7px 18px 0;
 }
 .review-card {
@@ -8520,8 +8521,40 @@ footer small {
 .review-card:first-child blockquote {
   max-width: none;
   margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
   font-size: clamp(17px, 1.45vw, 21px);
   line-height: 1.58;
+}
+.review-card.is-review-expanded blockquote,
+.review-card.is-review-expanded:first-child blockquote {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+.review-card__more {
+  width: fit-content;
+  margin: 12px 0 0;
+  padding: 0 0 3px;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: transparent;
+  color: var(--brand-berry);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.review-card__more:hover {
+  color: var(--brand-pink-ui);
+}
+.review-card__more:focus-visible {
+  outline: 2px solid var(--brand-pink-ui);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 .review-card__source {
   width: fit-content;
@@ -8686,4 +8719,169 @@ footer small {
     margin: -16px -16px 14px;
   }
   .afisha-catalog--large .poster-card__image--poster { height: auto; }
+}
+
+/* Компактные отзывы сразу после каталога аниматоров. */
+.page--animatory .hero-catalog {
+  padding-bottom: 54px;
+}
+.reviews--compact {
+  padding: 48px 3vw 56px;
+  border-top: 0;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(249, 26, 122, .12), transparent 25%),
+    linear-gradient(180deg, #fff9fc 0%, #f6dce6 100%);
+}
+.reviews--compact .reviews__heading {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, .65fr) auto;
+  gap: 24px;
+  margin-bottom: 22px;
+  align-items: end;
+}
+.reviews--compact .reviews__heading h2 {
+  margin-top: 10px;
+  font-size: clamp(38px, 4.2vw, 62px);
+  line-height: .92;
+}
+.reviews--compact .reviews__heading > p {
+  max-width: 29ch;
+  padding-bottom: 3px;
+  font-size: 13px;
+}
+.reviews--compact .reviews__controls {
+  gap: 8px;
+  padding-bottom: 0;
+}
+.reviews--compact .reviews__controls button {
+  width: 44px;
+  height: 44px;
+  font-size: 19px;
+}
+.reviews--compact .reviews__viewport {
+  max-width: 1380px;
+}
+.reviews--compact .reviews__track {
+  grid-auto-columns: minmax(260px, calc((100% - 48px) / 4));
+  gap: 16px;
+  padding-bottom: 12px;
+}
+.reviews--compact .review-card,
+.reviews--compact .review-card--featured,
+.reviews--compact .review-card:first-child {
+  min-height: 250px;
+  padding: 19px;
+  border-radius: 14px;
+  box-shadow: 5px 5px 0 rgba(37, 36, 42, .09);
+}
+.reviews--compact .review-card__header {
+  gap: 10px;
+}
+.reviews--compact .review-card__avatar {
+  width: 40px;
+  font-size: 17px;
+}
+.reviews--compact .review-card__header h3 {
+  font-size: 16px;
+}
+.reviews--compact .review-card__header time {
+  font-size: 10px;
+}
+.reviews--compact .review-card__rating {
+  margin: 16px 0 12px;
+}
+.reviews--compact .review-card__rating span {
+  font-size: 15px;
+}
+.reviews--compact .review-card blockquote,
+.reviews--compact .review-card:first-child blockquote {
+  -webkit-line-clamp: 5;
+  font-size: 14px;
+  line-height: 1.48;
+}
+.reviews--compact .review-card.is-review-expanded blockquote,
+.reviews--compact .review-card.is-review-expanded:first-child blockquote {
+  -webkit-line-clamp: unset;
+}
+.reviews--compact .review-card__more {
+  margin-top: 9px;
+  font-size: 8px;
+}
+.reviews--compact .review-card__photos {
+  margin-top: 14px;
+}
+.reviews--compact .review-card__photos button {
+  width: 58px;
+  height: 46px;
+  border-radius: 8px;
+}
+.reviews--compact .review-card__source {
+  padding-top: 14px;
+  font-size: 8px;
+}
+.reviews--compact .review-card__source img {
+  width: 20px;
+  height: 20px;
+}
+.reviews--compact .review-card__source strong {
+  font-size: 9px;
+}
+.reviews--compact .reviews__hint {
+  margin-top: 8px;
+  font-size: 8px;
+}
+
+@media (max-width: 980px) {
+  .reviews--compact .reviews__heading {
+    grid-template-columns: 1fr auto;
+  }
+  .reviews--compact .reviews__heading > p {
+    grid-column: 1;
+  }
+  .reviews--compact .reviews__track {
+    grid-auto-columns: minmax(260px, calc((100% - 32px) / 3));
+  }
+}
+
+@media (max-width: 650px) {
+  .page--animatory .hero-catalog {
+    padding-bottom: 38px;
+  }
+  .reviews--compact {
+    padding: 38px 18px 44px;
+  }
+  .reviews--compact .reviews__heading {
+    grid-template-columns: 1fr auto;
+    gap: 12px 16px;
+    margin-bottom: 22px;
+  }
+  .reviews--compact .reviews__heading > div:first-child {
+    grid-column: 1;
+  }
+  .reviews--compact .reviews__heading h2 {
+    font-size: clamp(34px, 10.5vw, 44px);
+  }
+  .reviews--compact .reviews__heading > p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 12px;
+  }
+  .reviews--compact .reviews__controls {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+  }
+  .reviews--compact .reviews__controls button {
+    width: 40px;
+    height: 40px;
+  }
+  .reviews--compact .reviews__track {
+    grid-auto-columns: min(82vw, 300px);
+    gap: 12px;
+  }
+  .reviews--compact .review-card,
+  .reviews--compact .review-card--featured,
+  .reviews--compact .review-card:first-child {
+    min-height: 232px;
+    padding: 17px;
+  }
 }
