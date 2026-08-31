@@ -5975,6 +5975,92 @@ footer small {
   .events--home .poster-card { min-height: 0; }
 }
 
+/* Аниматоры: честное знакомство с молодой командой. */
+.animator-intro-note {
+  position: relative;
+  isolation: isolate;
+  width: calc(100% - 6vw);
+  max-width: 1600px;
+  margin: 60px auto 0;
+  padding: clamp(34px, 4vw, 60px);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(280px, .85fr) minmax(340px, 1.15fr);
+  gap: clamp(36px, 7vw, 112px);
+  background:
+    radial-gradient(circle at 3% 2%, rgba(255, 255, 255, .95), transparent 29%),
+    linear-gradient(135deg, #fff9fc 0%, #f6d5e2 100%);
+  color: var(--ink);
+  border-radius: 28px;
+  box-shadow: 14px 16px 0 rgba(18, 19, 17, .16);
+}
+.animator-intro-note::after {
+  content: "✦";
+  position: absolute;
+  z-index: -1;
+  right: clamp(18px, 3vw, 54px);
+  top: clamp(12px, 2vw, 34px);
+  color: rgba(194, 11, 91, .13);
+  font-size: clamp(96px, 13vw, 210px);
+  line-height: 1;
+  transform: rotate(9deg);
+}
+.animator-intro-note__lead .mono-tag {
+  background: var(--brand-berry);
+  color: var(--cream);
+}
+.animator-intro-note__lead h2 {
+  max-width: 720px;
+  margin: 24px 0 0;
+  font-size: clamp(38px, 4.4vw, 68px);
+  font-weight: 800;
+  line-height: .94;
+  letter-spacing: -.06em;
+  text-wrap: balance;
+}
+.animator-intro-note__lead em {
+  display: block;
+  margin-top: .22em;
+  color: var(--brand-pink-ui);
+  font-style: normal;
+}
+.animator-intro-note__copy {
+  align-self: center;
+  max-width: 740px;
+}
+.animator-intro-note__copy p {
+  margin: 0;
+  font-size: clamp(16px, 1.3vw, 20px);
+  line-height: 1.65;
+}
+.animator-intro-note__copy p + p {
+  margin-top: 18px;
+}
+.animator-intro-note__copy ul {
+  margin: 30px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  list-style: none;
+}
+.animator-intro-note__copy li {
+  padding: 10px 15px;
+  background: rgba(132, 21, 67, .1);
+  border: 1px solid rgba(132, 21, 67, .24);
+  border-radius: var(--pill);
+  color: var(--brand-berry);
+  font-size: 12px;
+  font-weight: 800;
+}
+.animator-intro-note__signature {
+  display: block;
+  margin-top: 24px;
+  color: rgba(18, 19, 17, .68);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 /* Аниматоры: компактная витрина, где все важное видно сразу. */
 .hero-catalog {
   max-width: 1680px;
@@ -6064,6 +6150,36 @@ footer small {
   .hero-program-card__media { height: clamp(215px, 28vw, 300px); }
 }
 @media (max-width: 600px) {
+  .animator-intro-note {
+    width: 100%;
+    margin-top: 44px;
+    padding: 34px 18px 36px;
+    grid-template-columns: 1fr;
+    gap: 22px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .animator-intro-note::after {
+    right: 8px;
+    top: 18px;
+    font-size: 104px;
+  }
+  .animator-intro-note__lead h2 {
+    margin-top: 18px;
+    font-size: clamp(34px, 10.3vw, 46px);
+  }
+  .animator-intro-note__copy p {
+    font-size: 15px;
+    line-height: 1.62;
+  }
+  .animator-intro-note__copy ul {
+    margin-top: 24px;
+    gap: 7px;
+  }
+  .animator-intro-note__copy li {
+    padding: 9px 12px;
+    font-size: 10px;
+  }
   .hero-catalog { margin-top: 34px; padding: 0 18px 74px; }
   .hero-program-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .hero-program-card__media { height: auto; aspect-ratio: 4 / 5; }
