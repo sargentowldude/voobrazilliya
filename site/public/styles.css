@@ -8523,6 +8523,73 @@ footer small {
   font-size: clamp(17px, 1.45vw, 21px);
   line-height: 1.58;
 }
+.review-card__source {
+  width: fit-content;
+  margin-top: auto;
+  padding-top: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(18, 19, 17, .68);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.review-card__source img {
+  width: 24px;
+  height: 24px;
+  display: block;
+  border-radius: 7px;
+}
+.review-card__source strong {
+  color: var(--ink);
+  font-size: 11px;
+}
+.review-card__source:focus-visible {
+  outline: 2px solid var(--brand-pink-ui);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+.review-card__photos {
+  max-width: 100%;
+  margin-top: 20px;
+  padding-bottom: 3px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(132, 21, 67, .28) transparent;
+}
+.review-card__photos button {
+  width: 74px;
+  height: 58px;
+  padding: 0;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(18, 19, 17, .28);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .5);
+  cursor: zoom-in;
+  transition: transform .2s var(--ease), border-color .2s ease;
+}
+.review-card__photos button:hover {
+  z-index: 1;
+  border-color: var(--brand-pink-ui);
+  transform: translateY(-2px);
+}
+.review-card__photos button:focus-visible {
+  outline: 2px solid var(--brand-pink-ui);
+  outline-offset: 2px;
+}
+.review-card__photos img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
 
 @media (max-width: 980px) {
   .reviews__heading {
@@ -8539,6 +8606,13 @@ footer small {
   .review-card,
   .review-card--featured,
   .review-card:first-child { min-height: 310px; padding: 21px; }
+  .review-card__source {
+    padding-top: 18px;
+    font-size: 9px;
+  }
+  .review-card__source img { width: 22px; height: 22px; }
+  .review-card__photos { margin-top: 16px; }
+  .review-card__photos button { width: 68px; height: 54px; }
 }
 
 /* Главная: контрастный город и центрирование неполного ряда направлений. */

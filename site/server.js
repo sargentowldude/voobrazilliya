@@ -347,6 +347,14 @@ const recordRateLimitAttempt = (bucketName, req, limit) => {
 const clearRateLimitAttempts = (bucketName, req) => rateLimitAttempts.delete(`${bucketName}:${clientAddress(req)}`);
 
 const absoluteUrl = value => new URL(value || '/', `${siteUrl}/`).href;
+const externalHttpUrl = value => {
+  try {
+    const url = new URL(String(value || '').trim());
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+};
 const organizationSchema = () => ({
   '@type':'Organization',
   '@id':`${siteUrl}/#organization`,
@@ -443,7 +451,7 @@ const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox 
 
 const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
 const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-v2" sizes="16x16 32x32 48x48 64x64 128x128 256x256"><link rel="icon" href="/favicon-32x32.png?v=20260828-mask-v2" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png?v=20260828-mask-v2" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260828-mask-v2" sizes="180x180"><link rel="manifest" href="/site.webmanifest?v=20260828-pink-brand-v1"><meta name="theme-color" content="#121311">';
-const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=20260831-animator-intro-v1"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260828-reviews-carousel-v1" defer></script></body></html>`;
+const layout = (meta, body, pageClass = '') => `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=20260831-review-photos-v1"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="/#zayavka">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260828-reviews-carousel-v1" defer></script></body></html>`;
 
 const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
 const cookiesSection = () => {
@@ -552,7 +560,11 @@ const reviews = source => {
     const author = String(item.author || 'Гость').trim();
     const initial = Array.from(author)[0]?.toUpperCase() || '★';
     const rating = Math.max(1, Math.min(5, Math.round(Number(item.rating) || 5)));
-    return `<article class="review-card review-card--${['yellow','pink','violet','cream','sage','blue'][index % 6]}" data-review-card><header class="review-card__header"><span class="review-card__avatar" aria-hidden="true">${escapeHtml(initial)}</span><div><h3>${escapeHtml(author)}</h3>${item.date ? `<time>${escapeHtml(item.date)}</time>` : ''}</div></header><p class="review-card__rating" aria-label="Оценка: ${rating} из 5"><span aria-hidden="true">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span></p><blockquote>«${escapeHtml(item.text)}»</blockquote></article>`;
+    const sourceUrl = externalHttpUrl(item.sourceUrl);
+    const source = sourceUrl ? `<a class="review-card__source" href="${escapeAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Открыть источник отзыва на Авито"><span>Отзыв взят:</span><img src="/assets/reviews/avito.svg" alt=""><strong>Авито</strong></a>` : '';
+    const photos = (Array.isArray(item.photos) ? item.photos : []).map(photo => typeof photo === 'string' ? { src:photo } : photo).filter(photo => photo?.src).slice(0, 6);
+    const photoStrip = photos.length ? `<div class="review-card__photos" aria-label="Фотографии к отзыву">${photos.map((photo, photoIndex) => { const alt = String(photo.alt || `Фото к отзыву ${author}, ${photoIndex + 1}`).trim(); return `<button type="button" data-open-media data-media-type="image" data-media-src="${escapeAttr(photo.src)}" data-media-alt="${escapeAttr(alt)}" aria-label="Открыть ${escapeAttr(alt)}"><img src="${escapeAttr(photo.src)}" alt="" loading="lazy" decoding="async"></button>`; }).join('')}</div>` : '';
+    return `<article class="review-card review-card--${['yellow','pink','violet','cream','sage','blue'][index % 6]}" data-review-card><header class="review-card__header"><span class="review-card__avatar" aria-hidden="true">${escapeHtml(initial)}</span><div><h3>${escapeHtml(author)}</h3>${item.date ? `<time>${escapeHtml(item.date)}</time>` : ''}</div></header><p class="review-card__rating" aria-label="Оценка: ${rating} из 5"><span aria-hidden="true">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span></p><blockquote>«${escapeHtml(item.text)}»</blockquote>${photoStrip}${source}</article>`;
   }).join('');
   return `<section class="reviews" aria-labelledby="reviews-title" data-reviews-carousel><div class="reviews__heading"><div><span class="mono-tag">Отзывы родителей</span><h2 id="reviews-title">Праздники,<br>о которых<br>говорят дома</h2></div><p>Честные впечатления семей после праздников, шоу и встреч с любимыми героями.</p><div class="reviews__controls" aria-label="Управление отзывами"><button type="button" data-reviews-prev aria-label="Предыдущий отзыв">←</button><button type="button" data-reviews-next aria-label="Следующий отзыв">→</button></div></div><div class="reviews__viewport" data-reviews-viewport tabindex="0" aria-label="Отзывы родителей"><div class="reviews__track">${cards}</div></div><p class="reviews__hint">Листайте отзывы свайпом или кнопками</p></section>`;
 };
@@ -870,7 +882,7 @@ const renderAdminShowHeroUpsells = async (query = {}) => {
   return adminLayout('Аниматоры к шоу', body, 'show-animators');
 };
 
-const reviewAdminCard = item => `<article class="admin-catalog-row"><span class="admin-catalog-item__media admin-review-avatar">${escapeHtml(Array.from(String(item.author || 'Гость'))[0]?.toUpperCase() || '★')}</span><div class="admin-catalog-item__copy"><small>${escapeHtml(item.date || 'Дата не указана')} · ${Math.max(1, Math.min(5, Math.round(Number(item.rating) || 5)))} из 5</small><strong>${escapeHtml(item.author || 'Гость')}</strong><p>${escapeHtml(item.text || '')}</p></div><span class="admin-catalog-item__status ${item.published !== false ? 'is-live' : ''}">${item.published !== false ? 'На сайте' : 'Скрыт'}</span><div class="admin-catalog-row__actions"><a class="admin-row-action" href="/admin/reviews/edit/${escapeAttr(item.id)}">Редактировать</a></div></article>`;
+const reviewAdminCard = item => `<article class="admin-catalog-row"><span class="admin-catalog-item__media admin-review-avatar">${escapeHtml(Array.from(String(item.author || 'Гость'))[0]?.toUpperCase() || '★')}</span><div class="admin-catalog-item__copy"><small>${escapeHtml(item.date || 'Дата не указана')} · ${Math.max(1, Math.min(5, Math.round(Number(item.rating) || 5)))} из 5${item.sourceUrl ? ' · источник указан' : ''}</small><strong>${escapeHtml(item.author || 'Гость')}</strong><p>${escapeHtml(item.text || '')}</p></div><span class="admin-catalog-item__status ${item.published !== false ? 'is-live' : ''}">${item.published !== false ? 'На сайте' : 'Скрыт'}</span><div class="admin-catalog-row__actions"><a class="admin-row-action" href="/admin/reviews/edit/${escapeAttr(item.id)}">Редактировать</a></div></article>`;
 
 const renderAdminReviews = async (query = {}) => {
   const items = (await loadCatalog('reviews')).sort((first, second) => number(first.position, 999) - number(second.position, 999));
@@ -878,12 +890,18 @@ const renderAdminReviews = async (query = {}) => {
   return adminLayout('Отзывы', body, 'reviews');
 };
 
+const reviewPhotosEditor = item => {
+  const photos = (Array.isArray(item.photos) ? item.photos : []).map(photo => typeof photo === 'string' ? { src:photo } : photo).filter(photo => photo?.src);
+  const entries = photos.map((photo, index) => `<article class="admin-gallery-item"><div class="admin-gallery-preview"><img src="${escapeAttr(photo.src)}" alt=""></div><div class="admin-gallery-item__fields"><strong>Фото ${index + 1}</strong><label class="admin-check"><input type="checkbox" name="reviewPhotoRemove-${index}"> Убрать фотографию</label></div></article>`).join('');
+  return `<section class="admin-gallery-editor"><header><div><h3>Фотографии к отзыву</h3><p>Можно прикрепить до шести фотографий. На сайте они появятся компактной лентой и будут открываться крупно.</p></div></header>${entries ? `<div class="admin-gallery-grid">${entries}</div>` : '<p class="admin-gallery-editor__empty">К отзыву пока не прикреплены фотографии.</p>'}<label class="upload-field admin-gallery-editor__upload">Добавить фотографии<input type="file" name="reviewPhotos" multiple accept="image/png,image/jpeg,image/webp,image/gif"><span>До 6 файлов · JPG, PNG, WEBP или GIF → WebP</span></label></section>`;
+};
+
 const renderAdminReviewEditor = async (id, query = {}) => {
   const items = await loadCatalog('reviews');
   const isNew = id === 'new';
   const item = isNew ? { published:true, rating:5, position:items.length + 1 } : items.find(entry => entry.id === id);
   if (!item) throw new Error('Отзыв не найден');
-  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/reviews">← Все отзывы</a><span>Отзывы</span><h1>${isNew ? 'Новый отзыв' : escapeHtml(item.author || 'Отзыв')}</h1><p>Текст появится в карусели на главной сразу после сохранения.</p></div>${adminPreviewLink('/#reviews-title', 'Открыть отзывы')}</header>${adminSaveNotice(query)}<form class="admin-edit-form" method="post" action="/admin/reviews/save" data-admin-form><input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка отзыва</span><h2>${isNew ? 'Добавить впечатление' : 'Редактировать отзыв'}</h2><p>Имя, дата и текст видны посетителям сайта.</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыт'}</span></div><div class="admin-grid">${formField('Имя автора', 'author', item.author || '', { required:true, wide:true })}${formField('Дата или подпись', 'date', item.date || '', { wide:true })}${selectField('Оценка', 'rating', String(item.rating || 5), [['5','5 звёзд'],['4','4 звезды'],['3','3 звезды'],['2','2 звезды'],['1','1 звезда']])}${formField('Порядок в карусели', 'position', item.position || 1, { type:'number', step:'1', required:true })}${formField('Текст отзыва', 'text', item.text || '', { textarea:true, wide:true, required:true })}</div></section>${adminSaveBar({ previewUrl:'/#reviews-title', submitLabel:isNew ? 'Добавить отзыв' : 'Сохранить отзыв' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление окончательно уберёт отзыв из админки и с сайта.</p><button class="admin-danger" type="submit" formaction="/admin/reviews/delete" formnovalidate onclick="return confirm('Удалить отзыв?')">Удалить отзыв</button></div>`}</form>`;
+  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/reviews">← Все отзывы</a><span>Отзывы</span><h1>${isNew ? 'Новый отзыв' : escapeHtml(item.author || 'Отзыв')}</h1><p>Текст появится в карусели на главной сразу после сохранения.</p></div>${adminPreviewLink('/#reviews-title', 'Открыть отзывы')}</header>${adminSaveNotice(query)}<form class="admin-edit-form" method="post" action="/admin/reviews/save" enctype="multipart/form-data" data-admin-form><input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка отзыва</span><h2>${isNew ? 'Добавить впечатление' : 'Редактировать отзыв'}</h2><p>Имя, дата и текст видны посетителям сайта. Ссылка на источник добавит в карточку компактную отметку Авито.</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыт'}</span></div><div class="admin-grid">${formField('Имя автора', 'author', item.author || '', { required:true, wide:true })}${formField('Дата или подпись', 'date', item.date || '', { wide:true })}${selectField('Оценка', 'rating', String(item.rating || 5), [['5','5 звёзд'],['4','4 звезды'],['3','3 звезды'],['2','2 звезды'],['1','1 звезда']])}${formField('Порядок в карусели', 'position', item.position || 1, { type:'number', step:'1', required:true })}${formField('Ссылка на источник отзыва в Авито', 'sourceUrl', item.sourceUrl || '', { type:'url', wide:true })}${formField('Текст отзыва', 'text', item.text || '', { textarea:true, wide:true, required:true })}</div>${reviewPhotosEditor(item)}</section>${adminSaveBar({ previewUrl:'/#reviews-title', submitLabel:isNew ? 'Добавить отзыв' : 'Сохранить отзыв' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление окончательно уберёт отзыв из админки и с сайта.</p><button class="admin-danger" type="submit" formaction="/admin/reviews/delete" formnovalidate onclick="return confirm('Удалить отзыв?')">Удалить отзыв</button></div>`}</form>`;
   return adminLayout(isNew ? 'Новый отзыв' : item.author || 'Отзыв', body, 'reviews');
 };
 
@@ -1335,20 +1353,29 @@ app.post('/admin/sales/show-animators/:id', requireAdmin, async (req, res, next)
     res.redirect(`/admin/sales/show-animators?saved=1#show-${encodeURIComponent(current.id)}`);
   } catch (error) { next(error); }
 });
-app.post('/admin/reviews/save', requireAdmin, async (req, res, next) => {
+app.post('/admin/reviews/save', requireAdmin, upload.array('reviewPhotos', 6), async (req, res, next) => {
+  const uploadedPhotos = req.files || [];
   try {
+    await convertUploadedImagesToWebp(uploadedPhotos);
     const items = await loadCatalog('reviews');
     const current = items.find(item => item.id === req.body.id);
-    if (req.body.id && !current) return res.status(404).send('Отзыв не найден');
+    if (req.body.id && !current) { await Promise.all(uploadedPhotos.map(deleteUploaded)); return res.status(404).send('Отзыв не найден'); }
     const author = String(req.body.author || '').trim().slice(0, 100);
     const text = String(req.body.text || '').trim().slice(0, 1200);
-    if (!author || !text) return res.status(400).send('Укажите имя автора и текст отзыва');
+    if (!author || !text) { await Promise.all(uploadedPhotos.map(deleteUploaded)); return res.status(400).send('Укажите имя автора и текст отзыва'); }
+    const existingPhotos = (Array.isArray(current?.photos) ? current.photos : []).map(photo => typeof photo === 'string' ? { src:photo } : photo).filter(photo => photo?.src);
+    const keptPhotos = existingPhotos.filter((_photo, index) => !truthy(req.body[`reviewPhotoRemove-${index}`]));
+    const addedPhotos = uploadedPhotos.map((file, index) => ({ src:`/uploads/${file.filename}`, alt:`Фото к отзыву ${author}, ${keptPhotos.length + index + 1}` }));
+    const photos = [...keptPhotos, ...addedPhotos];
+    if (photos.length > 6) { await Promise.all(uploadedPhotos.map(deleteUploaded)); return res.status(400).send('К одному отзыву можно прикрепить максимум 6 фотографий'); }
     const item = {
       ...(current || {}),
       id: current?.id || crypto.randomUUID(),
       author,
       date: String(req.body.date || '').trim().slice(0, 80),
       text,
+      sourceUrl: externalHttpUrl(req.body.sourceUrl),
+      photos,
       rating: Math.max(1, Math.min(5, Math.round(Number(req.body.rating) || 5))),
       position: Math.max(1, Math.round(number(req.body.position, items.length + 1))),
       published: truthy(req.body.published),
@@ -1357,7 +1384,7 @@ app.post('/admin/reviews/save', requireAdmin, async (req, res, next) => {
     };
     await saveCatalog('reviews', current ? items.map(entry => entry.id === current.id ? item : entry) : [...items, item]);
     res.redirect(`/admin/reviews/edit/${item.id}?saved=1`);
-  } catch (error) { next(error); }
+  } catch (error) { await Promise.all(uploadedPhotos.map(deleteUploaded)); next(error); }
 });
 app.post('/admin/reviews/delete', requireAdmin, async (req, res, next) => {
   try {
