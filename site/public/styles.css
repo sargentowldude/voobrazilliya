@@ -2177,6 +2177,7 @@ footer small {
     min-height: 56px;
     padding: 0;
     justify-content: center;
+    left: 3px;
   }
   .wordmark img {
     width: 44px;
