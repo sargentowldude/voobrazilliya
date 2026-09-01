@@ -536,7 +536,7 @@ a {
   .wordmark__pulse {
     position: absolute;
     z-index: 0;
-    top: 50%;
+    top: calc(50% + 2px);
     left: 50%;
     width: 64px;
     height: 64px;
@@ -557,8 +557,8 @@ a {
     background: var(--brand-pink-ui);
     opacity: 0;
     transform: rotate(var(--dash-angle)) translateY(-30px) rotate(90deg);
-    animation: wordmark-dash-pulse 2.15s ease-in-out infinite;
-    animation-delay: calc(var(--dash) * .105s);
+    animation: wordmark-dash-pulse 1.47s linear infinite;
+    animation-delay: calc(var(--dash) * -.105s);
   }
 }
 
