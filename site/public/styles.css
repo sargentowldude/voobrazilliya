@@ -9042,3 +9042,232 @@ footer small {
     padding: 17px;
   }
 }
+
+/* Единая витрина программ: выразительные карточки и факты с иконками. */
+.program-fact__icon {
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  flex: 0 0 30px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .62);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hero-program-card__facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border: 0;
+}
+.hero-program-card__fact {
+  min-width: 0;
+  padding: 9px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(37, 36, 42, .18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .28);
+}
+.hero-program-card__fact--duration { grid-column: 1 / -1; }
+.hero-program-card__fact > span {
+  min-width: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: normal;
+  line-height: 1;
+  text-transform: none;
+}
+.hero-program-card__fact small {
+  margin: 0 0 4px;
+  display: block;
+  color: rgba(37, 36, 42, .62);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.hero-program-card__fact strong {
+  display: block;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-grid--home {
+  max-width: 1680px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.service-grid--home .service-card,
+.service-grid--home .service-card--cream,
+.service-grid--home .service-card--pink {
+  min-width: 0;
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  border-radius: 18px;
+  box-shadow: 7px 7px 0 rgba(37, 36, 42, .15);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+.service-grid--home .service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 10px 12px 0 rgba(37, 36, 42, .18);
+}
+.service-grid--home .service-card__media {
+  position: relative;
+  height: clamp(165px, 13vw, 220px);
+  margin: 0;
+  flex: none;
+  border-bottom: 2px solid var(--ink);
+}
+.service-card__number {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  left: 14px;
+  width: 44px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+}
+.service-card__summary {
+  min-height: 0;
+  padding: 16px 17px 17px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.service-grid--home .service-card__summary > .mono-tag {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.service-grid--home .service-card h3 {
+  min-height: 1.9em;
+  margin: 12px 0 15px;
+  font-size: clamp(25px, 2vw, 35px);
+  line-height: .95;
+}
+.service-grid--home .service-card__facts {
+  margin: 0 0 15px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.service-grid--home .service-card__fact {
+  min-width: 0;
+  padding: 9px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(37, 36, 42, .18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .28);
+}
+.service-grid--home .service-card__fact > span { min-width: 0; }
+.service-grid--home .service-card__fact small {
+  display: block;
+  margin-bottom: 4px;
+  color: rgba(37, 36, 42, .62);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.service-grid--home .service-card__fact strong {
+  display: block;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.05;
+  letter-spacing: -.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.service-grid--home .service-card__cta {
+  min-height: 46px;
+  margin-top: auto;
+  padding: 0 12px;
+  font-size: 9px;
+}
+
+@media (max-width: 1100px) {
+  .service-grid--home { max-width: 1240px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .service-grid--home .service-card__media { height: clamp(215px, 28vw, 300px); }
+}
+
+@media (max-width: 600px) {
+  .hero-program-card__facts { gap: 6px; }
+  .hero-program-card__fact {
+    padding: 4px;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 3px;
+    border-radius: 9px;
+  }
+  .hero-program-card__fact .program-fact__icon {
+    width: 18px;
+    height: 18px;
+    padding: 3px;
+    flex-basis: 18px;
+  }
+  .hero-program-card__fact small { margin-bottom: 2px; font-size: 5px; letter-spacing: .03em; }
+  .hero-program-card__fact strong { font-size: 9px; }
+
+  .service-grid--home { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .service-grid--home .service-card { min-height: 0; padding: 0; }
+  .service-grid--home .service-card__media {
+    height: auto;
+    margin: 0;
+    aspect-ratio: 4 / 5;
+  }
+  .service-card__number {
+    top: 8px;
+    left: 8px;
+    width: 32px;
+    font-size: 8px;
+  }
+  .service-card__summary { padding: 11px; }
+  .service-grid--home .service-card__summary > .mono-tag { font-size: 6px; letter-spacing: .045em; }
+  .service-grid--home .service-card h3 {
+    min-height: 2.15em;
+    margin: 9px 0 10px;
+    font-size: clamp(13px, 3.7vw, 15px);
+    line-height: 1.08;
+  }
+  .service-grid--home .service-card__facts { gap: 6px; margin-bottom: 11px; }
+  .service-grid--home .service-card__fact {
+    padding: 6px;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 5px;
+    border-radius: 9px;
+  }
+  .service-grid--home .program-fact__icon {
+    width: 22px;
+    height: 22px;
+    padding: 4px;
+    flex-basis: 22px;
+  }
+  .service-grid--home .service-card__fact small { margin-bottom: 2px; font-size: 5px; letter-spacing: .03em; }
+  .service-grid--home .service-card__fact strong { font-size: 10px; }
+  .service-grid--home .service-card__cta { min-height: 40px; padding: 0 7px; font-size: 7px; }
+}
