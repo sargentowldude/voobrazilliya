@@ -4238,6 +4238,7 @@ footer small {
   max-width: 1380px;
   margin: 0 auto;
   overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-inline: contain;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
