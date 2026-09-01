@@ -1086,6 +1086,10 @@ h1,
   padding: 16px;
   box-shadow: 9px 9px 0 rgba(37, 36, 42, .18);
 }
+
+.contact-form--planner#zayavka {
+  scroll-margin-top: 24px;
+}
 .contact-form__generated-message {
   display: none;
 }
