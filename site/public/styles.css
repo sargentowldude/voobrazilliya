@@ -556,7 +556,7 @@ a {
     border-radius: 999px;
     background: var(--brand-pink-ui);
     opacity: .16;
-    transform: rotate(var(--dash-angle)) translateY(-27px);
+    transform: rotate(var(--dash-angle)) translateY(-27px) rotate(90deg);
     animation: wordmark-dash-pulse 2.15s ease-in-out infinite;
     animation-delay: calc(var(--dash) * .105s);
   }
