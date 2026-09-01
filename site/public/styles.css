@@ -555,7 +555,7 @@ a {
     margin: -3px 0 0 -1px;
     border-radius: 999px;
     background: var(--brand-pink-ui);
-    opacity: .16;
+    opacity: 0;
     transform: rotate(var(--dash-angle)) translateY(-30px) rotate(90deg);
     animation: wordmark-dash-pulse 2.15s ease-in-out infinite;
     animation-delay: calc(var(--dash) * .105s);
@@ -563,9 +563,9 @@ a {
 }
 
 @keyframes wordmark-dash-pulse {
-  0%, 48%, 100% { opacity: .14; }
-  10% { opacity: 1; }
-  22% { opacity: .4; }
+  0%, 16%, 100% { opacity: 0; }
+  5% { opacity: 1; }
+  10% { opacity: .25; }
 }
 .menu-button {
   background: transparent;
@@ -7433,7 +7433,7 @@ footer small {
   }
   .wordmark__pulse i {
     animation: none;
-    opacity: .32;
+    opacity: 0;
   }
 }
 
