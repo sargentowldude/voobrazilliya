@@ -498,6 +498,8 @@ a {
   z-index: 20;
 }
 .wordmark {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   padding: 4px 9px;
@@ -514,9 +516,12 @@ a {
   transform: translateY(-1px);
 }
 .wordmark picture {
+  position: relative;
+  z-index: 1;
   display: block;
   line-height: 0;
 }
+.wordmark__pulse { display: none; }
 .wordmark img {
   display: block;
   width: clamp(150px, 13vw, 205px);
@@ -528,6 +533,39 @@ a {
   .wordmark img {
     width: 64px;
   }
+  .wordmark__pulse {
+    position: absolute;
+    z-index: 0;
+    top: 50%;
+    left: 50%;
+    width: 58px;
+    height: 58px;
+    display: block;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .wordmark__pulse i {
+    --dash-angle: calc(var(--dash) * 25.714deg);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 6px;
+    margin: -3px 0 0 -1px;
+    border-radius: 999px;
+    background: var(--brand-pink-ui);
+    opacity: .16;
+    transform: rotate(var(--dash-angle)) translateY(-27px);
+    animation: wordmark-dash-pulse 2.15s ease-in-out infinite;
+    animation-delay: calc(var(--dash) * .105s);
+  }
+}
+
+@keyframes wordmark-dash-pulse {
+  0%, 48%, 100% { opacity: .14; }
+  10% { opacity: .92; }
+  22% { opacity: .4; }
 }
 .menu-button {
   background: transparent;
@@ -7349,12 +7387,25 @@ footer small {
 }
 
 @keyframes floating-cta-breathe {
-  0%, 100% {
+  0%, 58%, 100% {
+    transform: translateY(0) scale(1);
     box-shadow: 0 6px 0 rgba(37, 36, 42, .28), 0 0 0 0 rgba(249, 26, 122, .3);
   }
-
-  50% {
-    box-shadow: 0 7px 0 rgba(37, 36, 42, .28), 0 0 0 10px rgba(249, 26, 122, 0);
+  12% {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 8px 0 rgba(37, 36, 42, .25), 0 0 0 5px rgba(249, 26, 122, .2);
+  }
+  25% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 6px 0 rgba(37, 36, 42, .28), 0 0 0 12px rgba(249, 26, 122, 0);
+  }
+  37% {
+    transform: translateY(-1px) scale(1.025);
+    box-shadow: 0 7px 0 rgba(37, 36, 42, .26), 0 0 0 4px rgba(249, 26, 122, .14);
+  }
+  48% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 6px 0 rgba(37, 36, 42, .28), 0 0 0 9px rgba(249, 26, 122, 0);
   }
 }
 
@@ -7380,15 +7431,23 @@ footer small {
   .floating-party-cta {
     animation: none;
   }
+  .wordmark__pulse i {
+    animation: none;
+    opacity: .32;
+  }
 }
 
 @media (max-width: 600px) {
   .floating-party-cta {
     right: 12px;
     bottom: 12px;
-    left: 12px;
-    justify-content: space-between;
-    padding-left: 18px;
+    left: auto;
+    min-height: 44px;
+    max-width: calc(100vw - 24px);
+    justify-content: center;
+    padding: 0 14px;
+    font-size: 9px;
+    white-space: nowrap;
   }
 }
 
