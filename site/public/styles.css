@@ -9271,3 +9271,36 @@ footer small {
   .service-grid--home .service-card__fact strong { font-size: 10px; }
   .service-grid--home .service-card__cta { min-height: 40px; padding: 0 7px; font-size: 7px; }
 }
+
+/* Шапка остаётся под рукой, а маскот шоу может выходить за карточку. */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom-color: rgba(194, 11, 91, .24);
+  background: linear-gradient(108deg, rgba(255, 249, 252, .94), rgba(251, 216, 230, .78));
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  backdrop-filter: blur(18px) saturate(1.12);
+  box-shadow: 0 10px 26px rgba(37, 36, 42, .1), inset 0 -1px 0 rgba(255, 255, 255, .62);
+}
+
+.service-grid--home .service-card--has-mascot {
+  overflow: visible;
+}
+.service-grid--home .service-card--has-mascot .service-card__mascot-game {
+  z-index: 12;
+  top: -76px;
+  right: 6px;
+  width: clamp(132px, 11vw, 170px);
+}
+
+@media (max-width: 600px) {
+  .site-header {
+    padding-top: max(7px, env(safe-area-inset-top, 0px));
+  }
+  .service-grid--home .service-card--has-mascot .service-card__mascot-game {
+    top: -50px;
+    right: 0;
+    width: 100px;
+  }
+}
