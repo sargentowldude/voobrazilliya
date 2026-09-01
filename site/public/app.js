@@ -125,19 +125,21 @@ if (floatingPartyCta && siteFooter && "IntersectionObserver" in window) {
 // При переходе с другой страницы браузер прокручивает к якорю раньше, чем
 // окончательно загрузятся шрифты и контент выше формы. Возвращаем форму в кадр
 // после стабилизации разметки, чтобы посетитель не оказывался у отзывов.
-const alignPartyFormAnchor = () => {
+let partyFormAnchorCorrection;
+const scrollToPartyFormAnchor = behavior => {
   if (window.location.hash !== "#zayavka") return;
-  document.querySelector("#zayavka")?.scrollIntoView({ block:"start", inline:"nearest", behavior:"instant" });
+  document.querySelector("#zayavka")?.scrollIntoView({ block:"start", inline:"nearest", behavior });
+};
+const alignPartyFormAnchor = () => {
+  window.clearTimeout(partyFormAnchorCorrection);
+  scrollToPartyFormAnchor("smooth");
+  partyFormAnchorCorrection = window.setTimeout(() => scrollToPartyFormAnchor("instant"), 900);
 };
 
 window.addEventListener("hashchange", alignPartyFormAnchor);
 if (window.location.hash === "#zayavka") {
-  requestAnimationFrame(() => requestAnimationFrame(alignPartyFormAnchor));
-  window.addEventListener("load", () => {
-    alignPartyFormAnchor();
-    window.setTimeout(alignPartyFormAnchor, 300);
-  }, { once:true });
-  document.fonts?.ready.then(alignPartyFormAnchor);
+  if (document.readyState === "complete") alignPartyFormAnchor();
+  else window.addEventListener("load", alignPartyFormAnchor, { once:true });
 }
 
 const revealItems = document.querySelectorAll(".section-heading, .service-card, .photo-story__intro, .story-shot, .landing-intro, .character-card, .landing-facts, .hero-catalog__heading, .hero-program-card, .show-console, .show-round, .show-catalog__heading, .show-offer-card, .theater-stage, .theater-stage-card, .playbill-card, .poster-card, .birthday-format-card, .reviews__heading, .review-card, .contact-form__planner-intro, .contact > div, .contact-form");
