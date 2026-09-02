@@ -581,7 +581,7 @@ const reviews = (source, options = {}) => {
   return `<section class="reviews${compact ? ' reviews--compact' : ''}" aria-labelledby="${titleId}" data-reviews-carousel><div class="reviews__heading">${heading}<div class="reviews__controls" aria-label="Управление отзывами"><button type="button" data-reviews-prev aria-label="Предыдущий отзыв">←</button><button type="button" data-reviews-next aria-label="Следующий отзыв">→</button></div></div><div class="reviews__viewport" data-reviews-viewport tabindex="0" aria-label="Отзывы родителей"><div class="reviews__track">${cards}</div></div><p class="reviews__hint">Листайте отзывы свайпом или кнопками</p></section>`;
 };
 
-const eventCards = events => `<div class="event-grid">${events.filter(visible).map((event, index) => `<article class="poster-card poster-card--${['yellow','pink','red'][index % 3]}">${event.image ? `<div class="poster-card__image ${event.imageFit === 'poster' ? 'poster-card__image--poster' : ''}">${image(event)}</div>` : ''}<span class="mono-tag">${escapeHtml(event.category || 'Афиша')}${event.date ? ` · ${escapeHtml(formatEventDate(event.date))}` : ''}</span><h3>${escapeHtml(event.title)}</h3>${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}${event.buttonUrl ? `<a class="poster-card__cta" href="${escapeAttr(event.buttonUrl)}"><span>${escapeHtml(event.buttonLabel || 'Открыть')}</span></a>` : `<a class="poster-card__cta" href="/afisha/${escapeAttr(event.slug)}/"><span>${escapeHtml(event.buttonLabel || 'Открыть афишу')}</span></a>`}</article>`).join('')}</div>`;
+const eventCards = events => `<div class="event-grid">${events.filter(visible).map((event, index) => `<article class="poster-card poster-card--${escapeAttr(catalogAccent('events', event.accent, ['yellow','pink','red'][index % 3]))}">${event.image ? `<div class="poster-card__image ${event.imageFit === 'poster' ? 'poster-card__image--poster' : ''}">${image(event)}</div>` : ''}<span class="mono-tag">${escapeHtml(event.category || 'Афиша')}${event.date ? ` · ${escapeHtml(formatEventDate(event.date))}` : ''}</span><h3>${escapeHtml(event.title)}</h3>${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}${event.buttonUrl ? `<a class="poster-card__cta" href="${escapeAttr(event.buttonUrl)}"><span>${escapeHtml(event.buttonLabel || 'Открыть')}</span></a>` : `<a class="poster-card__cta" href="/afisha/${escapeAttr(event.slug)}/"><span>${escapeHtml(event.buttonLabel || 'Открыть афишу')}</span></a>`}</article>`).join('')}</div>`;
 
 const renderHome = async () => {
   const [content, events, reviewItems] = await Promise.all([loadContent(), loadCatalog('events'), loadCatalog('reviews')]);
@@ -740,7 +740,7 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260829-faq-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260829-faq-v1" defer></script></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-card-palette-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260829-faq-v1" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
 const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'faq' ? 'is-active' : ''}" href="/admin/faq">FAQ всех страниц</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
@@ -928,6 +928,21 @@ const catalogPageIntro = {
   shows:'Добавляйте и редактируйте шоу. Первый экран страницы настраивается отдельно в разделе «Шоу — первый экран».',
   events:'Добавляйте мероприятия в афишу. Каждая карточка открывается в отдельной редакторской странице.'
 };
+const catalogAccentOptions = {
+  heroes: [['yellow','Солнечный'],['green','Зелёный'],['blue','Голубой'],['red','Коралловый']],
+  shows: [['cyan','Бирюзовый'],['purple','Сиреневый'],['pink','Розовый'],['yellow','Солнечный']],
+  events: [['yellow','Солнечный'],['pink','Розовый'],['red','Коралловый']]
+};
+const catalogAccent = (type, value, fallback) => {
+  const options = catalogAccentOptions[type] || [];
+  const allowed = new Set(options.map(([accent]) => accent));
+  return allowed.has(value) ? value : allowed.has(fallback) ? fallback : options[0]?.[0] || 'yellow';
+};
+const catalogAccentField = (type, value) => {
+  const selected = catalogAccent(type, value);
+  const options = catalogAccentOptions[type] || [];
+  return `<fieldset class="admin-accent-field admin-field--wide"><legend>Цвет карточки</legend><p>Кнопка на сайте автоматически берёт более тёмный оттенок выбранной палитры.</p><div class="admin-accent-options">${options.map(([accent, label]) => `<label class="admin-accent-option" data-accent="${escapeAttr(accent)}"><input type="radio" name="accent" value="${escapeAttr(accent)}" ${accent === selected ? 'checked' : ''}><span class="admin-accent-option__swatch" aria-hidden="true"></span><span>${escapeHtml(label)}</span></label>`).join('')}</div></fieldset>`;
+};
 
 const catalogPublicUrl = (type, item) => {
   if (!item || item.published === false) return '';
@@ -998,17 +1013,20 @@ const catalogForm = (type, item = {}) => {
     settings = formField('Дата', 'date', item.date || '', { type:'date' })
       + formField('Категория', 'category', item.category || 'Событие')
       + formField('Надпись на кнопке', 'buttonLabel', item.buttonLabel || 'Открыть афишу')
-      + formField('Ссылка кнопки (необязательно)', 'buttonUrl', item.buttonUrl || '');
+      + formField('Ссылка кнопки (необязательно)', 'buttonUrl', item.buttonUrl || '')
+      + catalogAccentField(type, item.accent);
   } else {
     basic += formField('Описание', 'description', item.description || '', { textarea:true, wide:true });
     if (hero) {
       settings = formField('Длительность, минут', 'duration', item.duration || 40, { type:'number', step:'1' })
         + selectField('Для кого', 'audience', item.audience || 'all', [['all','Для всех'],['boys','Для мальчиков'],['girls','Для девочек']])
         + selectField('Формат образа', 'heroFormat', item.format === 'costume' ? 'costume' : 'standard', [['standard','Обычный костюм'],['costume','Ростовой костюм']])
+        + catalogAccentField(type, item.accent)
         + formField('Цена в будни, ₽', 'priceWeekday', item.priceWeekday ?? item.price ?? '', { type:'number', step:'1', required:true })
         + formField('Цена в выходные, ₽', 'priceWeekend', item.priceWeekend ?? item.price ?? '', { type:'number', step:'1', required:true });
     } else {
-      settings = formField('Цена, ₽', 'price', item.price || '', { type:'number', step:'1', required:true });
+      settings = formField('Цена, ₽', 'price', item.price || '', { type:'number', step:'1', required:true })
+        + catalogAccentField(type, item.accent);
     }
     seo = formField('Заголовок для поиска', 'seoTitle', item.seoTitle || '', { wide:true })
       + formField('Описание для поиска', 'seoDescription', item.seoDescription || '', { textarea:true, wide:true });
@@ -1123,7 +1141,7 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       buttonLabel: String(body.buttonLabel || 'Открыть афишу').trim(),
       buttonUrl: String(body.buttonUrl || '').trim(),
       imageFit: body.imageFit === 'poster' ? 'poster' : 'cover',
-      accent: source.accent || 'yellow'
+      accent: catalogAccent(type, body.accent, source.accent)
     };
     if (type === 'heroes') return {
       ...base, name, slug: uniqueSlug(body.slug || `animator-${name}-kemerovo`, items, base.id),
@@ -1132,16 +1150,16 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       priceWeekday: priceNumber(body.priceWeekday, source.priceWeekday ?? source.price ?? 0),
       priceWeekend: priceNumber(body.priceWeekend, source.priceWeekend ?? source.price ?? 0),
       audience: ['all','boys','girls'].includes(body.audience) ? body.audience : 'all',
-      format: body.heroFormat === 'costume' ? 'costume' : 'standard', accent: body.accent || source.accent || 'yellow',
+      format: body.heroFormat === 'costume' ? 'costume' : 'standard', accent: catalogAccent(type, body.accent, source.accent),
       seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
     };
     if (type === 'shows') return {
       ...base, name, slug: uniqueSlug(body.slug || `${name}-kemerovo`, items, base.id), description: String(body.description || '').trim(),
-      price: priceNumber(body.price, source.price ?? 0), accent: body.accent || source.accent || 'cyan', seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
+      price: priceNumber(body.price, source.price ?? 0), accent: catalogAccent(type, body.accent, source.accent), seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
     };
     return {
       ...base, name, slug: uniqueSlug(body.slug || name, items, base.id), description: String(body.description || '').trim(),
-      age: String(body.age || '3+').trim(), price: priceNumber(body.price, source.price ?? 0), accent: body.accent || source.accent || 'violet'
+      age: String(body.age || '3+').trim(), price: priceNumber(body.price, source.price ?? 0), accent: catalogAccent(type, body.accent, source.accent)
     };
   });
 };

@@ -1348,3 +1348,80 @@ button { cursor: pointer; }
   .admin-faq-section__top { align-items: flex-start; flex-direction: column; }
   .admin-faq-section__top .admin-preview-link { width: 100%; }
 }
+
+/* Палитра карточки каталога: цвет сразу виден до сохранения. */
+.admin-accent-field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.admin-accent-field legend {
+  margin-bottom: 7px;
+  padding: 0;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.admin-accent-field > p {
+  margin: 0 0 10px;
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.admin-accent-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.admin-accent-option {
+  --accent-swatch: #f2e56f;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: var(--admin-field);
+  color: var(--admin-text);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.admin-accent-option:hover { transform: translateY(-1px); border-color: var(--admin-accent); }
+.admin-accent-option:has(input:checked) {
+  border-color: var(--admin-accent);
+  background: rgba(249, 26, 122, .09);
+  box-shadow: 0 0 0 2px rgba(249, 26, 122, .12);
+}
+.admin-accent-option input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+.admin-accent-option__swatch {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(20, 21, 35, .45);
+  border-radius: 50%;
+  background: var(--accent-swatch);
+  box-shadow: inset 0 -4px 0 rgba(20, 21, 35, .18);
+}
+.admin-accent-option input:focus-visible + .admin-accent-option__swatch { outline: 3px solid rgba(249, 26, 122, .48); outline-offset: 3px; }
+.admin-accent-option[data-accent="green"] { --accent-swatch: #a9c89e; }
+.admin-accent-option[data-accent="blue"] { --accent-swatch: #91a8ca; }
+.admin-accent-option[data-accent="red"] { --accent-swatch: #d28c91; }
+.admin-accent-option[data-accent="cyan"] { --accent-swatch: #68ece5; }
+.admin-accent-option[data-accent="purple"] { --accent-swatch: #b69cff; }
+.admin-accent-option[data-accent="pink"] { --accent-swatch: #ff8fbf; }
+
+@media (max-width: 780px) {
+  .admin-accent-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
