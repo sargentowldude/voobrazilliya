@@ -1425,3 +1425,155 @@ button { cursor: pointer; }
 @media (max-width: 780px) {
   .admin-accent-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Свои цвета карточек и сохранённая палитра. */
+.admin-card-color-field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.admin-card-color-field legend {
+  margin-bottom: 7px;
+  padding: 0;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.admin-card-color-field > p {
+  margin: 0 0 12px;
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.admin-card-color-current {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.admin-card-color-picker {
+  display: grid;
+  gap: 8px;
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.admin-card-color-picker input[type="color"] {
+  width: 100%;
+  height: 45px;
+  padding: 4px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: var(--admin-field);
+  cursor: pointer;
+}
+.admin-card-color-reset {
+  min-height: 45px;
+  padding: 0 13px;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.admin-card-color-reset:hover { color: var(--admin-text); border-color: var(--admin-accent); }
+.admin-card-color-favorites {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px dashed var(--admin-line);
+}
+.admin-card-color-favorites > span {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.admin-card-color-favorites > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.admin-card-color-favorites button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  background: var(--admin-field);
+  color: var(--admin-text);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.admin-card-color-favorites button:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.admin-card-color-favorites i {
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(20, 21, 35, .48);
+  border-radius: 50%;
+  background: var(--favorite-color);
+  box-shadow: inset 0 -3px 0 rgba(20, 21, 35, .16);
+}
+.admin-card-color-favorites a {
+  justify-self: start;
+  color: var(--admin-accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+.admin-palette-list { display: grid; gap: 9px; }
+.admin-palette-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 96px minmax(0, .7fr);
+  gap: 10px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: rgba(20, 21, 35, .22);
+}
+.admin-palette-row__number {
+  display: grid;
+  place-items: center;
+  min-height: 45px;
+  border-radius: 9px;
+  background: rgba(249, 26, 122, .12);
+  color: var(--admin-accent);
+  font-size: 11px;
+  font-weight: 900;
+}
+.admin-palette-row__picker {
+  display: grid;
+  gap: 8px;
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.admin-palette-row__picker input {
+  width: 100%;
+  height: 45px;
+  padding: 4px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: var(--admin-field);
+  cursor: pointer;
+}
+@media (max-width: 780px) {
+  .admin-card-color-current { grid-template-columns: 1fr 1fr; }
+  .admin-card-color-reset { grid-column: 1 / -1; }
+  .admin-palette-row { grid-template-columns: 34px minmax(0, 1fr); }
+  .admin-palette-row__picker { grid-column: 1; }
+}

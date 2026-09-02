@@ -53,6 +53,48 @@ document.querySelectorAll('[data-image-fit]').forEach(select => {
   select.addEventListener('change', () => updateCrop(select.dataset.imageFit));
 });
 
+const normalizedHexColor = value => /^#[\da-f]{6}$/i.test(String(value || '').trim()) ? String(value).trim().toUpperCase() : '';
+const markColorFieldChanged = field => field.closest('form')?.dispatchEvent(new Event('input', { bubbles:true }));
+
+document.querySelectorAll('[data-card-color-picker]').forEach(picker => {
+  const field = picker.closest('.admin-card-color-field');
+  const hex = field?.querySelector('[data-card-color-hex]');
+  const reset = field?.querySelector('[data-card-color-reset-input]');
+  const setColor = color => {
+    const normalized = normalizedHexColor(color);
+    if (!normalized || !hex) return false;
+    picker.value = normalized;
+    hex.value = normalized;
+    if (reset) reset.value = '0';
+    markColorFieldChanged(field);
+    return true;
+  };
+  picker.addEventListener('input', () => setColor(picker.value));
+  hex?.addEventListener('input', () => {
+    const normalized = normalizedHexColor(hex.value);
+    if (normalized) {
+      picker.value = normalized;
+      if (reset) reset.value = '0';
+    }
+  });
+  field?.querySelectorAll('[data-card-color-favorite]').forEach(button => button.addEventListener('click', () => setColor(button.dataset.cardColorFavorite)));
+  field?.querySelector('[data-card-color-reset]')?.addEventListener('click', () => {
+    if (hex) hex.value = '';
+    if (reset) reset.value = '1';
+    markColorFieldChanged(field);
+  });
+});
+
+document.querySelectorAll('[data-palette-color-picker]').forEach(picker => {
+  const index = picker.dataset.paletteColorPicker;
+  const hex = document.querySelector(`[data-palette-color-hex="${index}"]`);
+  picker.addEventListener('input', () => { if (hex) hex.value = picker.value.toUpperCase(); });
+  hex?.addEventListener('input', () => {
+    const normalized = normalizedHexColor(hex.value);
+    if (normalized) picker.value = normalized;
+  });
+});
+
 /* Admin overhaul: unsaved changes */
 (() => {
   const forms = [...document.querySelectorAll('[data-admin-form]')];

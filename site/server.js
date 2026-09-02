@@ -175,6 +175,43 @@ const priceNumber = (value, fallback = 0) => {
 };
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
 const escapeAttr = escapeHtml;
+const normalizeHexColor = value => {
+  const match = String(value || '').trim().match(/^#?([\da-f]{6})$/i);
+  return match ? `#${match[1].toUpperCase()}` : '';
+};
+const mixHexColor = (hex, target, weight) => {
+  const source = normalizeHexColor(hex);
+  if (!source) return '';
+  const ratio = Math.max(0, Math.min(1, Number(weight) || 0));
+  const values = [1, 3, 5].map((offset, index) => {
+    const from = Number.parseInt(source.slice(offset, offset + 2), 16);
+    const to = Number.parseInt(target.slice(offset, offset + 2), 16);
+    return Math.round(from + (to - from) * ratio).toString(16).padStart(2, '0');
+  });
+  return `#${values.join('').toUpperCase()}`;
+};
+const colorLuminance = hex => {
+  const color = normalizeHexColor(hex);
+  if (!color) return 1;
+  const channels = [1, 3, 5].map(offset => Number.parseInt(color.slice(offset, offset + 2), 16) / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+  return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+};
+const readableColor = hex => colorLuminance(hex) > .34 ? '#121311' : '#FFF9FC';
+const legacyCardColors = {
+  heroes: { yellow:'#F2E56F', green:'#A9C89E', blue:'#91A8CA', red:'#D28C91' },
+  shows: { cyan:'#485C69', purple:'#5B4C78', pink:'#70445B', yellow:'#655828' },
+  events: { yellow:'#F2E56F', pink:'#F6B4CF', red:'#C20B5B' }
+};
+const legacyCardAccent = (type, value, fallback) => {
+  const colors = legacyCardColors[type] || {};
+  return colors[value] ? value : colors[fallback] ? fallback : Object.keys(colors)[0] || 'yellow';
+};
+const cardStyle = (item, prefix) => {
+  const background = normalizeHexColor(item?.cardColor);
+  if (!background) return '';
+  const cta = mixHexColor(background, '#000000', .2);
+  return ` style="--${prefix}-surface:${background};--${prefix}-cta:${cta};--${prefix}-text:${readableColor(background)};--${prefix}-cta-text:${readableColor(cta)}"`;
+};
 const slugify = value => String(value || '')
   .toLowerCase()
   .replace(/ё/g, 'e')
@@ -454,7 +491,7 @@ const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-cons
 const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-v2" sizes="16x16 32x32 48x48 64x64 128x128 256x256"><link rel="icon" href="/favicon-32x32.png?v=20260828-mask-v2" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png?v=20260828-mask-v2" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260828-mask-v2" sizes="180x180"><link rel="manifest" href="/site.webmanifest?v=20260828-pink-brand-v1"><meta name="theme-color" content="#121311">';
 const layout = (meta, body, pageClass = '') => {
   const floatingCtaHref = body.includes('id="zayavka"') ? '#zayavka' : '/#zayavka';
-  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=20260901-sticky-header-v1"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260902-hero-filter-intersection-v1" defer></script></body></html>`;
+  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=20260902-card-custom-color-v1"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260902-hero-filter-intersection-v1" defer></script></body></html>`;
 };
 
 const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
@@ -581,7 +618,7 @@ const reviews = (source, options = {}) => {
   return `<section class="reviews${compact ? ' reviews--compact' : ''}" aria-labelledby="${titleId}" data-reviews-carousel><div class="reviews__heading">${heading}<div class="reviews__controls" aria-label="Управление отзывами"><button type="button" data-reviews-prev aria-label="Предыдущий отзыв">←</button><button type="button" data-reviews-next aria-label="Следующий отзыв">→</button></div></div><div class="reviews__viewport" data-reviews-viewport tabindex="0" aria-label="Отзывы родителей"><div class="reviews__track">${cards}</div></div><p class="reviews__hint">Листайте отзывы свайпом или кнопками</p></section>`;
 };
 
-const eventCards = events => `<div class="event-grid">${events.filter(visible).map((event, index) => `<article class="poster-card poster-card--${escapeAttr(catalogAccent('events', event.accent, ['yellow','pink','red'][index % 3]))}">${event.image ? `<div class="poster-card__image ${event.imageFit === 'poster' ? 'poster-card__image--poster' : ''}">${image(event)}</div>` : ''}<span class="mono-tag">${escapeHtml(event.category || 'Афиша')}${event.date ? ` · ${escapeHtml(formatEventDate(event.date))}` : ''}</span><h3>${escapeHtml(event.title)}</h3>${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}${event.buttonUrl ? `<a class="poster-card__cta" href="${escapeAttr(event.buttonUrl)}"><span>${escapeHtml(event.buttonLabel || 'Открыть')}</span></a>` : `<a class="poster-card__cta" href="/afisha/${escapeAttr(event.slug)}/"><span>${escapeHtml(event.buttonLabel || 'Открыть афишу')}</span></a>`}</article>`).join('')}</div>`;
+const eventCards = events => `<div class="event-grid">${events.filter(visible).map((event, index) => `<article class="poster-card poster-card--${escapeAttr(legacyCardAccent('events', event.accent, ['yellow','pink','red'][index % 3]))}"${cardStyle(event, 'poster')}>${event.image ? `<div class="poster-card__image ${event.imageFit === 'poster' ? 'poster-card__image--poster' : ''}">${image(event)}</div>` : ''}<span class="mono-tag">${escapeHtml(event.category || 'Афиша')}${event.date ? ` · ${escapeHtml(formatEventDate(event.date))}` : ''}</span><h3>${escapeHtml(event.title)}</h3>${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}${event.buttonUrl ? `<a class="poster-card__cta" href="${escapeAttr(event.buttonUrl)}"><span>${escapeHtml(event.buttonLabel || 'Открыть')}</span></a>` : `<a class="poster-card__cta" href="/afisha/${escapeAttr(event.slug)}/"><span>${escapeHtml(event.buttonLabel || 'Открыть афишу')}</span></a>`}</article>`).join('')}</div>`;
 
 const renderHome = async () => {
   const [content, events, reviewItems] = await Promise.all([loadContent(), loadCatalog('events'), loadCatalog('reviews')]);
@@ -623,7 +660,7 @@ const heroCard = (hero, index) => {
   const audienceLabel = hero.audience === 'girls' ? 'Для девочек' : hero.audience === 'boys' ? 'Для мальчиков' : 'Для всех';
   const heroFormat = hero.format === 'costume' ? 'costume' : 'standard';
   const tagLabel = heroFormat === 'costume' ? `Ростовой костюм · ${audienceLabel}` : audienceLabel;
-  return `<article class="hero-program-card hero-program-card--${escapeAttr(hero.accent || 'yellow')}" data-hero-card data-hero-audience="${escapeAttr(hero.audience || 'all')}" data-hero-format="${heroFormat}" data-hero-id="${escapeAttr(hero.id)}" data-hero-name="${escapeAttr(hero.name)}" data-hero-weekday-price="${prices.weekday}" data-hero-weekend-price="${prices.weekend}"><div class="hero-program-card__media">${image(hero)}<span class="hero-program-card__number">${String(index + 1).padStart(2, '0')}</span></div><div class="hero-program-card__summary"><span class="mono-tag">${tagLabel}</span><h3>${escapeHtml(hero.name)}</h3><div class="hero-program-card__facts"><div class="hero-program-card__fact hero-program-card__fact--duration">${factIcons.duration}<span><small>Время</small><strong>${escapeHtml(hero.duration || 40)} минут</strong></span></div><div class="hero-program-card__fact">${factIcons.weekday}<span><small>Будни</small><strong>${formatPrice(prices.weekday)}</strong></span></div><div class="hero-program-card__fact">${factIcons.weekend}<span><small>Выходные</small><strong>${formatPrice(prices.weekend)}</strong></span></div></div></div><div class="hero-program-card__details"><p>${escapeHtml(hero.description)}</p><a class="hero-program-card__seo-link" href="/animatory/${escapeAttr(hero.slug)}/">Подробнее о герое</a></div><div class="hero-program-card__action"><button class="hero-program-card__cta" type="button" data-add-hero>ВЫБРАТЬ ГЕРОЯ</button></div></article>`;
+  return `<article class="hero-program-card hero-program-card--${escapeAttr(legacyCardAccent('heroes', hero.accent, 'yellow'))}"${cardStyle(hero, 'hero')} data-hero-card data-hero-audience="${escapeAttr(hero.audience || 'all')}" data-hero-format="${heroFormat}" data-hero-id="${escapeAttr(hero.id)}" data-hero-name="${escapeAttr(hero.name)}" data-hero-weekday-price="${prices.weekday}" data-hero-weekend-price="${prices.weekend}"><div class="hero-program-card__media">${image(hero)}<span class="hero-program-card__number">${String(index + 1).padStart(2, '0')}</span></div><div class="hero-program-card__summary"><span class="mono-tag">${tagLabel}</span><h3>${escapeHtml(hero.name)}</h3><div class="hero-program-card__facts"><div class="hero-program-card__fact hero-program-card__fact--duration">${factIcons.duration}<span><small>Время</small><strong>${escapeHtml(hero.duration || 40)} минут</strong></span></div><div class="hero-program-card__fact">${factIcons.weekday}<span><small>Будни</small><strong>${formatPrice(prices.weekday)}</strong></span></div><div class="hero-program-card__fact">${factIcons.weekend}<span><small>Выходные</small><strong>${formatPrice(prices.weekend)}</strong></span></div></div></div><div class="hero-program-card__details"><p>${escapeHtml(hero.description)}</p><a class="hero-program-card__seo-link" href="/animatory/${escapeAttr(hero.slug)}/">Подробнее о герое</a></div><div class="hero-program-card__action"><button class="hero-program-card__cta" type="button" data-add-hero>ВЫБРАТЬ ГЕРОЯ</button></div></article>`;
 };
 
 const heroCartDialog = (heroes, settings) => {
@@ -659,7 +696,7 @@ const showCartDialog = (shows, heroes) => {
   return `${showHeroChoiceDialog()}<dialog class="hero-cart-dialog show-cart-dialog" data-show-cart data-show-cart-catalog="${escapeAttr(JSON.stringify(catalog))}"><button class="dialog-close" type="button" data-close-show-cart aria-label="Закрыть корзину">×</button><form class="hero-cart show-cart" data-lead-form data-show-cart-form>${honeypotField()}<header class="hero-cart__header"><span class="mono-tag">Ваш праздник</span><h2>Соберём<br>программу</h2><p>Сначала проверьте состав заказа и сумму, затем оставьте контакты.</p></header><fieldset class="hero-cart__day"><legend>Когда праздник?</legend><div><button type="button" class="is-selected" data-show-cart-day="weekday" aria-pressed="true">Будни</button><button type="button" data-show-cart-day="weekend" aria-pressed="false">Выходные</button></div></fieldset><section class="show-cart__order" aria-live="polite"><header><span>Состав заказа</span><small data-show-cart-summary>Выберите шоу.</small></header><div class="hero-cart__items"><div class="hero-cart__item"><span><small>Главная программа</small><strong data-show-cart-name>Выберите шоу</strong></span><b data-show-cart-price>—</b></div><div data-show-cart-hero-items hidden></div></div><footer class="hero-cart__total"><span>Итого</span><strong data-show-cart-total>—</strong><small>Стоимость программы и выбранных аниматоров</small></footer></section><section class="hero-cart__upsell" data-show-cart-upsell hidden><div class="hero-cart__upsell-head"><div class="hero-cart__upsell-copy"><span class="mono-tag">Дополнение к шоу</span><h3 data-show-cart-offer-title>Добавьте любимого героя</h3><p data-show-cart-offer-description></p></div><button class="show-cart__toggle-heroes" type="button" data-show-cart-toggle-heroes aria-expanded="false">Выбрать аниматоров</button></div><div class="show-cart__selection-toolbar" hidden><p data-show-cart-selection-hint hidden></p><button type="button" data-show-cart-clear-heroes hidden>Очистить выбор</button></div><div data-show-cart-hero-options-wrap hidden><p class="hero-cart__scroll-hint" data-cart-scroll-hint aria-hidden="true" hidden>Листайте карточки →</p><div class="hero-cart__mini-grid" role="group" aria-label="Выберите до двух аниматоров" data-show-cart-hero-options></div></div></section><section class="hero-cart__lead"><h3>Оставьте заявку</h3><div class="hero-cart__fields"><label>Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label>Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="hero-cart__field--wide">Комментарий<input name="comment" placeholder="Дата, район, пожелания"></label></div><input type="hidden" name="service"><input type="hidden" name="message">${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></section></form></dialog>`;
 };
 
-const showCard = (show, index) => `<article class="show-offer-card show-offer-card--${escapeAttr(show.accent || 'yellow')}" data-show-card data-show-id="${escapeAttr(show.id)}"><div class="show-offer-card__media">${image(show)}<span class="show-offer-card__number">0${index + 1}</span></div><div class="show-offer-card__summary"><span class="mono-tag">Интерактивная программа</span><h3>${escapeHtml(show.name)}</h3><p class="show-offer-card__price"><span>Стоимость</span><strong>от ${formatPrice(show.price)}</strong></p></div><div class="show-offer-card__details"><p>${escapeHtml(show.description)}</p>${programMediaGallery(show)}<a class="show-offer-card__seo-link" href="/show/${escapeAttr(show.slug)}/">Подробнее о шоу</a></div><div class="show-offer-card__action"><button class="show-offer-card__cta" type="button" data-select-show>ВЫБРАТЬ ШОУ</button></div></article>`;
+const showCard = (show, index) => `<article class="show-offer-card show-offer-card--${escapeAttr(legacyCardAccent('shows', show.accent, 'cyan'))}"${cardStyle(show, 'show')} data-show-card data-show-id="${escapeAttr(show.id)}"><div class="show-offer-card__media">${image(show)}<span class="show-offer-card__number">0${index + 1}</span></div><div class="show-offer-card__summary"><span class="mono-tag">Интерактивная программа</span><h3>${escapeHtml(show.name)}</h3><p class="show-offer-card__price"><span>Стоимость</span><strong>от ${formatPrice(show.price)}</strong></p></div><div class="show-offer-card__details"><p>${escapeHtml(show.description)}</p>${programMediaGallery(show)}<a class="show-offer-card__seo-link" href="/show/${escapeAttr(show.slug)}/">Подробнее о шоу</a></div><div class="show-offer-card__action"><button class="show-offer-card__cta" type="button" data-select-show>ВЫБРАТЬ ШОУ</button></div></article>`;
 
 const renderShow = async () => {
   const [content, catalog, heroes] = await Promise.all([loadContent(), loadCatalog('shows'), loadCatalog('heroes')]);
@@ -740,7 +777,7 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-card-palette-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260829-faq-v1" defer></script></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-card-custom-color-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-card-custom-color-v1" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
 const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'faq' ? 'is-active' : ''}" href="/admin/faq">FAQ всех страниц</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
@@ -928,20 +965,20 @@ const catalogPageIntro = {
   shows:'Добавляйте и редактируйте шоу. Первый экран страницы настраивается отдельно в разделе «Шоу — первый экран».',
   events:'Добавляйте мероприятия в афишу. Каждая карточка открывается в отдельной редакторской странице.'
 };
-const catalogAccentOptions = {
-  heroes: [['yellow','Солнечный'],['green','Зелёный'],['blue','Голубой'],['red','Коралловый']],
-  shows: [['cyan','Бирюзовый'],['purple','Сиреневый'],['pink','Розовый'],['yellow','Солнечный']],
-  events: [['yellow','Солнечный'],['pink','Розовый'],['red','Коралловый']]
+const defaultCardColorFavorites = [
+  { name:'Солнечный', color:'#F2E56F' }, { name:'Зелёный', color:'#A9C89E' },
+  { name:'Голубой', color:'#91A8CA' }, { name:'Коралловый', color:'#D28C91' },
+  { name:'Розовый', color:'#F6B4CF' }, { name:'Малиновый', color:'#C20B5B' },
+  { name:'Бирюзовый', color:'#68ECE5' }, { name:'Сиреневый', color:'#B69CFF' }
+];
+const cardColorFavorites = content => {
+  const source = Array.isArray(content?.cardColorFavorites) ? content.cardColorFavorites : defaultCardColorFavorites;
+  return source.map(item => ({ name:String(item?.name || '').trim().slice(0, 40), color:normalizeHexColor(item?.color) })).filter(item => item.name && item.color).slice(0, 12);
 };
-const catalogAccent = (type, value, fallback) => {
-  const options = catalogAccentOptions[type] || [];
-  const allowed = new Set(options.map(([accent]) => accent));
-  return allowed.has(value) ? value : allowed.has(fallback) ? fallback : options[0]?.[0] || 'yellow';
-};
-const catalogAccentField = (type, value) => {
-  const selected = catalogAccent(type, value);
-  const options = catalogAccentOptions[type] || [];
-  return `<fieldset class="admin-accent-field admin-field--wide"><legend>Цвет карточки</legend><p>Кнопка на сайте автоматически берёт более тёмный оттенок выбранной палитры.</p><div class="admin-accent-options">${options.map(([accent, label]) => `<label class="admin-accent-option" data-accent="${escapeAttr(accent)}"><input type="radio" name="accent" value="${escapeAttr(accent)}" ${accent === selected ? 'checked' : ''}><span class="admin-accent-option__swatch" aria-hidden="true"></span><span>${escapeHtml(label)}</span></label>`).join('')}</div></fieldset>`;
+const legacyCardColor = (type, item) => legacyCardColors[type]?.[legacyCardAccent(type, item?.accent, 'yellow')] || '#F2E56F';
+const catalogColorField = (type, item, favorites) => {
+  const current = normalizeHexColor(item.cardColor) || legacyCardColor(type, item);
+  return `<fieldset class="admin-card-color-field admin-field--wide"><legend>Цвет карточки</legend><p>Выберите любой цвет или нажмите сохранённый. CTA на сайте автоматически будет на 20% темнее фона.</p><div class="admin-card-color-current"><label class="admin-card-color-picker"><span>Выбрать цвет</span><input type="color" value="${escapeAttr(current)}" data-card-color-picker></label><label class="admin-field"><span>HEX</span><input name="cardColor" value="${escapeAttr(current)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" data-card-color-hex></label><input type="hidden" name="cardColorReset" value="0" data-card-color-reset-input><button class="admin-card-color-reset" type="button" data-card-color-reset>Вернуть базовый</button></div><div class="admin-card-color-favorites"><span>Мои избранные</span><div>${favorites.map(favorite => `<button type="button" data-card-color-favorite="${escapeAttr(favorite.color)}"><i style="--favorite-color:${escapeAttr(favorite.color)}" aria-hidden="true"></i>${escapeHtml(favorite.name)}</button>`).join('')}</div><a href="/admin/card-colors">Настроить мою палитру</a></div></fieldset>`;
 };
 
 const catalogPublicUrl = (type, item) => {
@@ -996,7 +1033,7 @@ const showHeroUpsellData = (body, heroes) => {
   };
 };
 
-const catalogForm = (type, item = {}) => {
+const catalogForm = (type, item = {}, favorites = defaultCardColorFavorites) => {
   const hero = type === 'heroes';
   const show = type === 'shows';
   const event = type === 'events';
@@ -1014,19 +1051,19 @@ const catalogForm = (type, item = {}) => {
       + formField('Категория', 'category', item.category || 'Событие')
       + formField('Надпись на кнопке', 'buttonLabel', item.buttonLabel || 'Открыть афишу')
       + formField('Ссылка кнопки (необязательно)', 'buttonUrl', item.buttonUrl || '')
-      + catalogAccentField(type, item.accent);
+      + catalogColorField(type, item, favorites);
   } else {
     basic += formField('Описание', 'description', item.description || '', { textarea:true, wide:true });
     if (hero) {
       settings = formField('Длительность, минут', 'duration', item.duration || 40, { type:'number', step:'1' })
         + selectField('Для кого', 'audience', item.audience || 'all', [['all','Для всех'],['boys','Для мальчиков'],['girls','Для девочек']])
         + selectField('Формат образа', 'heroFormat', item.format === 'costume' ? 'costume' : 'standard', [['standard','Обычный костюм'],['costume','Ростовой костюм']])
-        + catalogAccentField(type, item.accent)
+        + catalogColorField(type, item, favorites)
         + formField('Цена в будни, ₽', 'priceWeekday', item.priceWeekday ?? item.price ?? '', { type:'number', step:'1', required:true })
         + formField('Цена в выходные, ₽', 'priceWeekend', item.priceWeekend ?? item.price ?? '', { type:'number', step:'1', required:true });
     } else {
       settings = formField('Цена, ₽', 'price', item.price || '', { type:'number', step:'1', required:true })
-        + catalogAccentField(type, item.accent);
+        + catalogColorField(type, item, favorites);
     }
     seo = formField('Заголовок для поиска', 'seoTitle', item.seoTitle || '', { wide:true })
       + formField('Описание для поиска', 'seoDescription', item.seoDescription || '', { textarea:true, wide:true });
@@ -1059,15 +1096,32 @@ const renderAdminCatalog = async (type, query = {}) => {
 };
 
 const renderAdminCatalogEditor = async (type, id, query = {}) => {
-  const items = await loadCatalog(type);
+  const [items, content] = await Promise.all([loadCatalog(type), loadContent()]);
   const isNew = id === 'new';
   const item = isNew ? { published:true } : items.find(entry => entry.id === id);
   if (!item) throw new Error('Карточка не найдена');
   const title = item.name || item.title || 'Новая карточка';
   const preview = catalogPublicUrl(type, item);
-  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/${escapeAttr(type)}">← Все карточки</a><span>Каталог</span><h1>${escapeHtml(isNew ? `Новая карточка` : title)}</h1><p>Заполните главное, загрузите обложку и при необходимости добавьте материалы. Поля для поиска спрятаны в отдельный блок.</p></div>${preview ? adminPreviewLink(preview, 'Открыть на сайте') : ''}</header>${adminSaveNotice(query)}<form class="admin-catalog-form admin-edit-form" method="post" action="/admin/catalog/${escapeAttr(type)}/save" enctype="multipart/form-data" data-admin-form>${catalogForm(type, item)}${adminSaveBar({ previewUrl:preview, submitLabel:isNew ? 'Создать карточку' : 'Сохранить изменения' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление уберёт карточку из каталога. Загруженные файлы сохранятся на сервере.</p><button class="admin-danger" type="submit" formaction="/admin/catalog/${escapeAttr(type)}/delete" formnovalidate onclick="return confirm('Удалить карточку?')">Удалить карточку</button></div>`}</form>`;
+  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/${escapeAttr(type)}">← Все карточки</a><span>Каталог</span><h1>${escapeHtml(isNew ? `Новая карточка` : title)}</h1><p>Заполните главное, загрузите обложку и при необходимости добавьте материалы. Поля для поиска спрятаны в отдельный блок.</p></div>${preview ? adminPreviewLink(preview, 'Открыть на сайте') : ''}</header>${adminSaveNotice(query)}<form class="admin-catalog-form admin-edit-form" method="post" action="/admin/catalog/${escapeAttr(type)}/save" enctype="multipart/form-data" data-admin-form>${catalogForm(type, item, cardColorFavorites(content))}${adminSaveBar({ previewUrl:preview, submitLabel:isNew ? 'Создать карточку' : 'Сохранить изменения' })}${isNew ? '' : `<div class="admin-delete-zone"><span>Опасная зона</span><p>Удаление уберёт карточку из каталога. Загруженные файлы сохранятся на сервере.</p><button class="admin-danger" type="submit" formaction="/admin/catalog/${escapeAttr(type)}/delete" formnovalidate onclick="return confirm('Удалить карточку?')">Удалить карточку</button></div>`}</form>`;
   return adminLayout(isNew ? `Новая карточка · ${catalogTitles[type]}` : title, body, type);
 };
+
+const paletteSlots = content => {
+  const favorites = cardColorFavorites(content);
+  return Array.from({ length:12 }, (_, index) => favorites[index] || { name:'', color:'#FFFFFF' });
+};
+const renderAdminCardColors = async query => {
+  const content = await loadContent();
+  const rows = paletteSlots(content).map((favorite, index) => `<article class="admin-palette-row"><span class="admin-palette-row__number">${String(index + 1).padStart(2, '0')}</span><label class="admin-field"><span>Название</span><input name="paletteName-${index}" value="${escapeAttr(favorite.name)}" maxlength="40" placeholder="Например, Лесной"></label><label class="admin-palette-row__picker"><span>Цвет</span><input type="color" name="paletteColor-${index}" value="${escapeAttr(normalizeHexColor(favorite.color) || '#FFFFFF')}" data-palette-color-picker="${index}"></label><label class="admin-field"><span>HEX</span><input name="paletteHex-${index}" value="${escapeAttr(normalizeHexColor(favorite.color))}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" placeholder="#AABBCC" data-palette-color-hex="${index}"></label></article>`).join('');
+  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/heroes">← К каталогу</a><span>Внешний вид</span><h1>Моя палитра</h1><p>Подготовьте до 12 любимых цветов. Они появятся в редакторе каждой карточки — а кнопка автоматически станет на 20% темнее выбранного фона.</p></div></header>${adminSaveNotice(query)}<form class="admin-edit-form" method="post" action="/admin/card-colors" data-admin-form><section class="admin-editor-card admin-palette-editor"><header><span>Избранные цвета</span><h2>Готовые пары для будущих карточек</h2><p>Можно оставить слот пустым: он не появится в списке избранного.</p></header><div class="admin-palette-list">${rows}</div></section>${adminSaveBar({ previewUrl:'/animatory/#hero-catalog', submitLabel:'Сохранить палитру' })}</form>`;
+  return adminLayout('Моя палитра', body, 'card-colors');
+};
+
+const cardColorFavoritesFromBody = body => Array.from({ length:12 }, (_, index) => {
+  const color = normalizeHexColor(body[`paletteColor-${index}`]) || normalizeHexColor(body[`paletteHex-${index}`]);
+  const name = String(body[`paletteName-${index}`] || '').trim().slice(0, 40);
+  return color ? { name:name || `Цвет ${index + 1}`, color } : null;
+}).filter(Boolean);
 
 const updateGallery = (source, body, files = []) => {
   const existing = Array.isArray(source.gallery) ? source.gallery.filter(entry => entry?.src) : [];
@@ -1141,7 +1195,8 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       buttonLabel: String(body.buttonLabel || 'Открыть афишу').trim(),
       buttonUrl: String(body.buttonUrl || '').trim(),
       imageFit: body.imageFit === 'poster' ? 'poster' : 'cover',
-      accent: catalogAccent(type, body.accent, source.accent)
+      accent: legacyCardAccent(type, source.accent, 'yellow'),
+      cardColor: truthy(body.cardColorReset) ? '' : (normalizeHexColor(body.cardColor) || normalizeHexColor(source.cardColor))
     };
     if (type === 'heroes') return {
       ...base, name, slug: uniqueSlug(body.slug || `animator-${name}-kemerovo`, items, base.id),
@@ -1150,16 +1205,19 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       priceWeekday: priceNumber(body.priceWeekday, source.priceWeekday ?? source.price ?? 0),
       priceWeekend: priceNumber(body.priceWeekend, source.priceWeekend ?? source.price ?? 0),
       audience: ['all','boys','girls'].includes(body.audience) ? body.audience : 'all',
-      format: body.heroFormat === 'costume' ? 'costume' : 'standard', accent: catalogAccent(type, body.accent, source.accent),
+      format: body.heroFormat === 'costume' ? 'costume' : 'standard', accent: legacyCardAccent(type, source.accent, 'yellow'),
+      cardColor: truthy(body.cardColorReset) ? '' : (normalizeHexColor(body.cardColor) || normalizeHexColor(source.cardColor)),
       seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
     };
     if (type === 'shows') return {
       ...base, name, slug: uniqueSlug(body.slug || `${name}-kemerovo`, items, base.id), description: String(body.description || '').trim(),
-      price: priceNumber(body.price, source.price ?? 0), accent: catalogAccent(type, body.accent, source.accent), seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
+      price: priceNumber(body.price, source.price ?? 0), accent: legacyCardAccent(type, source.accent, 'cyan'),
+      cardColor: truthy(body.cardColorReset) ? '' : (normalizeHexColor(body.cardColor) || normalizeHexColor(source.cardColor)), seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
     };
     return {
       ...base, name, slug: uniqueSlug(body.slug || name, items, base.id), description: String(body.description || '').trim(),
-      age: String(body.age || '3+').trim(), price: priceNumber(body.price, source.price ?? 0), accent: catalogAccent(type, body.accent, source.accent)
+      age: String(body.age || '3+').trim(), price: priceNumber(body.price, source.price ?? 0), accent: legacyCardAccent(type, source.accent, 'yellow'),
+      cardColor: truthy(body.cardColorReset) ? '' : (normalizeHexColor(body.cardColor) || normalizeHexColor(source.cardColor))
     };
   });
 };
@@ -1312,6 +1370,7 @@ app.get('/admin/page/:page', requireAdmin, async (req, res, next) => {
 });
 app.get('/admin/cart', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminHeroCart(req.query)); } catch (error) { next(error); } });
 app.get('/admin/sales/show-animators', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminShowHeroUpsells(req.query)); } catch (error) { next(error); } });
+app.get('/admin/card-colors', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminCardColors(req.query)); } catch (error) { next(error); } });
 app.get('/admin/reviews', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviews(req.query)); } catch (error) { next(error); } });
 app.get('/admin/reviews/new', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviewEditor('new', req.query)); } catch (error) { next(error); } });
 app.get('/admin/reviews/edit/:id', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviewEditor(req.params.id, req.query)); } catch (error) { next(error); } });
@@ -1364,6 +1423,13 @@ app.post('/admin/faq', requireAdmin, async (req, res, next) => {
     const faqs = Object.fromEntries(faqPageConfig.map(config => [config.key, faqFromBody(req.body, `faq-${config.key}`)]));
     await writeJson(files.content, { ...previous, faqs:{ ...(previous.faqs || {}), ...faqs } });
     res.redirect('/admin/faq?saved=1');
+  } catch (error) { next(error); }
+});
+app.post('/admin/card-colors', requireAdmin, async (req, res, next) => {
+  try {
+    const previous = await loadContent();
+    await writeJson(files.content, { ...previous, cardColorFavorites:cardColorFavoritesFromBody(req.body) });
+    res.redirect('/admin/card-colors?saved=1');
   } catch (error) { next(error); }
 });
 app.post('/admin/cart', requireAdmin, async (req, res, next) => {
