@@ -1260,7 +1260,7 @@ const catalogForm = (type, item = {}, favorites = defaultCardColorFavorites) => 
 
   const faq = !event ? catalogEditorSection('Вопросы и ответы', 'FAQ этой конкретной программы. Они показываются на её странице и попадают в разметку для поиска.', faqEditor('faq', detailFaqs(item, type)), false) : '';
   const status = item.published !== false ? 'Карточка видна посетителям.' : 'Карточка скрыта: её видите только вы в админке.';
-  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${faq}${seo ? catalogEditorSection('Поисковая выдача', 'Необязательно. Если оставить пустым, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
+  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${faq}${seo ? catalogEditorSection('Поисковая выдача', 'Title и meta description для Яндекса. Они не выводятся посетителю в тексте страницы; если оставить их пустыми, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
 };
 
 const catalogItemCard = (type, item) => {
@@ -1764,12 +1764,19 @@ app.post('/admin/reviews/save', requireAdmin, upload.array('reviewPhotos', 6), a
     res.redirect(`/admin/reviews/edit/${item.id}?saved=1`);
   } catch (error) { await Promise.all(uploadedPhotos.map(deleteUploaded)); next(error); }
 });
-app.post('/admin/reviews/delete', requireAdmin, async (req, res, next) => {
+app.post('/admin/reviews/delete', requireAdmin, upload.any(), async (req, res, next) => {
+  const uploaded = req.files || [];
   try {
+    const id = String(req.body?.id || '');
     const items = await loadCatalog('reviews');
-    await saveCatalog('reviews', items.filter(item => item.id !== req.body.id));
+    if (!id || !items.some(item => item.id === id)) {
+      await Promise.all(uploaded.map(deleteUploaded));
+      return res.status(404).send('Отзыв не найден');
+    }
+    await saveCatalog('reviews', items.filter(item => item.id !== id));
+    await Promise.all(uploaded.map(deleteUploaded));
     res.redirect('/admin/reviews?deleted=1');
-  } catch (error) { next(error); }
+  } catch (error) { await Promise.all(uploaded.map(deleteUploaded)); next(error); }
 });
 app.post('/admin/catalog/heroes/order', requireAdmin, async (req, res, next) => {
   try {
@@ -1815,10 +1822,21 @@ app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image
     res.redirect(`/admin/catalog/${type}/edit/${updated.id}?saved=1`);
   } catch (error) { await Promise.all(allUploaded.map(deleteUploaded)); next(error); }
 });
-app.post('/admin/catalog/:type/delete', requireAdmin, async (req, res, next) => {
+app.post('/admin/catalog/:type/delete', requireAdmin, upload.any(), async (req, res, next) => {
   const type = req.params.type;
   if (!['heroes','shows','events'].includes(type)) return res.status(404).send('Каталог не найден');
-  try { const items = await loadCatalog(type); await saveCatalog(type, items.filter(item => item.id !== req.body.id)); res.redirect(`/admin/catalog/${type}?deleted=1`); } catch (error) { next(error); }
+  const uploaded = req.files || [];
+  try {
+    const id = String(req.body?.id || '');
+    const items = await loadCatalog(type);
+    if (!id || !items.some(item => item.id === id)) {
+      await Promise.all(uploaded.map(deleteUploaded));
+      return res.status(404).send('Карточка не найдена');
+    }
+    await saveCatalog(type, items.filter(item => item.id !== id));
+    await Promise.all(uploaded.map(deleteUploaded));
+    res.redirect(`/admin/catalog/${type}?deleted=1`);
+  } catch (error) { await Promise.all(uploaded.map(deleteUploaded)); next(error); }
 });
 
 app.get('/privacy/', (_req, res) => res.send(privacyPage()));
