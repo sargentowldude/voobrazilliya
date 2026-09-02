@@ -253,7 +253,8 @@ const applyHeroFilter = filter => {
   });
 
   heroCards.forEach(card => {
-    const matches = filter === "all" || card.dataset.heroAudience === "all" || card.dataset.heroAudience === filter;
+    const matches = filter === "all"
+      || (filter === "costume" ? card.dataset.heroFormat === "costume" : card.dataset.heroAudience === "all" || card.dataset.heroAudience === filter);
     card.hidden = !matches;
     if (matches) visibleCount += 1;
   });
@@ -265,8 +266,9 @@ heroFilterButtons.forEach(button => {
   button.addEventListener("click", () => applyHeroFilter(button.dataset.heroFilter));
 });
 
-const requestedHeroFilter = new URLSearchParams(window.location.search).get("audience");
-if (["boys", "girls", "all"].includes(requestedHeroFilter)) applyHeroFilter(requestedHeroFilter);
+const heroFilterParams = new URLSearchParams(window.location.search);
+const requestedHeroFilter = heroFilterParams.get("filter") || heroFilterParams.get("audience");
+if (["boys", "girls", "all", "costume"].includes(requestedHeroFilter)) applyHeroFilter(requestedHeroFilter);
 
 const setupMobileCartStepper = form => {
   const lead = form.querySelector(".hero-cart__lead");
