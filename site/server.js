@@ -551,7 +551,7 @@ const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox 
 
 const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
 const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-v2" sizes="16x16 32x32 48x48 64x64 128x128 256x256"><link rel="icon" href="/favicon-32x32.png?v=20260828-mask-v2" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png?v=20260828-mask-v2" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260828-mask-v2" sizes="180x180"><link rel="manifest" href="/site.webmanifest?v=20260828-pink-brand-v1"><meta name="theme-color" content="#121311">';
-const performanceAssetVersion = '20260902-mobile-scroll-v2';
+const performanceAssetVersion = '20260902-home-cards-v3';
 const layout = (meta, body, pageClass = '') => {
   const floatingCtaHref = body.includes('id="zayavka"') ? '#zayavka' : '/#zayavka';
   return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=${performanceAssetVersion}"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=${performanceAssetVersion}" defer></script></body></html>`;
@@ -662,7 +662,43 @@ const factIcons = {
   weekday: '<svg class="program-fact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3" stroke-linecap="round"/></svg>',
   weekend: '<svg class="program-fact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16" stroke-linecap="round"/><path d="m12 13 .8 1.7 1.9.3-1.4 1.3.4 1.9-1.7-.9-1.7.9.4-1.9-1.4-1.3 1.9-.3.8-1.7Z"/></svg>'
 };
-const directionCard = ({ href, title, age, people, variant, photo, mascot, eyebrow = 'Программа', index = 0 }) => `<a class="service-card service-card--${variant}${mascot ? ' service-card--has-mascot' : ''}" href="${escapeAttr(href)}">${photo?.image ? `<div class="service-card__media">${image(photo, '', { alt:`${title} в Кемерово` })}<span class="service-card__number">${String(index + 1).padStart(2, '0')}</span></div>` : ''}<div class="service-card__summary"><span class="mono-tag">${escapeHtml(eyebrow)}</span><h3>${escapeHtml(title)}</h3><div class="service-card__facts"><div class="service-card__fact">${factIcons.age}<span><small>Возраст</small><strong>${escapeHtml(age)}</strong></span></div><div class="service-card__fact">${factIcons.people}<span><small>Гостей</small><strong>${escapeHtml(people)}</strong></span></div></div><span class="service-card__cta">ВЫБРАТЬ ПРОГРАММУ</span></div>${mascot ? `<img class="service-card__mascot-game" src="${escapeAttr(mascot)}" alt="" aria-hidden="true">` : ''}</a>`;
+const homeDirectionCardDefaults = [
+  { id:'boys', title:'Аниматор для мальчика', age:'3+', people:'1–15', variant:'yellow', eyebrow:'Аниматоры', href:'/animatory/?audience=boys#hero-catalog', buttonLabel:'Выбрать программу', cardColor:'#F2E56F', photoKey:'homeBoyPhoto', fallbackPhotoKey:'animatoryPhoto1' },
+  { id:'girls', title:'Аниматор для девочки', age:'3+', people:'1–15', variant:'cream', eyebrow:'Аниматоры', href:'/animatory/?audience=girls#hero-catalog', buttonLabel:'Выбрать программу', cardColor:'#FFF9FC', photoKey:'homeGirlPhoto', fallbackPhotoKey:'animatoryPhoto2' },
+  { id:'adult-show', title:'Шоу для взрослых', age:'12+', people:'2–50', variant:'pink', eyebrow:'Шоу-программы', href:'/show/#show-catalog', buttonLabel:'Выбрать программу', cardColor:'#F6B4CF', photoKey:'homeAdultShowPhoto', fallbackPhotoKey:'showPhoto1', mascot:'/assets/mascot-game.png' },
+  { id:'foam', title:'Пенная вечеринка', age:'3+', people:'1–200', variant:'foam', eyebrow:'Особый формат', href:'/show/pennaya-vecherinka-kemerovo/', buttonLabel:'Выбрать программу', cardColor:'#9EDBD9', photoKey:'homeFoamPhoto', fallbackPhotoKey:'showPhoto2' }
+];
+const safeHomeCardLink = (value, fallback) => {
+  const href = String(value || '').trim();
+  if (!href) return fallback;
+  if (href.startsWith('/') && !href.startsWith('//') && !href.includes('\\')) return href;
+  if (href.startsWith('#')) return href;
+  try {
+    const url = new URL(href);
+    return ['http:', 'https:'].includes(url.protocol) ? href : fallback;
+  } catch {
+    return fallback;
+  }
+};
+const homeDirectionCards = content => {
+  const saved = content?.homeDirectionCards && !Array.isArray(content.homeDirectionCards) ? content.homeDirectionCards : {};
+  return homeDirectionCardDefaults.map(card => {
+    const settings = saved[card.id] && typeof saved[card.id] === 'object' ? saved[card.id] : {};
+    return {
+      ...card,
+      href: safeHomeCardLink(settings.href, card.href),
+      buttonLabel: String(settings.buttonLabel || card.buttonLabel).trim().slice(0, 60) || card.buttonLabel,
+      cardColor: normalizeHexColor(settings.cardColor) || card.cardColor
+    };
+  });
+};
+const homeDirectionCardStyle = cardColor => {
+  const background = normalizeHexColor(cardColor);
+  if (!background) return '';
+  const cta = mixHexColor(background, '#000000', .2);
+  return ` style="--service-surface:${background};--service-cta:${cta};--service-text:${readableColor(background)};--service-cta-text:${readableColor(cta)}"`;
+};
+const directionCard = ({ href, title, age, people, variant, photo, mascot, eyebrow = 'Программа', buttonLabel = 'Выбрать программу', cardColor, index = 0 }) => `<a class="service-card service-card--${variant}${mascot ? ' service-card--has-mascot' : ''}" href="${escapeAttr(href)}"${homeDirectionCardStyle(cardColor)}>${photo?.image ? `<div class="service-card__media">${image(photo, '', { alt:`${title} в Кемерово` })}<span class="service-card__number">${String(index + 1).padStart(2, '0')}</span></div>` : ''}<div class="service-card__summary"><span class="mono-tag">${escapeHtml(eyebrow)}</span><h3>${escapeHtml(title)}</h3><div class="service-card__facts"><div class="service-card__fact">${factIcons.age}<span><small>Возраст</small><strong>${escapeHtml(age)}</strong></span></div><div class="service-card__fact">${factIcons.people}<span><small>Гостей</small><strong>${escapeHtml(people)}</strong></span></div></div><span class="service-card__cta">${escapeHtml(buttonLabel)}</span></div>${mascot ? `<img class="service-card__mascot-game" src="${escapeAttr(mascot)}" alt="" aria-hidden="true">` : ''}</a>`;
 
 const reviews = (source, options = {}) => {
   const items = source.filter(visible).sort((first, second) => number(first.position, 999) - number(second.position, 999));
@@ -693,12 +729,9 @@ const renderHome = async () => {
     .filter(visible)
     .sort((first, second) => (Date.parse(second.createdAt || second.updatedAt || second.date) || 0) - (Date.parse(first.createdAt || first.updatedAt || first.date) || 0))
     .slice(0, 3);
-  const directionCards = [
-    directionCard({ href:'/animatory/?audience=boys#hero-catalog', title:'Аниматор для мальчика', age:'3+', people:'1–15', variant:'yellow', eyebrow:'Аниматоры', index:0, photo:photoWithFallback(content, 'homeBoyPhoto', 'animatoryPhoto1') }),
-    directionCard({ href:'/animatory/?audience=girls#hero-catalog', title:'Аниматор для девочки', age:'3+', people:'1–15', variant:'cream', eyebrow:'Аниматоры', index:1, photo:photoWithFallback(content, 'homeGirlPhoto', 'animatoryPhoto2') }),
-    directionCard({ href:'/show/#show-catalog', title:'Шоу для взрослых', age:'12+', people:'2–50', variant:'pink', eyebrow:'Шоу-программы', index:2, photo:photoWithFallback(content, 'homeAdultShowPhoto', 'showPhoto1'), mascot:'/assets/mascot-game.png' }),
-    directionCard({ href:'/show/pennaya-vecherinka-kemerovo/', title:'Пенная вечеринка', age:'3+', people:'1–200', variant:'foam', eyebrow:'Особый формат', index:3, photo:photoWithFallback(content, 'homeFoamPhoto', 'showPhoto2') })
-  ].join('');
+  const directionCards = homeDirectionCards(content)
+    .map((card, index) => directionCard({ ...card, index, photo:photoWithFallback(content, card.photoKey, card.fallbackPhotoKey) }))
+    .join('');
   const formats = 'АНИМАТОРЫ <i>✦</i> ШОУ <i>✦</i> ДЕНЬ РОЖДЕНИЯ <i>✦</i> ПЕННАЯ ВЕЧЕРИНКА <i>✦</i> КЕМЕРОВО';
   const conditions = '40 минут игры <i>·</i> от 2 000 ₽ <i>·</i> дом / сад / школа <i>·</i> Кемерово';
   const homeTicker = `<div class="ticker" aria-label="Направления"><div class="ticker__track"><div class="ticker__group">${formats}</div><div class="ticker__group" aria-hidden="true">${formats}</div></div></div>`;
@@ -844,7 +877,7 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-card-custom-color-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-card-custom-color-v1" defer></script></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-home-cards-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-home-cards-v1" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
 const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'faq' ? 'is-active' : ''}" href="/admin/faq">FAQ всех страниц</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
@@ -955,12 +988,20 @@ const renderPageHeroFields = (config, content) => {
   const current = config.hero.key ? pageHeroCopy(content, config.hero.key) : { lines:[content[titleName] || ''], intro:content[introName] || '' };
   return `<section class="admin-editor-card"><header><span>${escapeHtml(config.hero.title)}</span><h2>Что увидят на первом экране</h2><p>${escapeHtml(config.hero.hint)}</p></header><div class="admin-grid">${formField(config.hero.key ? 'H1 — каждая строка с новой строки' : 'H1', titleName, current.lines.join('\n'), { textarea:Boolean(config.hero.key), wide:true, required:true })}${formField(config.hero.key ? 'Описание под H1' : 'Подзаголовок', introName, current.intro, { textarea:true, wide:true, required:true })}</div></section>`;
 };
+const homeDirectionCardColorField = (card, favorites) => `<fieldset class="admin-card-color-field admin-field--wide"><legend>Цвет карточки</legend><p>Выберите любой цвет или один из сохранённых. Кнопка автоматически станет на 20% темнее фона.</p><div class="admin-card-color-current"><label class="admin-card-color-picker"><span>Выбрать цвет</span><input type="color" value="${escapeAttr(card.cardColor)}" data-card-color-picker></label><label class="admin-field"><span>HEX</span><input name="homeCardColor-${escapeAttr(card.id)}" value="${escapeAttr(card.cardColor)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" data-card-color-hex></label></div><div class="admin-card-color-favorites"><span>Мои избранные</span><div>${favorites.map(favorite => `<button type="button" data-card-color-favorite="${escapeAttr(favorite.color)}"><i style="--favorite-color:${escapeAttr(favorite.color)}" aria-hidden="true"></i>${escapeHtml(favorite.name)}</button>`).join('')}</div><a href="/admin/card-colors">Настроить мою палитру</a></div></fieldset>`;
+const renderHomeDirectionCardEditor = content => {
+  const favorites = cardColorFavorites(content);
+  const cards = homeDirectionCards(content);
+  const rows = cards.map((card, index) => `<article class="admin-home-card-row"><header><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(card.title)}</strong><small>${escapeHtml(card.eyebrow)} · ${escapeHtml(card.age)} · до ${escapeHtml(card.people)} гостей</small></div></header><div class="admin-grid">${formField('Надпись на кнопке', `homeCardButtonLabel-${card.id}`, card.buttonLabel, { required:true })}${formField('Ссылка карточки и кнопки', `homeCardHref-${card.id}`, card.href, { wide:true, required:true })}${homeDirectionCardColorField(card, favorites)}</div></article>`).join('');
+  return `<section class="admin-editor-card admin-home-card-editor"><header><span>Плитки направлений</span><h2>Карточки на главной</h2><p>Вся карточка кликабельна, поэтому ссылка здесь одновременно управляет и переходом по плитке, и кнопкой внутри неё.</p></header><div class="admin-home-card-list">${rows}</div></section>`;
+};
 
 const renderAdminPage = async (key, query = {}) => {
   const config = adminPageConfig[key];
   if (!config) throw new Error('Страница админки не найдена');
   const content = await loadContent();
-  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
+  const homeCardsEditor = key === 'home' ? renderHomeDirectionCardEditor(content) : '';
+  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}${homeCardsEditor}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
   return adminLayout(config.title, body, config.active);
 };
 
@@ -1469,6 +1510,19 @@ app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) =>
       const introField = `${key}HeroIntro`;
       if (req.body[titleField] !== undefined) nextContent[titleField] = String(req.body[titleField] || '').trim();
       if (req.body[introField] !== undefined) nextContent[introField] = String(req.body[introField] || '').trim();
+    }
+    const homeCardFieldsSubmitted = homeDirectionCardDefaults.some(card => [
+      `homeCardHref-${card.id}`,
+      `homeCardButtonLabel-${card.id}`,
+      `homeCardColor-${card.id}`
+    ].some(field => Object.hasOwn(req.body, field)));
+    if (homeCardFieldsSubmitted) {
+      nextContent.homeDirectionCards = Object.fromEntries(homeDirectionCards(previous).map(card => {
+        const href = safeHomeCardLink(req.body[`homeCardHref-${card.id}`], card.href);
+        const buttonLabel = String(req.body[`homeCardButtonLabel-${card.id}`] || card.buttonLabel).trim().slice(0, 60) || card.buttonLabel;
+        const cardColor = normalizeHexColor(req.body[`homeCardColor-${card.id}`]) || card.cardColor;
+        return [card.id, { href, buttonLabel, cardColor }];
+      }));
     }
     const inputFiles = new Map(allUploaded.map(file => [file.fieldname, file]));
     for (const key of ['photo1','homeBoyPhoto','homeGirlPhoto','homeAdultShowPhoto','homeFoamPhoto','photo5','photo6','photo7','photoBirthday','animatoryPhoto1','animatoryPhoto2','animatoryPhoto3','animatoryPhoto4','showPhoto1','showPhoto2','showPhoto3','showPhoto4']) {

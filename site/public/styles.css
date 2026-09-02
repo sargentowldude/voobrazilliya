@@ -854,7 +854,7 @@ h1,
   min-height: 410px;
   padding: 24px;
   border-radius: var(--radius);
-  color: var(--ink);
+  color: var(--service-text, var(--ink));
   text-decoration: none;
   border: 1px solid rgba(37, 36, 42, 0.82);
   display: flex;
@@ -865,14 +865,14 @@ h1,
   transform: translateY(-10px) rotate(-0.35deg);
 }
 .service-card--yellow {
-  background: var(--card-yellow);
+  background: var(--service-surface, var(--card-yellow));
 }
 .service-card--cream {
-  background: var(--cream);
+  background: var(--service-surface, var(--cream));
   margin-top: 80px;
 }
 .service-card--pink {
-  background: var(--pink);
+  background: var(--service-surface, var(--pink));
   margin-top: 25px;
 }
 .service-card h3,
@@ -953,7 +953,7 @@ h1,
 .service-card--foam {
   --service-cta: #17677a;
   --service-cta-text: var(--cream);
-  background: #9edbd9;
+  background: var(--service-surface, #9edbd9);
 }
 .service-card--foam .service-card__media { background: #6dbfce; }
 .service-card--cream { --service-cta: var(--accent); --service-cta-text: var(--ink); }
