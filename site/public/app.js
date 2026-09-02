@@ -243,18 +243,25 @@ document.querySelectorAll("[data-open-form]").forEach(button => {
 const heroFilterButtons = document.querySelectorAll("[data-hero-filter]");
 const heroCards = document.querySelectorAll("[data-hero-audience]");
 const heroEmpty = document.querySelector("[data-hero-empty]");
+const heroFilterState = { audience: "all", costume: false };
 
-const applyHeroFilter = filter => {
+const applyHeroFilter = () => {
   let visibleCount = 0;
   heroFilterButtons.forEach(button => {
-    const active = button.dataset.heroFilter === filter;
+    const filter = button.dataset.heroFilter;
+    const active = filter === "costume"
+      ? heroFilterState.costume
+      : filter === heroFilterState.audience;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
 
   heroCards.forEach(card => {
-    const matches = filter === "all"
-      || (filter === "costume" ? card.dataset.heroFormat === "costume" : card.dataset.heroAudience === "all" || card.dataset.heroAudience === filter);
+    const audienceMatches = heroFilterState.audience === "all"
+      || card.dataset.heroAudience === "all"
+      || card.dataset.heroAudience === heroFilterState.audience;
+    const formatMatches = !heroFilterState.costume || card.dataset.heroFormat === "costume";
+    const matches = audienceMatches && formatMatches;
     card.hidden = !matches;
     if (matches) visibleCount += 1;
   });
@@ -263,12 +270,19 @@ const applyHeroFilter = filter => {
 };
 
 heroFilterButtons.forEach(button => {
-  button.addEventListener("click", () => applyHeroFilter(button.dataset.heroFilter));
+  button.addEventListener("click", () => {
+    const filter = button.dataset.heroFilter;
+    if (filter === "costume") heroFilterState.costume = !heroFilterState.costume;
+    else heroFilterState.audience = filter;
+    applyHeroFilter();
+  });
 });
 
 const heroFilterParams = new URLSearchParams(window.location.search);
-const requestedHeroFilter = heroFilterParams.get("filter") || heroFilterParams.get("audience");
-if (["boys", "girls", "all", "costume"].includes(requestedHeroFilter)) applyHeroFilter(requestedHeroFilter);
+const requestedHeroAudience = heroFilterParams.get("audience");
+if (["boys", "girls", "all"].includes(requestedHeroAudience)) heroFilterState.audience = requestedHeroAudience;
+if (heroFilterParams.get("filter") === "costume" || heroFilterParams.get("format") === "costume") heroFilterState.costume = true;
+if (requestedHeroAudience || heroFilterState.costume) applyHeroFilter();
 
 const setupMobileCartStepper = form => {
   const lead = form.querySelector(".hero-cart__lead");
