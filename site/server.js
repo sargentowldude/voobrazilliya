@@ -173,6 +173,10 @@ const number = (value, fallback = 50) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.max(0, Math.min(200, parsed)) : fallback;
 };
+const orderedCatalogItems = (items = []) => items
+  .map((item, index) => ({ item, index, position:Math.max(1, Math.round(number(item?.position, index + 1))) }))
+  .sort((first, second) => first.position - second.position || first.index - second.index)
+  .map(entry => entry.item);
 const priceNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.max(0, Math.min(10_000_000, Math.round(parsed))) : fallback;
@@ -833,7 +837,7 @@ const animatorIntroNote = () => `<section class="animator-intro-note" aria-label
 
 const renderAnimators = async () => {
   const [content, heroItems, reviewItems] = await Promise.all([loadContent(), loadCatalog('heroes'), loadCatalog('reviews')]);
-  const heroes = heroItems.filter(visible);
+  const heroes = orderedCatalogItems(heroItems.filter(visible));
   const heroCopy = pageHeroCopy(content, 'animatory');
   const cartSettings = heroCartSettings(content);
   const animatorFaq = pageFaqs(content, 'animatory');
@@ -859,10 +863,11 @@ const showCard = (show, index) => `<article class="show-offer-card show-offer-ca
 const renderShow = async () => {
   const [content, catalog, heroes] = await Promise.all([loadContent(), loadCatalog('shows'), loadCatalog('heroes')]);
   const shows = catalog.filter(visible);
+  const orderedHeroes = orderedCatalogItems(heroes.filter(visible));
   const heroCopy = pageHeroCopy(content, 'show');
   const showFaq = pageFaqs(content, 'show');
   const showSeo = `${seoCopySection({ eyebrow:'Шоу-программы в Кемерово', title:'Выберите шоу на день рождения или большой праздник', paragraphs:['Интерактивные шоу вовлекают гостей в программу, а не оставляют их зрителями. В карточках указаны описание, фотографии или видео и актуальная стоимость.','Самый заметный сезонный формат — пенная вечеринка для детей и взрослых. Для неё подготовлена отдельная страница с ценой и условиями проведения.'], items:['азотное шоу с эффектными опытами','неоновая дискотека с играми и музыкой','пенная вечеринка на просторной площадке','Разнос-шоу для активной компании'], links:[{ href:'#show-catalog', label:'Выбрать шоу' },{ href:'/show/pennaya-vecherinka-kemerovo/', label:'Посмотреть пенную вечеринку' }] })}${faqSection(showFaq)}`;
-  const body = `${heroBlock({ tag:'Шоу на праздник · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'showPhoto1'), photoAlt:'Шоу-программа на праздник в Кемерово', mascot:'/assets/mascot-peek-show.png', service:'Подбор шоу', pageClass:'afisha-hero' })}<section class="show-catalog" id="show-catalog"><div class="show-offer-grid-wrap"><button class="show-catalog__mascot-cta" type="button" data-open-form data-service="Подбор шоу"><img src="/assets/mascot-game.png" alt="" aria-hidden="true"><span><small>Нужна подсказка?</small><strong>Подберём шоу</strong></span></button><div class="show-offer-grid">${shows.map(showCard).join('')}</div></div></section>${showSeo}${showCartDialog(shows, heroes)}${partyForm()}`;
+  const body = `${heroBlock({ tag:'Шоу на праздник · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'showPhoto1'), photoAlt:'Шоу-программа на праздник в Кемерово', mascot:'/assets/mascot-peek-show.png', service:'Подбор шоу', pageClass:'afisha-hero' })}<section class="show-catalog" id="show-catalog"><div class="show-offer-grid-wrap"><button class="show-catalog__mascot-cta" type="button" data-open-form data-service="Подбор шоу"><img src="/assets/mascot-game.png" alt="" aria-hidden="true"><span><small>Нужна подсказка?</small><strong>Подберём шоу</strong></span></button><div class="show-offer-grid">${shows.map(showCard).join('')}</div></div></section>${showSeo}${showCartDialog(shows, orderedHeroes)}${partyForm()}`;
   return layout(pageMeta({ title:'Шоу на праздник в Кемерово — программы и цены | ТЕМА', description:'Заказать шоу на праздник в Кемерово: азотное шоу, неоновая дискотека, пенная вечеринка и Разнос-шоу. Описание программ и цены.', path:'/show/', schemas:[serviceSchema({ name:'Шоу на праздник в Кемерово', description:'Интерактивные шоу-программы с выездом на площадку заказчика в Кемерово.', path:'/show/', price:minimumPriceValue(shows) }), ...faqSchemas(showFaq)] }), body, 'page--show');
 };
 
@@ -935,7 +940,7 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-home-custom-cards-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-home-cards-v1" defer></script></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-hero-order-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-home-cards-v1" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
 const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'faq' ? 'is-active' : ''}" href="/admin/faq">FAQ всех страниц</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
@@ -1269,13 +1274,30 @@ const catalogItemCard = (type, item) => {
   const preview = catalogPublicUrl(type, item);
   return `<article class="admin-catalog-row"><span class="admin-catalog-item__media">${media}</span><div class="admin-catalog-item__copy"><small>${escapeHtml(meta || 'Карточка каталога')}</small><strong>${escapeHtml(title)}</strong></div><span class="admin-catalog-item__status ${item.published !== false ? 'is-live' : ''}">${item.published !== false ? 'На сайте' : 'Скрыто'}</span><div class="admin-catalog-row__actions"><a class="admin-row-action" href="/admin/catalog/${escapeAttr(type)}/edit/${escapeAttr(item.id)}">Редактировать</a>${preview ? adminPreviewLink(preview, 'Открыть') : '<span class="admin-row-muted">Скрыто</span>'}</div></article>`;
 };
+const heroOrderRow = (hero, index, total) => {
+  const media = hero.image ? `<img src="${escapeAttr(hero.image)}" alt="" style="${cropStyle(hero)}">` : '<span>Нет фото</span>';
+  const audience = hero.audience === 'girls' ? 'Для девочек' : hero.audience === 'boys' ? 'Для мальчиков' : 'Для всех';
+  const format = hero.format === 'costume' ? 'Ростовой костюм' : 'Аниматор';
+  return `<article class="admin-hero-order-row"><span class="admin-catalog-item__media">${media}</span><div class="admin-hero-order-row__copy"><small>${escapeHtml(`${format} · ${audience}`)}</small><strong>${escapeHtml(hero.name || 'Без названия')}</strong>${hero.published === false ? '<em>Скрыт с сайта</em>' : ''}</div><label class="admin-hero-order-row__field"><span>Позиция</span><input type="number" name="heroOrder-${escapeAttr(hero.id)}" value="${index + 1}" min="1" max="${total}" step="1" required inputmode="numeric"></label></article>`;
+};
+const renderAdminHeroOrder = async (query = {}) => {
+  const heroes = orderedCatalogItems(await loadCatalog('heroes'));
+  const rows = heroes.length
+    ? heroes.map((hero, index) => heroOrderRow(hero, index, heroes.length)).join('')
+    : '<p class="admin-empty">Сначала добавьте хотя бы одного аниматора.</p>';
+  const body = `<header class="admin-page-head admin-page-head--editor"><div><a class="admin-back-link" href="/admin/catalog/heroes">← К карточкам аниматоров</a><span>Каталог</span><h1>Порядок аниматоров</h1><p>Меньшая цифра — выше в каталоге. Если указать одинаковые цифры, порядок сохранится таким, как показан в списке.</p></div>${adminPreviewLink('/animatory/#hero-catalog', 'Открыть каталог')}</header>${adminSaveNotice(query)}<form class="admin-edit-form" method="post" action="/admin/catalog/heroes/order" data-admin-form><section class="admin-editor-card admin-hero-order-editor"><header><span>Очередность карточек</span><h2>Кого показывать первым</h2><p>Порядок применяется к каталогу аниматоров и выбору героя в корзине.</p></header><div class="admin-hero-order-list">${rows}</div></section>${adminSaveBar({ previewUrl:'/animatory/#hero-catalog', submitLabel:'Сохранить порядок' })}</form>`;
+  return adminLayout('Порядок аниматоров', body, 'heroes');
+};
 
 const renderAdminCatalog = async (type, query = {}) => {
   const title = catalogTitles[type];
-  const items = await loadCatalog(type);
+  const items = type === 'heroes' ? orderedCatalogItems(await loadCatalog(type)) : await loadCatalog(type);
   const pageKey = { heroes:'animatory', shows:'show' }[type];
   const pageLink = pageKey ? `<aside class="admin-linked-page"><div><span>Связанная страница</span><strong>Первый экран настраивается отдельно</strong><p>Текст и общая фотография каталога не смешаны с карточками.</p></div><a href="${escapeAttr(adminPageConfig[pageKey].adminUrl)}">Открыть первый экран →</a></aside>` : '';
-  const body = `<header class="admin-page-head"><div><span>Каталог</span><h1>${escapeHtml(title)}</h1><p>${escapeHtml(catalogPageIntro[type])}</p></div><a class="admin-primary-link" href="/admin/catalog/${escapeAttr(type)}/new">+ Добавить</a></header>${adminSaveNotice(query)}${pageLink}<section class="admin-catalog-list" aria-label="${escapeAttr(title)}">${items.length ? items.map(item => catalogItemCard(type, item)).join('') : '<p class="admin-empty">Пока нет карточек. Добавьте первую.</p>'}</section>`;
+  const actions = type === 'heroes'
+    ? `<div class="admin-page-head__actions"><a class="admin-preview-link" href="/admin/catalog/heroes/order">Порядок</a><a class="admin-primary-link" href="/admin/catalog/heroes/new">+ Добавить</a></div>`
+    : `<a class="admin-primary-link" href="/admin/catalog/${escapeAttr(type)}/new">+ Добавить</a>`;
+  const body = `<header class="admin-page-head"><div><span>Каталог</span><h1>${escapeHtml(title)}</h1><p>${escapeHtml(catalogPageIntro[type])}</p></div>${actions}</header>${adminSaveNotice(query)}${pageLink}<section class="admin-catalog-list" aria-label="${escapeAttr(title)}">${items.length ? items.map(item => catalogItemCard(type, item)).join('') : '<p class="admin-empty">Пока нет карточек. Добавьте первую.</p>'}</section>`;
   return adminLayout(title, body, type);
 };
 
@@ -1390,6 +1412,7 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       priceWeekend: priceNumber(body.priceWeekend, source.priceWeekend ?? source.price ?? 0),
       audience: ['all','boys','girls'].includes(body.audience) ? body.audience : 'all',
       format: body.heroFormat === 'costume' ? 'costume' : 'standard', accent: legacyCardAccent(type, source.accent, 'yellow'),
+      position: Math.max(1, Math.round(number(source.position, items.length + 1))),
       cardColor: truthy(body.cardColorReset) ? '' : (normalizeHexColor(body.cardColor) || normalizeHexColor(source.cardColor)),
       seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
     };
@@ -1558,6 +1581,7 @@ app.get('/admin/card-colors', requireAdmin, async (req, res, next) => { try { re
 app.get('/admin/reviews', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviews(req.query)); } catch (error) { next(error); } });
 app.get('/admin/reviews/new', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviewEditor('new', req.query)); } catch (error) { next(error); } });
 app.get('/admin/reviews/edit/:id', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminReviewEditor(req.params.id, req.query)); } catch (error) { next(error); } });
+app.get('/admin/catalog/heroes/order', requireAdmin, async (req, res, next) => { try { res.send(await renderAdminHeroOrder(req.query)); } catch (error) { next(error); } });
 app.get('/admin/catalog/:type/new', requireAdmin, async (req, res, next) => {
   if (!['heroes','shows','events'].includes(req.params.type)) return res.status(404).send('Каталог не найден');
   try { res.send(await renderAdminCatalogEditor(req.params.type, 'new', req.query)); } catch (error) { next(error); }
@@ -1745,6 +1769,27 @@ app.post('/admin/reviews/delete', requireAdmin, async (req, res, next) => {
     const items = await loadCatalog('reviews');
     await saveCatalog('reviews', items.filter(item => item.id !== req.body.id));
     res.redirect('/admin/reviews?deleted=1');
+  } catch (error) { next(error); }
+});
+app.post('/admin/catalog/heroes/order', requireAdmin, async (req, res, next) => {
+  try {
+    const heroes = await loadCatalog('heroes');
+    const currentOrder = orderedCatalogItems(heroes);
+    const requestedOrder = currentOrder.map((hero, index) => {
+      const rawPosition = Number(req.body[`heroOrder-${hero.id}`]);
+      return {
+        hero,
+        index,
+        position:Number.isFinite(rawPosition) && rawPosition >= 1 ? Math.min(999, Math.round(rawPosition)) : index + 1
+      };
+    }).sort((first, second) => first.position - second.position || first.index - second.index);
+    const positions = new Map(requestedOrder.map((entry, index) => [entry.hero.id, index + 1]));
+    const timestamp = now();
+    await saveCatalog('heroes', heroes.map(hero => {
+      const position = positions.get(hero.id);
+      return Number(hero.position) === position ? hero : { ...hero, position, updatedAt:timestamp };
+    }));
+    res.redirect('/admin/catalog/heroes/order?saved=1');
   } catch (error) { next(error); }
 });
 app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image', maxCount:1 }, { name:'galleryMedia', maxCount:8 }]), async (req, res, next) => {

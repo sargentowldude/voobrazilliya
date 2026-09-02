@@ -1096,6 +1096,89 @@ button { cursor: pointer; }
   align-items: center;
   gap: 8px;
 }
+.admin-page-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.admin-hero-order-list { display: grid; gap: 10px; }
+.admin-hero-order-row {
+  min-height: 78px;
+  padding: 9px 11px 9px 9px;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 94px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: 13px;
+  background: rgba(34,36,58,.76);
+}
+.admin-hero-order-row:hover { border-color: var(--admin-line-strong); }
+.admin-hero-order-row .admin-catalog-item__media {
+  width: 58px;
+  height: 58px;
+}
+.admin-hero-order-row__copy { min-width: 0; }
+.admin-hero-order-row__copy small,
+.admin-hero-order-row__copy strong,
+.admin-hero-order-row__copy em { display: block; }
+.admin-hero-order-row__copy small {
+  margin-bottom: 3px;
+  color: var(--admin-muted);
+  font-size: 10px;
+}
+.admin-hero-order-row__copy strong {
+  overflow: hidden;
+  color: var(--admin-text);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-hero-order-row__copy em {
+  margin-top: 4px;
+  color: var(--admin-muted);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+}
+.admin-hero-order-row__field {
+  display: grid;
+  gap: 5px;
+  color: var(--admin-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.admin-hero-order-row__field input {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid rgba(249,26,122,.36);
+  border-radius: 9px;
+  background: rgba(20,21,35,.66);
+  color: var(--admin-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-align: center;
+}
+.admin-hero-order-row__field input:focus {
+  outline: 0;
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px rgba(249,26,122,.12);
+}
+@media (max-width: 520px) {
+  .admin-page-head__actions { width: 100%; }
+  .admin-page-head__actions > a { flex: 1; }
+  .admin-hero-order-row {
+    grid-template-columns: 54px minmax(0, 1fr) 72px;
+    gap: 9px;
+  }
+  .admin-hero-order-row .admin-catalog-item__media { width: 54px; height: 54px; }
+  .admin-hero-order-row__field { font-size: 8px; }
+}
 .admin-row-action { min-height: 36px; padding: 0 10px; }
 .admin-row-muted { color: var(--admin-muted); font-size: 10px; font-weight: 800; }
 .admin-delete-zone {
