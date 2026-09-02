@@ -66,6 +66,7 @@ const publicDir = path.join(__dirname, 'public');
 const fontsDir = path.join(__dirname, 'fonts');
 const logoDir = path.join(__dirname, 'logo');
 const uploadsDir = path.join(publicDir, 'uploads');
+const cardImagesDir = path.join(uploadsDir, 'card-images');
 const files = {
   content: path.join(dataDir, 'content.json'),
   events: path.join(dataDir, 'events.json'),
@@ -76,7 +77,10 @@ const files = {
   leadDeletionLog: path.join(dataDir, 'leads-deletion-log.jsonl')
 };
 
-await fs.mkdir(uploadsDir, { recursive: true });
+await Promise.all([
+  fs.mkdir(uploadsDir, { recursive: true }),
+  fs.mkdir(cardImagesDir, { recursive: true })
+]);
 app.disable('x-powered-by');
 if (trustProxy) app.set('trust proxy', 'loopback');
 app.use(express.urlencoded({ extended: true }));
@@ -249,7 +253,7 @@ const showAnimatorSettings = (show, heroes) => {
       return {
         id: hero.id,
         name: hero.name,
-        image: hero.image || '',
+        image: cardImageSource(hero),
         imagePositionX: number(hero.imagePositionX, 50),
         imagePositionY: number(hero.imagePositionY, 50),
         imageScale: number(hero.imageScale, 100),
@@ -280,8 +284,10 @@ const formatEventDate = value => {
 };
 const cropStyle = item => `object-position:${number(item.imagePositionX)}% ${number(item.imagePositionY)}%;transform-origin:${number(item.imagePositionX)}% ${number(item.imagePositionY)}%;transform:scale(${number(item.imageScale, 100) / 100});`;
 const galleryCropStyle = item => `object-position:${number(item.imagePositionX, 50)}% ${number(item.imagePositionY, 50)}%;transform-origin:${number(item.imagePositionX, 50)}% ${number(item.imagePositionY, 50)}%;transform:scale(${number(item.imageScale, 100) / 100});`;
+const catalogCardImages = new Map();
+const cardImageSource = item => catalogCardImages.get(String(item?.image || '')) || String(item?.image || '');
 const image = (item, className = '', options = {}) => item?.image
-  ? `<img class="${className}" src="${escapeAttr(item.image)}" alt="${escapeAttr(options.alt ?? item.name ?? item.title ?? '')}" loading="${options.loading === 'eager' ? 'eager' : 'lazy'}" decoding="async"${options.loading === 'eager' ? ' fetchpriority="high"' : ''} style="${cropStyle(item)}">`
+  ? `<img class="${className}" src="${escapeAttr(options.card ? cardImageSource(item) : item.image)}" alt="${escapeAttr(options.alt ?? item.name ?? item.title ?? '')}" loading="${options.loading === 'eager' ? 'eager' : 'lazy'}" decoding="async"${options.loading === 'eager' ? ' fetchpriority="high"' : ''} style="${cropStyle(item)}">`
   : '<span class="hero-program-card__placeholder">ФОТО ПОЯВИТСЯ ЗДЕСЬ</span>';
 const programMediaGallery = item => {
   const media = Array.isArray(item?.gallery) ? item.gallery.filter(entry => entry?.src) : [];
@@ -341,6 +347,7 @@ const convertUploadedImageToWebp = async file => {
   try {
     await sharp(file.path, { animated:file.mimetype === 'image/gif', limitInputPixels:40_000_000 })
       .rotate()
+      .resize({ width:1600, height:1600, fit:'inside', withoutEnlargement:true })
       .webp({ quality:82, effort:5, smartSubsample:true })
       .toFile(outputPath);
     await fs.unlink(file.path);
@@ -353,6 +360,60 @@ const convertUploadedImageToWebp = async file => {
   }
 };
 const convertUploadedImagesToWebp = files => Promise.all(files.map(convertUploadedImageToWebp));
+const catalogCardImageTarget = source => {
+  const normalizedSource = String(source || '').split(/[?#]/, 1)[0];
+  if (!/^\/(?:uploads|assets\/heroes)\/[^/].+$/i.test(normalizedSource)) return null;
+  const sourcePath = path.resolve(publicDir, `.${normalizedSource}`);
+  const publicRoot = `${path.resolve(publicDir)}${path.sep}`;
+  if (!sourcePath.startsWith(publicRoot)) return null;
+  const baseName = path.parse(normalizedSource).name.replace(/[^a-z0-9_-]+/gi, '-').slice(0, 80) || 'card';
+  const fingerprint = crypto.createHash('sha1').update(normalizedSource).digest('hex').slice(0, 12);
+  const filename = `${baseName}-${fingerprint}.webp`;
+  return {
+    sourcePath,
+    outputPath:path.join(cardImagesDir, filename),
+    publicUrl:`/uploads/card-images/${filename}`
+  };
+};
+const ensureCatalogCardImage = async source => {
+  const target = catalogCardImageTarget(source);
+  if (!target) return String(source || '');
+  const sourceStat = await fs.stat(target.sourcePath);
+  const outputStat = await fs.stat(target.outputPath).catch(() => null);
+  if (!outputStat || outputStat.mtimeMs < sourceStat.mtimeMs) {
+    const temporaryPath = `${target.outputPath}.${process.pid}-${crypto.randomUUID()}.tmp`;
+    try {
+      await sharp(target.sourcePath, { limitInputPixels:40_000_000 })
+        .rotate()
+        .resize({ width:720, withoutEnlargement:true })
+        .webp({ quality:78, effort:4, smartSubsample:true })
+        .toFile(temporaryPath);
+      await fs.rename(temporaryPath, target.outputPath).catch(async error => {
+        if (!['EEXIST', 'EPERM'].includes(error.code)) throw error;
+        await fs.unlink(target.outputPath).catch(() => {});
+        await fs.rename(temporaryPath, target.outputPath);
+      });
+    } catch (error) {
+      await fs.unlink(temporaryPath).catch(() => {});
+      throw error;
+    }
+  }
+  catalogCardImages.set(String(source), target.publicUrl);
+  return target.publicUrl;
+};
+const prepareCatalogCardImages = async () => {
+  const catalogs = await Promise.all(['heroes', 'shows', 'events'].map(loadCatalog));
+  const pendingSources = [...new Set(catalogs.flat().map(item => item?.image).filter(Boolean))];
+  const worker = async () => {
+    while (pendingSources.length) {
+      const source = pendingSources.shift();
+      await ensureCatalogCardImage(source).catch(error => {
+        console.error(`Не удалось подготовить обложку карточки ${source}:`, error.message);
+      });
+    }
+  };
+  await Promise.all(Array.from({ length:Math.min(2, pendingSources.length) }, worker));
+};
 const rateLimitAttempts = new Map();
 const clientAddress = req => String(req.ip || req.socket.remoteAddress || 'unknown').slice(0, 200);
 const pruneRateLimitAttempts = () => {
@@ -477,7 +538,8 @@ const structuredData = meta => [
 
 const phoneIcon = `<svg class="header-phone__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.1 3.9 8.6 3c.7-.3 1.5.1 1.7.8l1.2 4.4c.2.7-.2 1.4-.8 1.7l-1.8.8a14 14 0 0 0 4.5 4.5l.8-1.8c.3-.6 1-.9 1.7-.8l4.4 1.2c.7.2 1.1 1 .8 1.7l-.9 2.5c-.3.8-1.1 1.3-2 1.2C10.7 18.6 5.4 13.3 4.9 5.9c-.1-.9.4-1.7 1.2-2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.8 4.4c2.5.4 4.4 2.3 4.8 4.8M14.5 8.1c.8.2 1.4.8 1.6 1.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
 const mobileLogoPulse = `<span class="wordmark__pulse" aria-hidden="true">${Array.from({ length:14 }, (_, index) => `<i style="--dash:${index}"></i>`).join('')}</span>`;
-const nav = () => `<header class="site-header"><a class="wordmark" href="/" aria-label="${brandName}">${mobileLogoPulse}<picture><source media="(max-width: 900px)" srcset="/logo/brand-logo-icon.png?v=20260828-mobile-logo-v3"><img src="/logo/brand-logo-horizontal.png?v=20260828-brand-v2" alt="${brandName}" width="1600" height="489"></picture></a><nav class="site-menu" id="site-menu" aria-label="Основная навигация"><a href="/animatory/">Аниматоры</a><a href="/detskiy-den-rozhdeniya/">День рождения</a><a href="/show/">Шоу</a><a href="/afisha/">Афиша</a></nav><div class="header-contacts" aria-label="Связаться с нами"><a class="header-contact header-phone" href="tel:${publicPhone}" aria-label="Позвонить: ${publicPhoneLabel}">${phoneIcon}<span class="header-phone__number">${publicPhoneLabel}</span></a><a class="header-contact header-messenger" href="https://max.ru/u/f9LHodD0cOIRJLSa7d4VRvn920ZcfXNmLCtdobjJSwP_htHZYKv_rKIpH2s" target="_blank" rel="noopener noreferrer" aria-label="Написать в MAX"><img class="header-messenger__icon" src="/assets/contact/max.svg" alt=""><span class="header-contact__qr" aria-hidden="true"><img src="/assets/contact/max-qr.png" alt=""><b>MAX</b><small>Сканируйте, чтобы написать</small></span></a><a class="header-contact header-messenger" href="https://t.me/Penna_Dvizh" target="_blank" rel="noopener noreferrer" aria-label="Написать в Telegram @Penna_Dvizh"><img class="header-messenger__icon" src="/assets/contact/telegram.svg" alt=""><span class="header-contact__qr" aria-hidden="true"><img src="/assets/contact/telegram-qr.png" alt=""><b>Telegram</b><small>@Penna_Dvizh</small></span></a></div><button class="menu-button" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Открыть меню">МЕНЮ +</button></header>`;
+const deferredImage = (src, attributes = '') => `<img data-deferred-image data-src="${escapeAttr(src)}" decoding="async" ${attributes}>`;
+const nav = () => `<header class="site-header"><a class="wordmark" href="/" aria-label="${brandName}">${mobileLogoPulse}<picture><source media="(max-width: 900px)" srcset="/logo/brand-logo-icon-mobile.webp?v=20260902-mobile-perf-v1" type="image/webp"><img src="/logo/brand-logo-horizontal.png?v=20260828-brand-v2" alt="${brandName}" width="1600" height="489"></picture></a><nav class="site-menu" id="site-menu" aria-label="Основная навигация"><a href="/animatory/">Аниматоры</a><a href="/detskiy-den-rozhdeniya/">День рождения</a><a href="/show/">Шоу</a><a href="/afisha/">Афиша</a></nav><div class="header-contacts" aria-label="Связаться с нами"><a class="header-contact header-phone" href="tel:${publicPhone}" aria-label="Позвонить: ${publicPhoneLabel}">${phoneIcon}<span class="header-phone__number">${publicPhoneLabel}</span></a><a class="header-contact header-messenger" href="https://max.ru/u/f9LHodD0cOIRJLSa7d4VRvn920ZcfXNmLCtdobjJSwP_htHZYKv_rKIpH2s" target="_blank" rel="noopener noreferrer" aria-label="Написать в MAX"><img class="header-messenger__icon" src="/assets/contact/max.svg" alt=""><span class="header-contact__qr" aria-hidden="true">${deferredImage('/assets/contact/max-qr.png', 'alt="" width="340" height="341"')}<b>MAX</b><small>Сканируйте, чтобы написать</small></span></a><a class="header-contact header-messenger" href="https://t.me/Penna_Dvizh" target="_blank" rel="noopener noreferrer" aria-label="Написать в Telegram @Penna_Dvizh"><img class="header-messenger__icon" src="/assets/contact/telegram.svg" alt=""><span class="header-contact__qr" aria-hidden="true">${deferredImage('/assets/contact/telegram-qr.png', 'alt="" width="908" height="964"')}<b>Telegram</b><small>@Penna_Dvizh</small></span></a></div><button class="menu-button" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Открыть меню">МЕНЮ +</button></header>`;
 
 const personalDataContacts = () => `<dl class="legal-contacts"><dt>Электронная почта</dt><dd>${personalDataEmail ? `<a href="mailto:${escapeAttr(personalDataEmail)}">${escapeHtml(personalDataEmail)}</a>` : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_EMAIL</span>'}</dd><dt>Почтовый адрес для обращений</dt><dd>${personalDataPostalAddress ? escapeHtml(personalDataPostalAddress) : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_POSTAL_ADDRESS</span>'}</dd></dl>`;
 const consentField = () => `<label class="consent"><input required name="consent" type="checkbox"><span>Я даю <a href="/consent/" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и ознакомлен(а) с <a href="/privacy/" target="_blank" rel="noopener">Политикой</a>.</span></label>`;
@@ -489,9 +551,10 @@ const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox 
 
 const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
 const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-v2" sizes="16x16 32x32 48x48 64x64 128x128 256x256"><link rel="icon" href="/favicon-32x32.png?v=20260828-mask-v2" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png?v=20260828-mask-v2" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260828-mask-v2" sizes="180x180"><link rel="manifest" href="/site.webmanifest?v=20260828-pink-brand-v1"><meta name="theme-color" content="#121311">';
+const performanceAssetVersion = '20260902-mobile-scroll-v2';
 const layout = (meta, body, pageClass = '') => {
   const floatingCtaHref = body.includes('id="zayavka"') ? '#zayavka' : '/#zayavka';
-  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=20260902-card-custom-color-v1"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=20260902-hero-filter-intersection-v1" defer></script></body></html>`;
+  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=${performanceAssetVersion}"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=${performanceAssetVersion}" defer></script></body></html>`;
 };
 
 const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
@@ -520,11 +583,15 @@ const consentPage = () => layout(
 
 const heroBlock = ({ tag, lines, intro, photo, photoAlt = '', mascot = '/assets/mascot-peek.png', action = 'Подобрать праздник', service = 'Праздник', pageClass = '', artVariant = '' }) => {
   const resolvedArtVariant = artVariant;
+  const mascotSource = mascot === '/assets/mascot-peek-animator.png'
+    ? '/assets/mascot-peek-animator.webp?v=20260902-mobile-perf-v1'
+    : mascot;
+  const mascotDimensions = mascot === '/assets/mascot-peek-animator.png' ? ' width="600" height="408"' : '';
   const artLabel = ({ animatory:'КАСТИНГ ГЕРОЕВ', show:'НАЖМИ · ИГРА НАЧАЛАСЬ' })[resolvedArtVariant] || 'ГЛАВНЫЙ КАДР';
   const photoMarkup = resolvedArtVariant
     ? `<div class="landing-hero-art landing-hero-art--${escapeAttr(resolvedArtVariant)}"><span class="landing-hero-art__label">${escapeHtml(artLabel)}</span><i class="landing-hero-art__shape landing-hero-art__shape--one"></i><i class="landing-hero-art__shape landing-hero-art__shape--two"></i>${photo?.image ? `<img src="${escapeAttr(photo.image)}" alt="${escapeAttr(photoAlt)}" loading="eager" decoding="async" fetchpriority="high" style="${cropStyle(photo)}">` : ''}</div>`
     : `<div class="hero-photo-slot image-slot">${photo?.image ? `<img class="managed-photo" src="${escapeAttr(photo.image)}" alt="${escapeAttr(photoAlt)}" loading="eager" decoding="async" fetchpriority="high" style="${cropStyle(photo)}">` : '<div class="placeholder-art placeholder-art--party"><i></i><i></i><i></i></div>'}</div>`;
-  return `<section class="hero ${pageClass}"><span class="hero__tag mono-tag">${escapeHtml(tag)}</span><h1>${lines.map((line, index) => index === 0 ? `<span class="hero__line"><span class="hero__mascot-wrap" aria-hidden="true">${mascot ? `<img class="hero__mascot" src="${escapeAttr(mascot)}" alt="">` : ''}</span><span class="hero__text">${escapeHtml(line)}</span></span>` : `<span${index === 1 ? ' class="soft"' : ''}>${escapeHtml(line)}</span>`).join(' ')}</h1>${photoMarkup}<div class="hero__foot"><p>${escapeHtml(intro)}</p><button class="outline-button" data-open-form data-service="${escapeAttr(service)}">${escapeHtml(action)}</button></div></section>`;
+  return `<section class="hero ${pageClass}"><span class="hero__tag mono-tag">${escapeHtml(tag)}</span><h1>${lines.map((line, index) => index === 0 ? `<span class="hero__line"><span class="hero__mascot-wrap" aria-hidden="true">${mascotSource ? `<img class="hero__mascot" src="${escapeAttr(mascotSource)}" alt=""${mascotDimensions} decoding="async">` : ''}</span><span class="hero__text">${escapeHtml(line)}</span></span>` : `<span${index === 1 ? ' class="soft"' : ''}>${escapeHtml(line)}</span>`).join(' ')}</h1>${photoMarkup}<div class="hero__foot"><p>${escapeHtml(intro)}</p><button class="outline-button" data-open-form data-service="${escapeAttr(service)}">${escapeHtml(action)}</button></div></section>`;
 };
 
 const pageHeroDefaults = {
@@ -618,7 +685,7 @@ const reviews = (source, options = {}) => {
   return `<section class="reviews${compact ? ' reviews--compact' : ''}" aria-labelledby="${titleId}" data-reviews-carousel><div class="reviews__heading">${heading}<div class="reviews__controls" aria-label="Управление отзывами"><button type="button" data-reviews-prev aria-label="Предыдущий отзыв">←</button><button type="button" data-reviews-next aria-label="Следующий отзыв">→</button></div></div><div class="reviews__viewport" data-reviews-viewport tabindex="0" aria-label="Отзывы родителей"><div class="reviews__track">${cards}</div></div><p class="reviews__hint">Листайте отзывы свайпом или кнопками</p></section>`;
 };
 
-const eventCards = events => `<div class="event-grid">${events.filter(visible).map((event, index) => `<article class="poster-card poster-card--${escapeAttr(legacyCardAccent('events', event.accent, ['yellow','pink','red'][index % 3]))}"${cardStyle(event, 'poster')}>${event.image ? `<div class="poster-card__image ${event.imageFit === 'poster' ? 'poster-card__image--poster' : ''}">${image(event)}</div>` : ''}<span class="mono-tag">${escapeHtml(event.category || 'Афиша')}${event.date ? ` · ${escapeHtml(formatEventDate(event.date))}` : ''}</span><h3>${escapeHtml(event.title)}</h3>${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}${event.buttonUrl ? `<a class="poster-card__cta" href="${escapeAttr(event.buttonUrl)}"><span>${escapeHtml(event.buttonLabel || 'Открыть')}</span></a>` : `<a class="poster-card__cta" href="/afisha/${escapeAttr(event.slug)}/"><span>${escapeHtml(event.buttonLabel || 'Открыть афишу')}</span></a>`}</article>`).join('')}</div>`;
+const eventCards = events => `<div class="event-grid">${events.filter(visible).map((event, index) => `<article class="poster-card poster-card--${escapeAttr(legacyCardAccent('events', event.accent, ['yellow','pink','red'][index % 3]))}"${cardStyle(event, 'poster')}>${event.image ? `<div class="poster-card__image ${event.imageFit === 'poster' ? 'poster-card__image--poster' : ''}">${image(event, '', { card:true })}</div>` : ''}<span class="mono-tag">${escapeHtml(event.category || 'Афиша')}${event.date ? ` · ${escapeHtml(formatEventDate(event.date))}` : ''}</span><h3>${escapeHtml(event.title)}</h3>${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}${event.buttonUrl ? `<a class="poster-card__cta" href="${escapeAttr(event.buttonUrl)}"><span>${escapeHtml(event.buttonLabel || 'Открыть')}</span></a>` : `<a class="poster-card__cta" href="/afisha/${escapeAttr(event.slug)}/"><span>${escapeHtml(event.buttonLabel || 'Открыть афишу')}</span></a>`}</article>`).join('')}</div>`;
 
 const renderHome = async () => {
   const [content, events, reviewItems] = await Promise.all([loadContent(), loadCatalog('events'), loadCatalog('reviews')]);
@@ -660,11 +727,11 @@ const heroCard = (hero, index) => {
   const audienceLabel = hero.audience === 'girls' ? 'Для девочек' : hero.audience === 'boys' ? 'Для мальчиков' : 'Для всех';
   const heroFormat = hero.format === 'costume' ? 'costume' : 'standard';
   const tagLabel = heroFormat === 'costume' ? `Ростовой костюм · ${audienceLabel}` : audienceLabel;
-  return `<article class="hero-program-card hero-program-card--${escapeAttr(legacyCardAccent('heroes', hero.accent, 'yellow'))}"${cardStyle(hero, 'hero')} data-hero-card data-hero-audience="${escapeAttr(hero.audience || 'all')}" data-hero-format="${heroFormat}" data-hero-id="${escapeAttr(hero.id)}" data-hero-name="${escapeAttr(hero.name)}" data-hero-weekday-price="${prices.weekday}" data-hero-weekend-price="${prices.weekend}"><div class="hero-program-card__media">${image(hero)}<span class="hero-program-card__number">${String(index + 1).padStart(2, '0')}</span></div><div class="hero-program-card__summary"><span class="mono-tag">${tagLabel}</span><h3>${escapeHtml(hero.name)}</h3><div class="hero-program-card__facts"><div class="hero-program-card__fact hero-program-card__fact--duration">${factIcons.duration}<span><small>Время</small><strong>${escapeHtml(hero.duration || 40)} минут</strong></span></div><div class="hero-program-card__fact">${factIcons.weekday}<span><small>Будни</small><strong>${formatPrice(prices.weekday)}</strong></span></div><div class="hero-program-card__fact">${factIcons.weekend}<span><small>Выходные</small><strong>${formatPrice(prices.weekend)}</strong></span></div></div></div><div class="hero-program-card__details"><p>${escapeHtml(hero.description)}</p><a class="hero-program-card__seo-link" href="/animatory/${escapeAttr(hero.slug)}/">Подробнее о герое</a></div><div class="hero-program-card__action"><button class="hero-program-card__cta" type="button" data-add-hero>ВЫБРАТЬ ГЕРОЯ</button></div></article>`;
+  return `<article class="hero-program-card hero-program-card--${escapeAttr(legacyCardAccent('heroes', hero.accent, 'yellow'))}"${cardStyle(hero, 'hero')} data-hero-card data-hero-audience="${escapeAttr(hero.audience || 'all')}" data-hero-format="${heroFormat}" data-hero-id="${escapeAttr(hero.id)}" data-hero-name="${escapeAttr(hero.name)}" data-hero-weekday-price="${prices.weekday}" data-hero-weekend-price="${prices.weekend}"><div class="hero-program-card__media">${image(hero, '', { card:true })}<span class="hero-program-card__number">${String(index + 1).padStart(2, '0')}</span></div><div class="hero-program-card__summary"><span class="mono-tag">${tagLabel}</span><h3>${escapeHtml(hero.name)}</h3><div class="hero-program-card__facts"><div class="hero-program-card__fact hero-program-card__fact--duration">${factIcons.duration}<span><small>Время</small><strong>${escapeHtml(hero.duration || 40)} минут</strong></span></div><div class="hero-program-card__fact">${factIcons.weekday}<span><small>Будни</small><strong>${formatPrice(prices.weekday)}</strong></span></div><div class="hero-program-card__fact">${factIcons.weekend}<span><small>Выходные</small><strong>${formatPrice(prices.weekend)}</strong></span></div></div></div><div class="hero-program-card__details"><p>${escapeHtml(hero.description)}</p><a class="hero-program-card__seo-link" href="/animatory/${escapeAttr(hero.slug)}/">Подробнее о герое</a></div><div class="hero-program-card__action"><button class="hero-program-card__cta" type="button" data-add-hero>ВЫБРАТЬ ГЕРОЯ</button></div></article>`;
 };
 
 const heroCartDialog = (heroes, settings) => {
-  const miniCards = heroes.map(hero => `<button class="hero-cart__mini-card" type="button" data-cart-second-option="${escapeAttr(hero.id)}">${hero.image ? `<img src="${escapeAttr(hero.image)}" alt="" style="${cropStyle(hero)}">` : '<span class="hero-cart__mini-placeholder" aria-hidden="true">★</span>'}<span>${escapeHtml(hero.name)}</span></button>`).join('');
+  const miniCards = heroes.map(hero => `<button class="hero-cart__mini-card" type="button" data-cart-second-option="${escapeAttr(hero.id)}">${hero.image ? `<img data-deferred-image data-src="${escapeAttr(cardImageSource(hero))}" alt="" width="320" height="400" decoding="async" style="${cropStyle(hero)}">` : '<span class="hero-cart__mini-placeholder" aria-hidden="true">★</span>'}<span>${escapeHtml(hero.name)}</span></button>`).join('');
   const promo = settings.enabled && heroes.length > 1 ? `<section class="hero-cart__upsell" data-cart-upsell><div class="hero-cart__upsell-head"><div class="hero-cart__upsell-copy"><span class="mono-tag">Акция к празднику</span><h3>${escapeHtml(settings.promoTitle)}</h3><p>${escapeHtml(settings.promoDescription)}</p></div><div class="hero-cart__upsell-price"><small>Второй герой</small><strong>${formatPrice(settings.secondHeroPrice)}</strong><span>фиксированная доплата</span></div></div><ul class="hero-cart__upsell-benefits"><li>Больше игр и внимания каждому ребёнку</li><li>Два любимых героя в одной истории</li></ul><p class="hero-cart__upsell-help">Выберите напарника для главного героя</p><p class="hero-cart__scroll-hint" data-cart-scroll-hint aria-hidden="true" hidden>Листайте карточки →</p><div class="hero-cart__mini-grid" role="group" aria-label="Выберите второго героя">${miniCards}</div></section>` : '';
   return `<dialog class="hero-cart-dialog" data-hero-cart data-second-hero-price="${settings.secondHeroPrice}"><button class="dialog-close" type="button" data-close-hero-cart aria-label="Закрыть корзину">×</button><form class="hero-cart" data-lead-form data-hero-cart-form>${honeypotField()}<header class="hero-cart__header"><span class="mono-tag">Ваша корзина</span><h2>Соберём<br>праздник</h2><p>Выберите день — сумма посчитается сразу.</p></header><fieldset class="hero-cart__day"><legend>Когда праздник?</legend><div><button type="button" class="is-selected" data-cart-day="weekday" aria-pressed="true">Будни</button><button type="button" data-cart-day="weekend" aria-pressed="false">Выходные</button></div></fieldset><section class="hero-cart__items" aria-live="polite"><div class="hero-cart__item"><span><small>Главный герой</small><strong data-cart-primary-name>Выберите героя</strong></span><b data-cart-primary-price>—</b></div><div class="hero-cart__item hero-cart__item--second" data-cart-second-item hidden><span><small>Второй герой · акция</small><strong data-cart-second-name></strong></span><b data-cart-second-price></b></div></section>${promo}<section class="hero-cart__total"><span>Итого</span><strong data-cart-total>—</strong><small data-cart-summary>Выберите главного героя.</small></section><section class="hero-cart__lead"><h3>Оставьте заявку</h3><div class="hero-cart__fields"><label>Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label>Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="hero-cart__field--wide">Комментарий<input name="comment" placeholder="Дата, район, пожелания"></label></div><input type="hidden" name="service"><input type="hidden" name="message">${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></section></form></dialog>`;
 };
@@ -696,7 +763,7 @@ const showCartDialog = (shows, heroes) => {
   return `${showHeroChoiceDialog()}<dialog class="hero-cart-dialog show-cart-dialog" data-show-cart data-show-cart-catalog="${escapeAttr(JSON.stringify(catalog))}"><button class="dialog-close" type="button" data-close-show-cart aria-label="Закрыть корзину">×</button><form class="hero-cart show-cart" data-lead-form data-show-cart-form>${honeypotField()}<header class="hero-cart__header"><span class="mono-tag">Ваш праздник</span><h2>Соберём<br>программу</h2><p>Сначала проверьте состав заказа и сумму, затем оставьте контакты.</p></header><fieldset class="hero-cart__day"><legend>Когда праздник?</legend><div><button type="button" class="is-selected" data-show-cart-day="weekday" aria-pressed="true">Будни</button><button type="button" data-show-cart-day="weekend" aria-pressed="false">Выходные</button></div></fieldset><section class="show-cart__order" aria-live="polite"><header><span>Состав заказа</span><small data-show-cart-summary>Выберите шоу.</small></header><div class="hero-cart__items"><div class="hero-cart__item"><span><small>Главная программа</small><strong data-show-cart-name>Выберите шоу</strong></span><b data-show-cart-price>—</b></div><div data-show-cart-hero-items hidden></div></div><footer class="hero-cart__total"><span>Итого</span><strong data-show-cart-total>—</strong><small>Стоимость программы и выбранных аниматоров</small></footer></section><section class="hero-cart__upsell" data-show-cart-upsell hidden><div class="hero-cart__upsell-head"><div class="hero-cart__upsell-copy"><span class="mono-tag">Дополнение к шоу</span><h3 data-show-cart-offer-title>Добавьте любимого героя</h3><p data-show-cart-offer-description></p></div><button class="show-cart__toggle-heroes" type="button" data-show-cart-toggle-heroes aria-expanded="false">Выбрать аниматоров</button></div><div class="show-cart__selection-toolbar" hidden><p data-show-cart-selection-hint hidden></p><button type="button" data-show-cart-clear-heroes hidden>Очистить выбор</button></div><div data-show-cart-hero-options-wrap hidden><p class="hero-cart__scroll-hint" data-cart-scroll-hint aria-hidden="true" hidden>Листайте карточки →</p><div class="hero-cart__mini-grid" role="group" aria-label="Выберите до двух аниматоров" data-show-cart-hero-options></div></div></section><section class="hero-cart__lead"><h3>Оставьте заявку</h3><div class="hero-cart__fields"><label>Ваше имя<input required name="name" autocomplete="name" placeholder="Как к вам обращаться"></label><label>Телефон<input required name="phone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__"></label><label class="hero-cart__field--wide">Комментарий<input name="comment" placeholder="Дата, район, пожелания"></label></div><input type="hidden" name="service"><input type="hidden" name="message">${consentField()}<button class="cream-button" type="submit">ОТПРАВИТЬ ЗАЯВКУ</button><p class="form-status" aria-live="polite"></p></section></form></dialog>`;
 };
 
-const showCard = (show, index) => `<article class="show-offer-card show-offer-card--${escapeAttr(legacyCardAccent('shows', show.accent, 'cyan'))}"${cardStyle(show, 'show')} data-show-card data-show-id="${escapeAttr(show.id)}"><div class="show-offer-card__media">${image(show)}<span class="show-offer-card__number">0${index + 1}</span></div><div class="show-offer-card__summary"><span class="mono-tag">Интерактивная программа</span><h3>${escapeHtml(show.name)}</h3><p class="show-offer-card__price"><span>Стоимость</span><strong>от ${formatPrice(show.price)}</strong></p></div><div class="show-offer-card__details"><p>${escapeHtml(show.description)}</p>${programMediaGallery(show)}<a class="show-offer-card__seo-link" href="/show/${escapeAttr(show.slug)}/">Подробнее о шоу</a></div><div class="show-offer-card__action"><button class="show-offer-card__cta" type="button" data-select-show>ВЫБРАТЬ ШОУ</button></div></article>`;
+const showCard = (show, index) => `<article class="show-offer-card show-offer-card--${escapeAttr(legacyCardAccent('shows', show.accent, 'cyan'))}"${cardStyle(show, 'show')} data-show-card data-show-id="${escapeAttr(show.id)}"><div class="show-offer-card__media">${image(show, '', { card:true })}<span class="show-offer-card__number">0${index + 1}</span></div><div class="show-offer-card__summary"><span class="mono-tag">Интерактивная программа</span><h3>${escapeHtml(show.name)}</h3><p class="show-offer-card__price"><span>Стоимость</span><strong>от ${formatPrice(show.price)}</strong></p></div><div class="show-offer-card__details"><p>${escapeHtml(show.description)}</p>${programMediaGallery(show)}<a class="show-offer-card__seo-link" href="/show/${escapeAttr(show.slug)}/">Подробнее о шоу</a></div><div class="show-offer-card__action"><button class="show-offer-card__cta" type="button" data-select-show>ВЫБРАТЬ ШОУ</button></div></article>`;
 
 const renderShow = async () => {
   const [content, catalog, heroes] = await Promise.all([loadContent(), loadCatalog('shows'), loadCatalog('heroes')]);
@@ -1505,6 +1572,11 @@ app.post('/admin/catalog/:type/save', requireAdmin, upload.fields([{ name:'image
   if (!['heroes','shows','events'].includes(type)) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(404).send('Каталог не найден'); }
   try {
     await convertUploadedImagesToWebp(allUploaded);
+    if (uploadedCover) {
+      await ensureCatalogCardImage(`/uploads/${uploadedCover.filename}`).catch(error => {
+        console.error('Не удалось подготовить обложку карточки:', error.message);
+      });
+    }
     const items = await loadCatalog(type);
     const current = items.find(item => item.id === req.body.id);
     if (req.body.id && !current) { await Promise.all(allUploaded.map(deleteUploaded)); return res.status(404).send('Карточка не найдена'); }
@@ -1538,4 +1610,5 @@ app.get('/afisha/:slug/', async (req, res, next) => { try { const item = (await 
 app.use((req, res) => res.status(404).send(layout(pageMeta({ title:'Страница не найдена', path:req.path, robots:'noindex, follow' }), '<section class="event-detail"><h1>404</h1><p>Эта страница не найдена.</p><a class="outline-button" href="/">НА ГЛАВНУЮ</a></section>')));
 app.use((error, _req, res, _next) => { console.error(error); res.status(500).send('Ошибка сервера. Попробуйте обновить страницу.'); });
 
+await prepareCatalogCardImages();
 app.listen(port, () => console.log(`${brandName} запущен: http://localhost:${port}`));

@@ -10,6 +10,20 @@ const analyticsConsentAtCookie = "voobrazillia_analytics_consent_at";
 const metrikaScriptId = "yandex-metrika-script";
 let metrikaLoaded = false;
 
+const hydrateDeferredImages = root => {
+  root?.querySelectorAll?.("img[data-deferred-image][data-src]").forEach(image => {
+    image.src = image.dataset.src;
+    image.removeAttribute("data-src");
+    image.removeAttribute("data-deferred-image");
+  });
+};
+
+document.querySelectorAll(".header-messenger").forEach(link => {
+  const hydrate = () => hydrateDeferredImages(link);
+  link.addEventListener("pointerenter", hydrate, { once:true });
+  link.addEventListener("focusin", hydrate, { once:true });
+});
+
 const getMetrikaCounterId = () => Number(document.body?.dataset.yandexMetrikaId);
 const getAnalyticsConsentVersion = () => document.body?.dataset.analyticsConsentVersion || "";
 const getCookie = name => {
@@ -535,6 +549,7 @@ if (heroCart) {
     state.secondPickerOpen = true;
     mobileStepper.reset();
     updateCart();
+    hydrateDeferredImages(heroCart);
     if (!heroCart.open) heroCart.showModal();
     (secondOptions.find(option => !option.hidden) || cartForm.querySelector('[data-cart-day="weekday"]'))?.focus();
   };

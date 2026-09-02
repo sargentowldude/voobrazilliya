@@ -7974,8 +7974,12 @@ color: var(--hero-cta-text);
 @media (max-width: 600px) {
   .hero::before { opacity: .5; }
   .hero::after { opacity: .35; }
-  .reveal--card { transform: translateY(28px) rotate(.45deg) scale(.985); }
-  .reveal--card:nth-child(even):not(.is-visible) { transform: translateY(28px) rotate(-.45deg) scale(.985); }
+  .reveal--card,
+  .reveal--card:nth-child(even):not(.is-visible) {
+    transform: none;
+    transition: opacity .38s ease-out;
+    transition-delay: 0s;
+  }
   .reveal--slide { transform: translateX(-22px); }
   .reveal--slide:nth-child(even):not(.is-visible) { transform: translateX(22px); }
 }
@@ -9312,5 +9316,33 @@ color: var(--hero-cta-text);
     top: -50px;
     right: 0;
     width: 100px;
+  }
+}
+
+/* Mobile performance: keep the sticky header crisp without repainting a live blur,
+   and reserve breathing motion for the single floating CTA instead of every card. */
+@media (max-width: 900px) {
+  .site-header {
+    background: linear-gradient(108deg, #fff9fc, #fbd8e6);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (max-width: 900px) and (prefers-reduced-motion: no-preference) {
+  :where(
+    .service-card__cta,
+    .poster-card__cta,
+    .hero-program-card__cta,
+    .hero-choice__yes,
+    .show-offer-card__cta,
+    .playbill-card__cta,
+    .theater-stage-card__cta,
+    .birthday-format-card__cta,
+    .show-catalog__mascot-cta
+  )::after {
+    display: none;
+    animation: none;
+    will-change: auto;
   }
 }
