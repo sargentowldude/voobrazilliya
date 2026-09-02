@@ -668,6 +668,22 @@ const homeDirectionCardDefaults = [
   { id:'adult-show', title:'Шоу для взрослых', age:'12+', people:'2–50', variant:'pink', eyebrow:'Шоу-программы', href:'/show/#show-catalog', buttonLabel:'Выбрать программу', cardColor:'#F6B4CF', photoKey:'homeAdultShowPhoto', fallbackPhotoKey:'showPhoto1', mascot:'/assets/mascot-game.png' },
   { id:'foam', title:'Пенная вечеринка', age:'3+', people:'1–200', variant:'foam', eyebrow:'Особый формат', href:'/show/pennaya-vecherinka-kemerovo/', buttonLabel:'Выбрать программу', cardColor:'#9EDBD9', photoKey:'homeFoamPhoto', fallbackPhotoKey:'showPhoto2' }
 ];
+const maxHomeCustomCards = 12;
+const homeCustomCardDefaults = {
+  title:'Новая программа',
+  eyebrow:'Новый формат',
+  age:'3+',
+  people:'1–15',
+  href:'#zayavka',
+  buttonLabel:'Узнать подробнее',
+  cardColor:'#F2E56F',
+  image:'',
+  imagePositionX:50,
+  imagePositionY:50,
+  imageScale:100
+};
+const homeCustomCardId = value => /^[a-z0-9-]{8,80}$/i.test(String(value || '')) ? String(value) : '';
+const homeDirectionCardStorage = content => content?.homeDirectionCards && !Array.isArray(content.homeDirectionCards) ? content.homeDirectionCards : {};
 const safeHomeCardLink = (value, fallback) => {
   const href = String(value || '').trim();
   if (!href) return fallback;
@@ -680,9 +696,50 @@ const safeHomeCardLink = (value, fallback) => {
     return fallback;
   }
 };
+const homeCustomDirectionCards = content => {
+  const saved = homeDirectionCardStorage(content);
+  const entries = Array.isArray(saved.custom) ? saved.custom : [];
+  return entries.slice(0, maxHomeCustomCards).map((entry, index) => {
+    const id = homeCustomCardId(entry?.id);
+    if (!id) return null;
+    return {
+      ...homeCustomCardDefaults,
+      id,
+      isCustom:true,
+      variant:'yellow',
+      title:String(entry.title || homeCustomCardDefaults.title).trim().slice(0, 80) || homeCustomCardDefaults.title,
+      eyebrow:String(entry.eyebrow || homeCustomCardDefaults.eyebrow).trim().slice(0, 48) || homeCustomCardDefaults.eyebrow,
+      age:String(entry.age || homeCustomCardDefaults.age).trim().slice(0, 24) || homeCustomCardDefaults.age,
+      people:String(entry.people || homeCustomCardDefaults.people).trim().slice(0, 32) || homeCustomCardDefaults.people,
+      href:safeHomeCardLink(entry.href, homeCustomCardDefaults.href),
+      buttonLabel:String(entry.buttonLabel || homeCustomCardDefaults.buttonLabel).trim().slice(0, 60) || homeCustomCardDefaults.buttonLabel,
+      cardColor:normalizeHexColor(entry.cardColor) || homeCustomCardDefaults.cardColor,
+      image:String(entry.image || '').trim(),
+      imagePositionX:number(entry.imagePositionX, homeCustomCardDefaults.imagePositionX),
+      imagePositionY:number(entry.imagePositionY, homeCustomCardDefaults.imagePositionY),
+      imageScale:number(entry.imageScale, homeCustomCardDefaults.imageScale),
+      position:Math.max(1, Math.round(number(entry.position, index + 1)))
+    };
+  }).filter(Boolean).sort((first, second) => first.position - second.position || first.id.localeCompare(second.id));
+};
+const homeCustomCardRecord = card => ({
+  id:card.id,
+  title:card.title,
+  eyebrow:card.eyebrow,
+  age:card.age,
+  people:card.people,
+  href:card.href,
+  buttonLabel:card.buttonLabel,
+  cardColor:card.cardColor,
+  image:card.image,
+  imagePositionX:card.imagePositionX,
+  imagePositionY:card.imagePositionY,
+  imageScale:card.imageScale,
+  position:card.position
+});
 const homeDirectionCards = content => {
-  const saved = content?.homeDirectionCards && !Array.isArray(content.homeDirectionCards) ? content.homeDirectionCards : {};
-  return homeDirectionCardDefaults.map(card => {
+  const saved = homeDirectionCardStorage(content);
+  const defaults = homeDirectionCardDefaults.map(card => {
     const settings = saved[card.id] && typeof saved[card.id] === 'object' ? saved[card.id] : {};
     return {
       ...card,
@@ -691,6 +748,7 @@ const homeDirectionCards = content => {
       cardColor: normalizeHexColor(settings.cardColor) || card.cardColor
     };
   });
+  return [...defaults, ...homeCustomDirectionCards(content)];
 };
 const homeDirectionCardStyle = cardColor => {
   const background = normalizeHexColor(cardColor);
@@ -730,7 +788,7 @@ const renderHome = async () => {
     .sort((first, second) => (Date.parse(second.createdAt || second.updatedAt || second.date) || 0) - (Date.parse(first.createdAt || first.updatedAt || first.date) || 0))
     .slice(0, 3);
   const directionCards = homeDirectionCards(content)
-    .map((card, index) => directionCard({ ...card, index, photo:photoWithFallback(content, card.photoKey, card.fallbackPhotoKey) }))
+    .map((card, index) => directionCard({ ...card, index, photo:card.isCustom ? card : photoWithFallback(content, card.photoKey, card.fallbackPhotoKey) }))
     .join('');
   const formats = 'АНИМАТОРЫ <i>✦</i> ШОУ <i>✦</i> ДЕНЬ РОЖДЕНИЯ <i>✦</i> ПЕННАЯ ВЕЧЕРИНКА <i>✦</i> КЕМЕРОВО';
   const conditions = '40 минут игры <i>·</i> от 2 000 ₽ <i>·</i> дом / сад / школа <i>·</i> Кемерово';
@@ -877,7 +935,7 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-home-cards-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-home-cards-v1" defer></script></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-home-custom-cards-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-home-cards-v1" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
 const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'faq' ? 'is-active' : ''}" href="/admin/faq">FAQ всех страниц</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
@@ -911,9 +969,15 @@ const contentPhotoEditor = (key, title, content) => {
   return `<fieldset class="admin-photo-block"><legend>${escapeHtml(title)}</legend><div class="photo-editor" data-fit-preview="${escapeAttr(key)}"><div class="admin-photo-preview">${item.image ? `<img data-crop-preview="${escapeAttr(key)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>'}</div><label class="upload-field">Заменить изображение<input type="file" name="${escapeAttr(key)}" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(key)}"><span>JPG, PNG, WEBP или GIF → WebP</span></label><div class="crop-grid">${formField('Горизонт', `${key}PositionX`, number(item.imagePositionX), { type:'range', step:'1' }).replace(`name=\"${key}PositionX\"`, `name=\"${key}PositionX\" data-crop-x=\"${escapeAttr(key)}\"`)}${formField('Вертикаль', `${key}PositionY`, number(item.imagePositionY), { type:'range', step:'1' }).replace(`name=\"${key}PositionY\"`, `name=\"${key}PositionY\" data-crop-y=\"${escapeAttr(key)}\"`)}${formField('Масштаб', `${key}Scale`, number(item.imageScale, 100), { type:'range', step:'1' }).replace(`name=\"${key}Scale\"`, `name=\"${key}Scale\" data-crop-scale=\"${escapeAttr(key)}\"`)}<output data-scale-output="${escapeAttr(key)}">${number(item.imageScale, 100)}%</output></div></div></fieldset>`;
 };
 
-const adminSaveNotice = query => query?.deleted === '1'
-  ? `<p class="admin-toast" role="status">Карточка удалена из каталога.</p>`
-  : query?.saved === '1' ? `<p class="admin-toast" role="status">Сохранено. Изменения уже видны на сайте.</p>` : '';
+const adminSaveNotice = query => query?.homeCardCreated === '1'
+  ? `<p class="admin-toast" role="status">Новая карточка создана. Заполните её и сохраните изменения.</p>`
+  : query?.homeCardDeleted === '1'
+    ? `<p class="admin-toast" role="status">Ваша карточка удалена с главной.</p>`
+    : query?.homeCardLimit === '1'
+      ? `<p class="admin-toast" role="status">Можно создать до ${maxHomeCustomCards} своих карточек.</p>`
+    : query?.deleted === '1'
+      ? `<p class="admin-toast" role="status">Карточка удалена из каталога.</p>`
+      : query?.saved === '1' ? `<p class="admin-toast" role="status">Сохранено. Изменения уже видны на сайте.</p>` : '';
 
 const adminPreviewLink = (url, label = 'Открыть на сайте') => url
   ? `<a class="admin-preview-link" href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(label)} ↗</a>` : '';
@@ -988,20 +1052,32 @@ const renderPageHeroFields = (config, content) => {
   const current = config.hero.key ? pageHeroCopy(content, config.hero.key) : { lines:[content[titleName] || ''], intro:content[introName] || '' };
   return `<section class="admin-editor-card"><header><span>${escapeHtml(config.hero.title)}</span><h2>Что увидят на первом экране</h2><p>${escapeHtml(config.hero.hint)}</p></header><div class="admin-grid">${formField(config.hero.key ? 'H1 — каждая строка с новой строки' : 'H1', titleName, current.lines.join('\n'), { textarea:Boolean(config.hero.key), wide:true, required:true })}${formField(config.hero.key ? 'Описание под H1' : 'Подзаголовок', introName, current.intro, { textarea:true, wide:true, required:true })}</div></section>`;
 };
-const homeDirectionCardColorField = (card, favorites) => `<fieldset class="admin-card-color-field admin-field--wide"><legend>Цвет карточки</legend><p>Выберите любой цвет или один из сохранённых. Кнопка автоматически станет на 20% темнее фона.</p><div class="admin-card-color-current"><label class="admin-card-color-picker"><span>Выбрать цвет</span><input type="color" value="${escapeAttr(card.cardColor)}" data-card-color-picker></label><label class="admin-field"><span>HEX</span><input name="homeCardColor-${escapeAttr(card.id)}" value="${escapeAttr(card.cardColor)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" data-card-color-hex></label></div><div class="admin-card-color-favorites"><span>Мои избранные</span><div>${favorites.map(favorite => `<button type="button" data-card-color-favorite="${escapeAttr(favorite.color)}"><i style="--favorite-color:${escapeAttr(favorite.color)}" aria-hidden="true"></i>${escapeHtml(favorite.name)}</button>`).join('')}</div><a href="/admin/card-colors">Настроить мою палитру</a></div></fieldset>`;
+const homeDirectionCardColorField = (card, favorites, fieldName = `homeCardColor-${card.id}`) => `<fieldset class="admin-card-color-field admin-field--wide"><legend>Цвет карточки</legend><p>Выберите любой цвет или один из сохранённых. Кнопка автоматически станет на 20% темнее фона.</p><div class="admin-card-color-current"><label class="admin-card-color-picker"><span>Выбрать цвет</span><input type="color" value="${escapeAttr(card.cardColor)}" data-card-color-picker></label><label class="admin-field"><span>HEX</span><input name="${escapeAttr(fieldName)}" value="${escapeAttr(card.cardColor)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" data-card-color-hex></label></div><div class="admin-card-color-favorites"><span>Мои избранные</span><div>${favorites.map(favorite => `<button type="button" data-card-color-favorite="${escapeAttr(favorite.color)}"><i style="--favorite-color:${escapeAttr(favorite.color)}" aria-hidden="true"></i>${escapeHtml(favorite.name)}</button>`).join('')}</div><a href="/admin/card-colors">Настроить мою палитру</a></div></fieldset>`;
+const homeCustomCardMediaEditor = card => {
+  const cropKey = `home-custom-${card.id}`;
+  const control = (label, field, value, attribute) => formField(label, field, value, { type:'range', step:'1' }).replace(`name="${field}"`, `name="${field}" ${attribute}="${escapeAttr(cropKey)}"`);
+  const preview = card.image ? `<img data-crop-preview="${escapeAttr(cropKey)}" src="${escapeAttr(card.image)}" alt="" style="${cropStyle(card)}">` : '<i>Фото</i>';
+  return `<section class="admin-home-card-media"><header><strong>Фото карточки</strong><small>Загрузите обложку и сразу настройте кадрирование.</small></header><div class="photo-editor" data-fit-preview="${escapeAttr(cropKey)}"><div class="admin-photo-preview">${preview}</div><label class="upload-field">Загрузить фотографию<input type="file" name="homeCustomImage-${escapeAttr(card.id)}" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(cropKey)}"><span>JPG, PNG, WEBP или GIF → WebP</span></label><div class="crop-grid">${control('Горизонт', `homeCustomImagePositionX-${card.id}`, card.imagePositionX, 'data-crop-x')}${control('Вертикаль', `homeCustomImagePositionY-${card.id}`, card.imagePositionY, 'data-crop-y')}${control('Масштаб', `homeCustomImageScale-${card.id}`, card.imageScale, 'data-crop-scale')}<output data-scale-output="${escapeAttr(cropKey)}">${card.imageScale}%</output></div></div></section>`;
+};
+const homeCustomCardRow = (card, index, favorites) => `<article class="admin-home-card-row admin-home-card-row--custom"><header><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(card.title)}</strong><small>Ваша карточка · появится после четырёх основных плиток</small></div><button class="admin-home-card-remove" type="submit" form="home-card-delete-${escapeAttr(card.id)}" onclick="return confirm('Удалить эту карточку с главной?')">Удалить</button></header><div class="admin-grid">${formField('Название', `homeCustomCardTitle-${card.id}`, card.title, { required:true, wide:true })}${formField('Подпись над названием', `homeCustomCardEyebrow-${card.id}`, card.eyebrow, { required:true })}${formField('Возраст', `homeCustomCardAge-${card.id}`, card.age, { required:true })}${formField('Гостей', `homeCustomCardPeople-${card.id}`, card.people, { required:true })}${formField('Надпись на кнопке', `homeCustomCardButtonLabel-${card.id}`, card.buttonLabel, { required:true })}${formField('Ссылка карточки и кнопки', `homeCustomCardHref-${card.id}`, card.href, { wide:true, required:true })}${homeDirectionCardColorField(card, favorites, `homeCustomCardColor-${card.id}`)}</div>${homeCustomCardMediaEditor(card)}</article>`;
 const renderHomeDirectionCardEditor = content => {
   const favorites = cardColorFavorites(content);
-  const cards = homeDirectionCards(content);
-  const rows = cards.map((card, index) => `<article class="admin-home-card-row"><header><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(card.title)}</strong><small>${escapeHtml(card.eyebrow)} · ${escapeHtml(card.age)} · до ${escapeHtml(card.people)} гостей</small></div></header><div class="admin-grid">${formField('Надпись на кнопке', `homeCardButtonLabel-${card.id}`, card.buttonLabel, { required:true })}${formField('Ссылка карточки и кнопки', `homeCardHref-${card.id}`, card.href, { wide:true, required:true })}${homeDirectionCardColorField(card, favorites)}</div></article>`).join('');
-  return `<section class="admin-editor-card admin-home-card-editor"><header><span>Плитки направлений</span><h2>Карточки на главной</h2><p>Вся карточка кликабельна, поэтому ссылка здесь одновременно управляет и переходом по плитке, и кнопкой внутри неё.</p></header><div class="admin-home-card-list">${rows}</div></section>`;
+  const defaults = homeDirectionCards(content).filter(card => !card.isCustom);
+  const customs = homeCustomDirectionCards(content);
+  const defaultRows = defaults.map((card, index) => `<article class="admin-home-card-row"><header><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(card.title)}</strong><small>${escapeHtml(card.eyebrow)} · ${escapeHtml(card.age)} · до ${escapeHtml(card.people)} гостей</small></div></header><div class="admin-grid">${formField('Надпись на кнопке', `homeCardButtonLabel-${card.id}`, card.buttonLabel, { required:true })}${formField('Ссылка карточки и кнопки', `homeCardHref-${card.id}`, card.href, { wide:true, required:true })}${homeDirectionCardColorField(card, favorites)}</div></article>`).join('');
+  const customRows = customs.map((card, index) => homeCustomCardRow(card, defaults.length + index, favorites)).join('');
+  const createButton = customs.length < maxHomeCustomCards ? `<button class="admin-home-card-create" type="submit" form="home-card-create">+ Создать свою карточку</button>` : `<p class="admin-home-card-limit">Достигнут лимит: до ${maxHomeCustomCards} своих карточек.</p>`;
+  return `<section class="admin-editor-card admin-home-card-editor"><header><span>Плитки направлений</span><h2>Карточки на главной</h2><p>Вся карточка кликабельна, поэтому ссылка здесь одновременно управляет и переходом по плитке, и кнопкой внутри неё.</p></header><div class="admin-home-card-list">${defaultRows}${customRows}</div>${createButton}</section>`;
 };
+const renderHomeCardActionForms = content => `<form id="home-card-create" method="post" action="/admin/home-cards/new"></form>${homeCustomDirectionCards(content).map(card => `<form id="home-card-delete-${escapeAttr(card.id)}" method="post" action="/admin/home-cards/delete"><input type="hidden" name="id" value="${escapeAttr(card.id)}"></form>`).join('')}`;
 
 const renderAdminPage = async (key, query = {}) => {
   const config = adminPageConfig[key];
   if (!config) throw new Error('Страница админки не найдена');
   const content = await loadContent();
   const homeCardsEditor = key === 'home' ? renderHomeDirectionCardEditor(content) : '';
-  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}${homeCardsEditor}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
+  const homeCardActionForms = key === 'home' ? renderHomeCardActionForms(content) : '';
+  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}${homeCardActionForms}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}${homeCardsEditor}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
   return adminLayout(config.title, body, config.active);
 };
 
@@ -1495,11 +1571,46 @@ app.get('/admin/catalog/:type', requireAdmin, async (req, res, next) => {
   try { res.send(await renderAdminCatalog(req.params.type, req.query)); } catch (error) { next(error); }
 });
 
+app.post('/admin/home-cards/new', requireAdmin, async (_req, res, next) => {
+  try {
+    const previous = await loadContent();
+    const savedCards = homeDirectionCardStorage(previous);
+    const customCards = homeCustomDirectionCards(previous).map(homeCustomCardRecord);
+    if (customCards.length >= maxHomeCustomCards) return res.redirect('/admin/?homeCardLimit=1');
+    customCards.push(homeCustomCardRecord({
+      ...homeCustomCardDefaults,
+      id:`home-card-${crypto.randomUUID()}`,
+      position:customCards.length + 1
+    }));
+    await writeJson(files.content, {
+      ...previous,
+      homeDirectionCards:{ ...savedCards, custom:customCards }
+    });
+    res.redirect('/admin/?homeCardCreated=1');
+  } catch (error) { next(error); }
+});
+app.post('/admin/home-cards/delete', requireAdmin, async (req, res, next) => {
+  try {
+    const id = homeCustomCardId(req.body.id);
+    if (!id) return res.redirect('/admin/');
+    const previous = await loadContent();
+    const savedCards = homeDirectionCardStorage(previous);
+    const customCards = homeCustomDirectionCards(previous)
+      .filter(card => card.id !== id)
+      .map(homeCustomCardRecord);
+    await writeJson(files.content, {
+      ...previous,
+      homeDirectionCards:{ ...savedCards, custom:customCards }
+    });
+    res.redirect('/admin/?homeCardDeleted=1');
+  } catch (error) { next(error); }
+});
 app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) => {
   const allUploaded = req.files || [];
   try {
     await convertUploadedImagesToWebp(allUploaded);
     const previous = await loadContent();
+    const inputFiles = new Map(allUploaded.map(file => [file.fieldname, file]));
     const nextContent = {
       ...previous,
       heroTitle: req.body.heroTitle === undefined ? previous.heroTitle : String(req.body.heroTitle || '').trim(),
@@ -1517,14 +1628,33 @@ app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) =>
       `homeCardColor-${card.id}`
     ].some(field => Object.hasOwn(req.body, field)));
     if (homeCardFieldsSubmitted) {
-      nextContent.homeDirectionCards = Object.fromEntries(homeDirectionCards(previous).map(card => {
+      const savedCards = homeDirectionCardStorage(previous);
+      const defaultCards = Object.fromEntries(homeDirectionCardDefaults.map(card => {
+        const current = homeDirectionCards(previous).find(entry => entry.id === card.id) || card;
         const href = safeHomeCardLink(req.body[`homeCardHref-${card.id}`], card.href);
-        const buttonLabel = String(req.body[`homeCardButtonLabel-${card.id}`] || card.buttonLabel).trim().slice(0, 60) || card.buttonLabel;
-        const cardColor = normalizeHexColor(req.body[`homeCardColor-${card.id}`]) || card.cardColor;
+        const buttonLabel = String(req.body[`homeCardButtonLabel-${card.id}`] || current.buttonLabel).trim().slice(0, 60) || current.buttonLabel;
+        const cardColor = normalizeHexColor(req.body[`homeCardColor-${card.id}`]) || current.cardColor;
         return [card.id, { href, buttonLabel, cardColor }];
       }));
+      const customCards = homeCustomDirectionCards(previous).map(card => {
+        const image = inputFiles.get(`homeCustomImage-${card.id}`);
+        return homeCustomCardRecord({
+          ...card,
+          title:String(req.body[`homeCustomCardTitle-${card.id}`] || card.title).trim().slice(0, 80) || card.title,
+          eyebrow:String(req.body[`homeCustomCardEyebrow-${card.id}`] || card.eyebrow).trim().slice(0, 48) || card.eyebrow,
+          age:String(req.body[`homeCustomCardAge-${card.id}`] || card.age).trim().slice(0, 24) || card.age,
+          people:String(req.body[`homeCustomCardPeople-${card.id}`] || card.people).trim().slice(0, 32) || card.people,
+          href:safeHomeCardLink(req.body[`homeCustomCardHref-${card.id}`], card.href),
+          buttonLabel:String(req.body[`homeCustomCardButtonLabel-${card.id}`] || card.buttonLabel).trim().slice(0, 60) || card.buttonLabel,
+          cardColor:normalizeHexColor(req.body[`homeCustomCardColor-${card.id}`]) || card.cardColor,
+          image:image ? `/uploads/${image.filename}` : card.image,
+          imagePositionX:number(req.body[`homeCustomImagePositionX-${card.id}`], card.imagePositionX),
+          imagePositionY:number(req.body[`homeCustomImagePositionY-${card.id}`], card.imagePositionY),
+          imageScale:number(req.body[`homeCustomImageScale-${card.id}`], card.imageScale)
+        });
+      });
+      nextContent.homeDirectionCards = { ...savedCards, ...defaultCards, custom:customCards };
     }
-    const inputFiles = new Map(allUploaded.map(file => [file.fieldname, file]));
     for (const key of ['photo1','homeBoyPhoto','homeGirlPhoto','homeAdultShowPhoto','homeFoamPhoto','photo5','photo6','photo7','photoBirthday','animatoryPhoto1','animatoryPhoto2','animatoryPhoto3','animatoryPhoto4','showPhoto1','showPhoto2','showPhoto3','showPhoto4']) {
       const file = inputFiles.get(key);
       if (file) nextContent[key] = `/uploads/${file.filename}`;
