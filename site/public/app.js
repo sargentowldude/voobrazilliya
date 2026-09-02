@@ -286,8 +286,13 @@ const applyHeroFilter = () => {
 heroFilterButtons.forEach(button => {
   button.addEventListener("click", () => {
     const filter = button.dataset.heroFilter;
-    if (filter === "costume") heroFilterState.costume = !heroFilterState.costume;
-    else heroFilterState.audience = filter;
+    if (filter === "costume") {
+      heroFilterState.costume = true;
+      heroFilterState.audience = "all";
+    } else {
+      heroFilterState.costume = false;
+      heroFilterState.audience = filter;
+    }
     applyHeroFilter();
   });
 });
@@ -295,7 +300,10 @@ heroFilterButtons.forEach(button => {
 const heroFilterParams = new URLSearchParams(window.location.search);
 const requestedHeroAudience = heroFilterParams.get("audience");
 if (["boys", "girls", "all"].includes(requestedHeroAudience)) heroFilterState.audience = requestedHeroAudience;
-if (heroFilterParams.get("filter") === "costume" || heroFilterParams.get("format") === "costume") heroFilterState.costume = true;
+if (heroFilterParams.get("filter") === "costume" || heroFilterParams.get("format") === "costume") {
+  heroFilterState.costume = true;
+  heroFilterState.audience = "all";
+}
 if (requestedHeroAudience || heroFilterState.costume) applyHeroFilter();
 
 const setupMobileCartStepper = form => {
