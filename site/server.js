@@ -543,7 +543,7 @@ const structuredData = meta => [
 const phoneIcon = `<svg class="header-phone__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.1 3.9 8.6 3c.7-.3 1.5.1 1.7.8l1.2 4.4c.2.7-.2 1.4-.8 1.7l-1.8.8a14 14 0 0 0 4.5 4.5l.8-1.8c.3-.6 1-.9 1.7-.8l4.4 1.2c.7.2 1.1 1 .8 1.7l-.9 2.5c-.3.8-1.1 1.3-2 1.2C10.7 18.6 5.4 13.3 4.9 5.9c-.1-.9.4-1.7 1.2-2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.8 4.4c2.5.4 4.4 2.3 4.8 4.8M14.5 8.1c.8.2 1.4.8 1.6 1.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
 const mobileLogoPulse = `<span class="wordmark__pulse" aria-hidden="true">${Array.from({ length:14 }, (_, index) => `<i style="--dash:${index}"></i>`).join('')}</span>`;
 const deferredImage = (src, attributes = '') => `<img data-deferred-image data-src="${escapeAttr(src)}" decoding="async" ${attributes}>`;
-const nav = () => `<header class="site-header"><a class="wordmark" href="/" aria-label="${brandName}">${mobileLogoPulse}<picture><source media="(max-width: 900px)" srcset="/logo/brand-logo-icon-mobile.webp?v=20260902-mobile-perf-v1" type="image/webp"><img src="/logo/brand-logo-horizontal.png?v=20260828-brand-v2" alt="${brandName}" width="1600" height="489"></picture></a><nav class="site-menu" id="site-menu" aria-label="Основная навигация"><a href="/animatory/">Аниматоры</a><a href="/detskiy-den-rozhdeniya/">День рождения</a><a href="/show/">Шоу</a><a href="/afisha/">Афиша</a></nav><div class="header-contacts" aria-label="Связаться с нами"><a class="header-contact header-phone" href="tel:${publicPhone}" aria-label="Позвонить: ${publicPhoneLabel}">${phoneIcon}<span class="header-phone__number">${publicPhoneLabel}</span></a><a class="header-contact header-messenger" href="https://max.ru/u/f9LHodD0cOIRJLSa7d4VRvn920ZcfXNmLCtdobjJSwP_htHZYKv_rKIpH2s" target="_blank" rel="noopener noreferrer" aria-label="Написать в MAX"><img class="header-messenger__icon" src="/assets/contact/max.svg" alt=""><span class="header-contact__qr" aria-hidden="true">${deferredImage('/assets/contact/max-qr.png', 'alt="" width="340" height="341"')}<b>MAX</b><small>Сканируйте, чтобы написать</small></span></a><a class="header-contact header-messenger" href="https://t.me/Penna_Dvizh" target="_blank" rel="noopener noreferrer" aria-label="Написать в Telegram @Penna_Dvizh"><img class="header-messenger__icon" src="/assets/contact/telegram.svg" alt=""><span class="header-contact__qr" aria-hidden="true">${deferredImage('/assets/contact/telegram-qr.png', 'alt="" width="908" height="964"')}<b>Telegram</b><small>@Penna_Dvizh</small></span></a></div><button class="menu-button" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Открыть меню">МЕНЮ +</button></header>`;
+const nav = () => `<header class="site-header"><a class="wordmark" href="/" aria-label="${brandName}">${mobileLogoPulse}<picture><source media="(max-width: 900px)" srcset="/logo/brand-logo-icon-mobile.webp?v=20260902-mobile-perf-v1" type="image/webp"><img src="/logo/brand-logo-horizontal.png?v=20260828-brand-v2" alt="${brandName}" width="1600" height="489"></picture></a><nav class="site-menu" id="site-menu" aria-label="Основная навигация"><a href="/animatory/">Аниматоры</a><a href="/detskiy-den-rozhdeniya/">День рождения</a><a href="/show/">Шоу</a><a href="/afisha/">Афиша</a></nav><div class="header-contacts" aria-label="Связаться с нами"><a class="header-contact header-phone" href="tel:${publicPhone}" data-metrika-goal="phone_click" aria-label="Позвонить: ${publicPhoneLabel}">${phoneIcon}<span class="header-phone__number">${publicPhoneLabel}</span></a><a class="header-contact header-messenger" href="https://max.ru/u/f9LHodD0cOIRJLSa7d4VRvn920ZcfXNmLCtdobjJSwP_htHZYKv_rKIpH2s" target="_blank" rel="noopener noreferrer" data-metrika-goal="messenger_click" data-messenger="max" aria-label="Написать в MAX"><img class="header-messenger__icon" src="/assets/contact/max.svg" alt=""><span class="header-contact__qr" aria-hidden="true">${deferredImage('/assets/contact/max-qr.png', 'alt="" width="340" height="341"')}<b>MAX</b><small>Сканируйте, чтобы написать</small></span></a><a class="header-contact header-messenger" href="https://t.me/Penna_Dvizh" target="_blank" rel="noopener noreferrer" data-metrika-goal="messenger_click" data-messenger="telegram" aria-label="Написать в Telegram @Penna_Dvizh"><img class="header-messenger__icon" src="/assets/contact/telegram.svg" alt=""><span class="header-contact__qr" aria-hidden="true">${deferredImage('/assets/contact/telegram-qr.png', 'alt="" width="908" height="964"')}<b>Telegram</b><small>@Penna_Dvizh</small></span></a></div><button class="menu-button" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Открыть меню">МЕНЮ +</button></header>`;
 
 const personalDataContacts = () => `<dl class="legal-contacts"><dt>Электронная почта</dt><dd>${personalDataEmail ? `<a href="mailto:${escapeAttr(personalDataEmail)}">${escapeHtml(personalDataEmail)}</a>` : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_EMAIL</span>'}</dd><dt>Почтовый адрес для обращений</dt><dd>${personalDataPostalAddress ? escapeHtml(personalDataPostalAddress) : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_POSTAL_ADDRESS</span>'}</dd></dl>`;
 const consentField = () => `<label class="consent"><input required name="consent" type="checkbox"><span>Я даю <a href="/consent/" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и ознакомлен(а) с <a href="/privacy/" target="_blank" rel="noopener">Политикой</a>.</span></label>`;
@@ -555,7 +555,7 @@ const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox 
 
 const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
 const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-v2" sizes="16x16 32x32 48x48 64x64 128x128 256x256"><link rel="icon" href="/favicon-32x32.png?v=20260828-mask-v2" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png?v=20260828-mask-v2" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260828-mask-v2" sizes="180x180"><link rel="manifest" href="/site.webmanifest?v=20260828-pink-brand-v1"><meta name="theme-color" content="#121311">';
-const performanceAssetVersion = '20260902-exclusive-hero-filters-v1';
+const performanceAssetVersion = '20260903-birthday-format-editor-v8';
 const layout = (meta, body, pageClass = '') => {
   const floatingCtaHref = body.includes('id="zayavka"') ? '#zayavka' : '/#zayavka';
   return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=${performanceAssetVersion}"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=${performanceAssetVersion}" defer></script></body></html>`;
@@ -772,6 +772,91 @@ const homeDirectionCards = content => {
   });
   return orderedHomeDirectionCards([...defaults, ...homeCustomDirectionCards(content)], content);
 };
+const birthdayFormatPanelDefaults = {
+  animators: {
+    id:'animators', position:1, eyebrow:'01 · Формат праздника', title:'Аниматоры',
+    description:'Любимый герой в костюме вовлекает детей в игру — с реквизитом, заданиями и общим финалом.',
+    facts:['3–12 лет','40 минут','до 15 гостей'], optionsTitle:'Кого можно позвать', ctaLabel:'Выбрать аниматора', href:'/animatory/#hero-catalog', cardColor:'#F3DEA3'
+  },
+  shows: {
+    id:'shows', position:2, eyebrow:'02 · Формат праздника', title:'Шоу',
+    description:'Эффекты, музыка и активное участие гостей — выберите настроение праздника.',
+    facts:['3+ лет','4 программы','до 50 гостей'], optionsTitle:'Четыре формата на выбор', ctaLabel:'Смотреть все шоу', href:'/show/#show-catalog', cardColor:'#672744'
+  }
+};
+const birthdayAnimatorOptionDefaults = [
+  { id:'boys', position:1, title:'Для мальчиков', description:'Герои и миссии', href:'/animatory/?audience=boys#hero-catalog', cardColor:'#FFDFA1' },
+  { id:'girls', position:2, title:'Для девочек', description:'Персонажи и сказка', href:'/animatory/?audience=girls#hero-catalog', cardColor:'#F6C7D8' },
+  { id:'costumes', position:3, title:'Ростовые куклы', description:'Большие костюмы и фото', href:'/animatory/#hero-catalog', cardColor:'#CBE7DA' }
+];
+const birthdayFormatStorage = content => content?.birthdayFormatCards && typeof content.birthdayFormatCards === 'object' && !Array.isArray(content.birthdayFormatCards) ? content.birthdayFormatCards : {};
+const birthdayText = (value, fallback, limit) => String(value ?? fallback).trim().slice(0, limit) || fallback;
+const birthdayFacts = (value, fallback) => fallback.map((item, index) => birthdayText(Array.isArray(value) ? value[index] : item, item, 40));
+const birthdayPanel = (content, key) => {
+  const fallback = birthdayFormatPanelDefaults[key];
+  const source = birthdayFormatStorage(content).panels?.[key] || {};
+  return {
+    ...fallback,
+    position:Math.max(1, Math.round(number(source.position, fallback.position))),
+    eyebrow:birthdayText(source.eyebrow, fallback.eyebrow, 60),
+    title:birthdayText(source.title, fallback.title, 60),
+    description:birthdayText(source.description, fallback.description, 240),
+    facts:birthdayFacts(source.facts, fallback.facts),
+    optionsTitle:birthdayText(source.optionsTitle, fallback.optionsTitle, 80),
+    ctaLabel:birthdayText(source.ctaLabel, fallback.ctaLabel, 60),
+    href:safeHomeCardLink(source.href, fallback.href),
+    cardColor:normalizeHexColor(source.cardColor) || fallback.cardColor
+  };
+};
+const birthdayFormatPanels = content => Object.keys(birthdayFormatPanelDefaults)
+  .map(key => birthdayPanel(content, key))
+  .sort((first, second) => first.position - second.position || first.id.localeCompare(second.id));
+const birthdayAnimatorOptions = content => {
+  const saved = Array.isArray(birthdayFormatStorage(content).animatorOptions) ? birthdayFormatStorage(content).animatorOptions : [];
+  const byId = new Map(saved.map(item => [String(item?.id || ''), item]));
+  return birthdayAnimatorOptionDefaults.map(fallback => {
+    const source = byId.get(fallback.id) || {};
+    return {
+      ...fallback,
+      position:Math.max(1, Math.round(number(source.position, fallback.position))),
+      title:birthdayText(source.title, fallback.title, 50),
+      description:birthdayText(source.description, fallback.description, 100),
+      href:safeHomeCardLink(source.href, fallback.href),
+      cardColor:normalizeHexColor(source.cardColor) || fallback.cardColor,
+      image:String(source.image || '').trim(),
+      imagePositionX:number(source.imagePositionX, 50),
+      imagePositionY:number(source.imagePositionY, 50),
+      imageScale:number(source.imageScale, 100)
+    };
+  }).sort((first, second) => first.position - second.position || first.id.localeCompare(second.id));
+};
+const birthdayShowOptions = (content, shows) => {
+  const saved = Array.isArray(birthdayFormatStorage(content).showOptions) ? birthdayFormatStorage(content).showOptions : [];
+  const byShowId = new Map(saved.map(item => [String(item?.showId || ''), item]));
+  return orderedCatalogItems(shows.filter(visible)).slice(0, 4).map((show, index) => {
+    const source = byShowId.get(show.id) || {};
+    const fallbackColor = normalizeHexColor(show.cardColor) || legacyCardColor('shows', show);
+    return {
+      id:show.id,
+      show,
+      position:Math.max(1, Math.round(number(source.position, index + 1))),
+      title:birthdayText(source.title, show.name, 60),
+      description:birthdayText(source.description, show.description, 240),
+      cardColor:normalizeHexColor(source.cardColor) || fallbackColor
+    };
+  }).sort((first, second) => first.position - second.position || first.id.localeCompare(second.id));
+};
+const birthdayPanelStyle = cardColor => {
+  const background = normalizeHexColor(cardColor) || '#F3DEA3';
+  const textColor = readableColor(background);
+  const isLight = textColor === '#121311';
+  return ` style="--birthday-card:${background};--birthday-text:${textColor};--birthday-line:${textColor};--birthday-soft:${isLight ? 'rgba(255,249,252,.35)' : 'rgba(255,249,252,.13)'};--birthday-action:${textColor};--birthday-action-text:${readableColor(textColor)}"`;
+};
+const birthdayMiniStyle = cardColor => {
+  const background = normalizeHexColor(cardColor) || '#FFDFA1';
+  const textColor = readableColor(background);
+  return ` style="--birthday-mini-surface:${background};--birthday-mini-text:${textColor};--birthday-mini-line:${textColor}"`;
+};
 const homeDirectionCardStyle = cardColor => {
   const background = normalizeHexColor(cardColor);
   if (!background) return '';
@@ -893,11 +978,22 @@ const renderBirthday = async () => {
   const content = await loadContent();
   const heroCopy = pageHeroCopy(content, 'birthday');
   const [heroes, shows] = await Promise.all([loadCatalog('heroes'), loadCatalog('shows')]);
-  const birthdayFormatCard = ({ href, title, description, age, duration, guests, price, includes, variant, photo }) => `<a class="birthday-format-card birthday-format-card--${escapeAttr(variant)}" href="${escapeAttr(href)}"><div class="birthday-format-card__media">${image(photo)}</div><div class="birthday-format-card__copy"><span class="mono-tag">Формат праздника</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><dl class="birthday-format-card__facts"><div><dt>Возраст</dt><dd>${escapeHtml(age)}</dd></div><div><dt>Длительность</dt><dd>${escapeHtml(duration)}</dd></div><div><dt>Гостей</dt><dd>${escapeHtml(guests)}</dd></div><div><dt>Стоимость</dt><dd>${escapeHtml(price)}</dd></div></dl><div class="birthday-format-card__includes"><small>В программе</small><strong>${escapeHtml(includes)}</strong></div><span class="birthday-format-card__cta">ВЫБРАТЬ</span></a>`;
-  const serviceCards = [
-    birthdayFormatCard({ href:'/animatory/#hero-catalog', title:'Аниматор', description:'Любимый герой ведёт игру и вовлекает каждого ребёнка.', age:'3–12 лет', duration:'40 минут', guests:'до 15', price:minimumPriceLabel(heroes.filter(visible)), includes:'герой, игры, реквизит', variant:'yellow', photo:photoFromContent(content,'animatoryPhoto1') }),
-    birthdayFormatCard({ href:'/show/#show-catalog', title:'Шоу', description:'Эффектная программа для детей, которые любят удивляться.', age:'3+ лет', duration:'30–45 минут', guests:'до 50', price:minimumPriceLabel(shows.filter(visible)), includes:'ведущий, эффекты, участие детей', variant:'pink', photo:photoFromContent(content,'showPhoto1') })
-  ].join('');
+  const visibleHeroes = heroes.filter(visible);
+  const visibleShows = birthdayShowOptions(content, shows);
+  const animatorAudiences = birthdayAnimatorOptions(content);
+  const serviceCards = birthdayFormatPanels(content).map((panel, panelIndex) => {
+    const numberLabel = String(panelIndex + 1).padStart(2, '0');
+    const isAnimator = panel.id === 'animators';
+    const birthdayMetaIcons = [factIcons.age, factIcons.duration, factIcons.people];
+    const audienceCards = animatorAudiences.map((item, index) => `<li class="birthday-format-card__audience${item.image ? ' birthday-format-card__audience--has-image' : ''}"><a href="${escapeAttr(item.href)}"${birthdayMiniStyle(item.cardColor)}><b>${String(index + 1).padStart(2, '0')}</b>${item.image ? `<span class="birthday-format-card__audience-image">${image(item, '', { alt:`${item.title} — аниматор на день рождения в Кемерово` })}</span>` : ''}<span class="birthday-format-card__audience-copy"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.description)}</small></span><i aria-hidden="true">↗</i></a></li>`).join('');
+    const showCards = visibleShows.map((item, index) => `<a class="birthday-format-card__show" href="/show/${escapeAttr(item.show.slug)}/"${birthdayMiniStyle(item.cardColor)}><span class="birthday-format-card__show-image">${image(item.show, '', { card:true, alt:`${item.title} — шоу на день рождения в Кемерово` })}</span><span class="birthday-format-card__show-copy"><b>${String(index + 1).padStart(2, '0')}</b><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.description)}</small></span><i aria-hidden="true">↗</i></a>`).join('');
+    const media = isAnimator
+      ? photoWithFallback(content, 'birthdayAnimatorPhoto', 'animatoryPhoto1')
+      : photoWithFallback(content, 'birthdayShowPhoto', 'showPhoto1');
+    const mediaAlt = isAnimator ? 'Аниматор на детском дне рождения в Кемерово' : 'Шоу-программа на детском дне рождения в Кемерово';
+    const price = isAnimator ? minimumPriceLabel(visibleHeroes) : minimumPriceLabel(visibleShows.map(item => item.show));
+    return `<article class="birthday-format-card birthday-format-card--${isAnimator ? 'animators' : 'shows'}"${birthdayPanelStyle(panel.cardColor)}><div class="birthday-format-card__lead"><div class="birthday-format-card__copy"><span class="mono-tag">${escapeHtml(panel.eyebrow)}</span><h3>${escapeHtml(panel.title)}</h3><p>${escapeHtml(panel.description)}</p><div class="birthday-format-card__meta">${panel.facts.map((fact, index) => `<span>${birthdayMetaIcons[index] || factIcons.people}<b>${escapeHtml(fact)}</b></span>`).join('')}</div></div><div class="birthday-format-card__media">${image(media, '', { alt:mediaAlt })}<span>${numberLabel}</span></div></div><div class="birthday-format-card__options${isAnimator ? '' : ' birthday-format-card__options--shows'}"><p class="birthday-format-card__options-title">${escapeHtml(panel.optionsTitle)}</p>${isAnimator ? `<ul class="birthday-format-card__audiences">${audienceCards}</ul>` : `<div class="birthday-format-card__shows">${showCards}</div>`}</div><a class="birthday-format-card__cta" href="${escapeAttr(panel.href)}"><span>${escapeHtml(panel.ctaLabel)}</span><b>${escapeHtml(price)}</b><i aria-hidden="true">→</i></a></article>`;
+  }).join('');
   const birthdayFaq = pageFaqs(content, 'birthday');
   const birthdaySeo = `${seoCopySection({ eyebrow:'Организация дня рождения', title:'Детский день рождения под ключ на вашей площадке', paragraphs:['Поможем собрать программу дня рождения в Кемерово: выберем аниматора или шоу, учтём возраст ребёнка, число гостей и место проведения. Стоимость основы программы видна в каталоге.','Если площадка ещё не выбрана, посмотрите варианты проведения и требования к помещению. Мы не сдаём зал, но можем провести программу на подходящей площадке заказчика.'], items:['дома — для небольшой компании','в кафе или лофте — когда нужен отдельный зал','в детском центре — если на площадке разрешены приглашённые ведущие','на улице — для сезонных форматов и пенной вечеринки'], links:[{ href:'/animatory/#hero-catalog', label:'Выбрать аниматора' },{ href:'/show/#show-catalog', label:'Выбрать шоу' }] })}${faqSection(birthdayFaq)}`;
   const body = `${heroBlock({ tag:'Детский день рождения · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'photoBirthday'), photoAlt:'Детский день рождения в Кемерово', mascot:'/assets/mascot-peek-birthday.png', service:'Детский день рождения', pageClass:'afisha-hero' })}<section class="birthday-formats"><header class="birthday-formats__head"><div><span class="mono-tag">Форматы праздника</span><h2>Что добавить<br>в день рождения</h2></div><p>Выберите основу программы — подскажем, какой формат подойдёт возрасту ребёнка, гостям и площадке.</p></header><div class="birthday-format-grid">${serviceCards}</div></section>${birthdaySeo}${partyForm()}`;
@@ -958,7 +1054,7 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260902-hero-order-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-home-cards-v1" defer></script></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260903-birthday-format-editor-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-home-cards-v1" defer></script></body></html>`);
 const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
 const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'faq' ? 'is-active' : ''}" href="/admin/faq">FAQ всех страниц</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}</label>`;
@@ -1032,10 +1128,13 @@ const adminPageConfig = {
   },
   birthday: {
     active:'birthday', title:'День рождения', eyebrow:'Страницы сайта',
-    intro:'Первый экран страницы дня рождения. Карточки «Аниматор» и «Шоу» ниже используют общие фото из соответствующих разделов.',
+    intro:'Первый экран и все карточки форматов на странице дня рождения: тексты, цвета, порядок, кнопки и фотографии.',
     publicUrl:'/detskiy-den-rozhdeniya/', adminUrl:'/admin/birthday',
     hero:{ key:'birthday', title:'Первый экран', hint:'Каждая новая строка H1 станет новой строкой в дизайне.' },
-    photoGroups:[{ title:'Первый экран', description:'Главная фотография страницы дня рождения.', items:[['photoBirthday','День рождения → первое большое фото']] }]
+    photoGroups:[
+      { title:'Первый экран', description:'Главная фотография страницы дня рождения.', items:[['photoBirthday','День рождения → первое большое фото']] },
+      { title:'Фото карточек форматов', description:'Эти обложки показываются только в карточках «Аниматоры» и «Шоу» на странице дня рождения.', items:[['birthdayAnimatorPhoto','День рождения → карточка «Аниматоры»'],['birthdayShowPhoto','День рождения → карточка «Шоу»']] }
+    ]
   },
   animatory: {
     active:'animatory-page', title:'Аниматоры — страница', eyebrow:'Страницы сайта',
@@ -1093,15 +1192,32 @@ const renderHomeDirectionCardEditor = content => {
   const createButton = customCount < maxHomeCustomCards ? `<button class="admin-home-card-create" type="submit" form="home-card-create">+ Создать свою карточку</button>` : `<p class="admin-home-card-limit">Достигнут лимит: до ${maxHomeCustomCards} своих карточек.</p>`;
   return `<section class="admin-editor-card admin-home-card-editor"><header><span>Плитки направлений</span><h2>Карточки на главной</h2><p>Меньшая цифра — выше на странице. Вся плитка кликабельна, поэтому ссылка здесь одновременно управляет и переходом по карточке, и кнопкой внутри неё.</p></header><div class="admin-home-card-list">${rows}</div>${createButton}</section>`;
 };
+const birthdayPanelEditorRow = (panel, index, favorites) => `<article class="admin-home-card-row"><header><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(panel.title)}</strong><small>Большая карточка формата на странице дня рождения</small></div></header><div class="admin-grid">${formField('Порядок', `birthdayPanelPosition-${panel.id}`, panel.position, { type:'number', step:'1', required:true })}${formField('Подпись над названием', `birthdayPanelEyebrow-${panel.id}`, panel.eyebrow, { required:true })}${formField('Название', `birthdayPanelTitle-${panel.id}`, panel.title, { required:true, wide:true })}${formField('Описание', `birthdayPanelDescription-${panel.id}`, panel.description, { textarea:true, wide:true, required:true })}${panel.facts.map((fact, factIndex) => formField(`Плашка с фактом ${factIndex + 1}`, `birthdayPanelFact-${panel.id}-${factIndex}`, fact, { required:true })).join('')}${formField('Заголовок над мини-карточками', `birthdayPanelOptionsTitle-${panel.id}`, panel.optionsTitle, { required:true, wide:true })}${formField('Надпись на кнопке', `birthdayPanelCtaLabel-${panel.id}`, panel.ctaLabel, { required:true })}${formField('Ссылка кнопки', `birthdayPanelHref-${panel.id}`, panel.href, { required:true, wide:true })}${homeDirectionCardColorField(panel, favorites, `birthdayPanelColor-${panel.id}`)}</div></article>`;
+const birthdayAnimatorOptionMediaEditor = item => {
+  const cropKey = `birthday-animator-option-${item.id}`;
+  const control = (label, field, value, attribute) => formField(label, field, value, { type:'range', step:'1' }).replace(`name="${field}"`, `name="${field}" ${attribute}="${escapeAttr(cropKey)}"`);
+  const preview = item.image ? `<img data-crop-preview="${escapeAttr(cropKey)}" src="${escapeAttr(item.image)}" alt="" style="${cropStyle(item)}">` : '<i>Фото</i>';
+  return `<section class="admin-home-card-media"><header><strong>Фото мини-карточки</strong><small>Необязательно. Если загрузить фото, оно появится внутри карточки рядом с текстом.</small></header><div class="photo-editor" data-fit-preview="${escapeAttr(cropKey)}"><div class="admin-photo-preview">${preview}</div><label class="upload-field">Загрузить фото<input type="file" name="birthdayAnimatorOptionImage-${escapeAttr(item.id)}" accept="image/png,image/jpeg,image/webp,image/gif" data-photo-input="${escapeAttr(cropKey)}"><span>JPG, PNG, WEBP или GIF → WebP</span></label><div class="crop-grid">${control('Горизонт', `birthdayAnimatorOptionImagePositionX-${item.id}`, item.imagePositionX, 'data-crop-x')}${control('Вертикаль', `birthdayAnimatorOptionImagePositionY-${item.id}`, item.imagePositionY, 'data-crop-y')}${control('Масштаб', `birthdayAnimatorOptionImageScale-${item.id}`, item.imageScale, 'data-crop-scale')}<output data-scale-output="${escapeAttr(cropKey)}">${item.imageScale}%</output></div></div></section>`;
+};
+const birthdayAnimatorOptionEditorRow = (item, index, favorites) => `<article class="admin-home-card-row"><header><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(item.title)}</strong><small>Мини-карточка внутри формата «Аниматоры»</small></div></header><div class="admin-grid">${formField('Порядок', `birthdayAnimatorOptionPosition-${item.id}`, item.position, { type:'number', step:'1', required:true })}${formField('Название', `birthdayAnimatorOptionTitle-${item.id}`, item.title, { required:true })}${formField('Короткое описание', `birthdayAnimatorOptionDescription-${item.id}`, item.description, { required:true, wide:true })}${formField('Ссылка перехода', `birthdayAnimatorOptionHref-${item.id}`, item.href, { required:true, wide:true })}${homeDirectionCardColorField(item, favorites, `birthdayAnimatorOptionColor-${item.id}`)}</div>${birthdayAnimatorOptionMediaEditor(item)}</article>`;
+const birthdayShowOptionEditorRow = (item, index, favorites) => `<article class="admin-home-card-row"><header><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(item.show.name)}</strong><small>Мини-карточка на дне рождения · фото и ссылка берутся из карточки шоу</small></div></header><div class="admin-grid">${formField('Порядок', `birthdayShowOptionPosition-${item.id}`, item.position, { type:'number', step:'1', required:true })}${formField('Название в мини-карточке', `birthdayShowOptionTitle-${item.id}`, item.title, { required:true })}${formField('Короткое описание', `birthdayShowOptionDescription-${item.id}`, item.description, { textarea:true, wide:true, required:true })}${homeDirectionCardColorField(item, favorites, `birthdayShowOptionColor-${item.id}`)}</div></article>`;
+const renderBirthdayFormatsEditor = (content, shows) => {
+  const favorites = cardColorFavorites(content);
+  const panels = birthdayFormatPanels(content);
+  const animatorOptions = birthdayAnimatorOptions(content);
+  const showOptions = birthdayShowOptions(content, shows);
+  return `<section class="admin-editor-card admin-home-card-editor"><header><span>Форматы праздника</span><h2>Карточки на дне рождения</h2><p>Настройте порядок, тексты и цвета больших карточек и всех мини-карточек. Фото аниматоров и шоу меняются ниже, в блоке «Фото карточек».</p></header><div class="admin-home-card-list">${panels.map((panel, index) => birthdayPanelEditorRow(panel, index, favorites)).join('')}</div><header class="admin-home-card-editor__subhead"><span>Аниматоры</span><h3>Кого можно позвать</h3><p>Три объясняющие мини-карточки. Их порядок, текст и фон независимы друг от друга.</p></header><div class="admin-home-card-list">${animatorOptions.map((item, index) => birthdayAnimatorOptionEditorRow(item, index, favorites)).join('')}</div><header class="admin-home-card-editor__subhead"><span>Шоу</span><h3>Четыре мини-карточки</h3><p>Название, короткий текст, цвет и порядок задаются здесь. Картинка и переход ведут на соответствующее шоу из каталога.</p></header><div class="admin-home-card-list">${showOptions.length ? showOptions.map((item, index) => birthdayShowOptionEditorRow(item, index, favorites)).join('') : '<p class="admin-empty">Сначала добавьте видимое шоу в каталог.</p>'}</div></section>`;
+};
 const renderHomeCardActionForms = content => `<form id="home-card-create" method="post" action="/admin/home-cards/new"></form>${homeCustomDirectionCards(content).map(card => `<form id="home-card-delete-${escapeAttr(card.id)}" method="post" action="/admin/home-cards/delete"><input type="hidden" name="id" value="${escapeAttr(card.id)}"></form>`).join('')}`;
 
 const renderAdminPage = async (key, query = {}) => {
   const config = adminPageConfig[key];
   if (!config) throw new Error('Страница админки не найдена');
-  const content = await loadContent();
+  const [content, shows] = await Promise.all([loadContent(), key === 'birthday' ? loadCatalog('shows') : Promise.resolve([])]);
   const homeCardsEditor = key === 'home' ? renderHomeDirectionCardEditor(content) : '';
+  const birthdayFormatsEditor = key === 'birthday' ? renderBirthdayFormatsEditor(content, shows) : '';
   const homeCardActionForms = key === 'home' ? renderHomeCardActionForms(content) : '';
-  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}${homeCardActionForms}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}${homeCardsEditor}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
+  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}${homeCardActionForms}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}${homeCardsEditor}${birthdayFormatsEditor}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
   return adminLayout(config.title, body, config.active);
 };
 
@@ -1703,7 +1819,48 @@ app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) =>
       nextContent.homeDirectionCards = { ...savedCards, ...defaultCards, custom:customCards };
       nextContent.homeDirectionCardOrder = homeDirectionCardOrderFromBody(req.body, homeDirectionCards(previous));
     }
-    for (const key of ['photo1','homeBoyPhoto','homeGirlPhoto','homeAdultShowPhoto','homeFoamPhoto','photo5','photo6','photo7','photoBirthday','animatoryPhoto1','animatoryPhoto2','animatoryPhoto3','animatoryPhoto4','showPhoto1','showPhoto2','showPhoto3','showPhoto4']) {
+    const birthdayFormatFieldsSubmitted = Object.hasOwn(req.body, 'birthdayPanelTitle-animators');
+    if (birthdayFormatFieldsSubmitted) {
+      const panels = Object.fromEntries(Object.keys(birthdayFormatPanelDefaults).map(key => {
+        const current = birthdayPanel(previous, key);
+        return [key, {
+          position:Math.max(1, Math.round(number(req.body[`birthdayPanelPosition-${key}`], current.position))),
+          eyebrow:birthdayText(req.body[`birthdayPanelEyebrow-${key}`], current.eyebrow, 60),
+          title:birthdayText(req.body[`birthdayPanelTitle-${key}`], current.title, 60),
+          description:birthdayText(req.body[`birthdayPanelDescription-${key}`], current.description, 240),
+          facts:current.facts.map((fact, index) => birthdayText(req.body[`birthdayPanelFact-${key}-${index}`], fact, 40)),
+          optionsTitle:birthdayText(req.body[`birthdayPanelOptionsTitle-${key}`], current.optionsTitle, 80),
+          ctaLabel:birthdayText(req.body[`birthdayPanelCtaLabel-${key}`], current.ctaLabel, 60),
+          href:safeHomeCardLink(req.body[`birthdayPanelHref-${key}`], current.href),
+          cardColor:normalizeHexColor(req.body[`birthdayPanelColor-${key}`]) || current.cardColor
+        }];
+      }));
+      const animatorOptions = birthdayAnimatorOptions(previous).map(item => {
+        const image = inputFiles.get(`birthdayAnimatorOptionImage-${item.id}`);
+        return {
+          id:item.id,
+          position:Math.max(1, Math.round(number(req.body[`birthdayAnimatorOptionPosition-${item.id}`], item.position))),
+          title:birthdayText(req.body[`birthdayAnimatorOptionTitle-${item.id}`], item.title, 50),
+          description:birthdayText(req.body[`birthdayAnimatorOptionDescription-${item.id}`], item.description, 100),
+          href:safeHomeCardLink(req.body[`birthdayAnimatorOptionHref-${item.id}`], item.href),
+          cardColor:normalizeHexColor(req.body[`birthdayAnimatorOptionColor-${item.id}`]) || item.cardColor,
+          image:image ? `/uploads/${image.filename}` : item.image,
+          imagePositionX:number(req.body[`birthdayAnimatorOptionImagePositionX-${item.id}`], item.imagePositionX),
+          imagePositionY:number(req.body[`birthdayAnimatorOptionImagePositionY-${item.id}`], item.imagePositionY),
+          imageScale:number(req.body[`birthdayAnimatorOptionImageScale-${item.id}`], item.imageScale)
+        };
+      });
+      const birthdayShows = await loadCatalog('shows');
+      const showOptions = birthdayShowOptions(previous, birthdayShows).map(item => ({
+        showId:item.id,
+        position:Math.max(1, Math.round(number(req.body[`birthdayShowOptionPosition-${item.id}`], item.position))),
+        title:birthdayText(req.body[`birthdayShowOptionTitle-${item.id}`], item.title, 60),
+        description:birthdayText(req.body[`birthdayShowOptionDescription-${item.id}`], item.description, 240),
+        cardColor:normalizeHexColor(req.body[`birthdayShowOptionColor-${item.id}`]) || item.cardColor
+      }));
+      nextContent.birthdayFormatCards = { panels, animatorOptions, showOptions };
+    }
+    for (const key of ['photo1','homeBoyPhoto','homeGirlPhoto','homeAdultShowPhoto','homeFoamPhoto','photo5','photo6','photo7','photoBirthday','birthdayAnimatorPhoto','birthdayShowPhoto','animatoryPhoto1','animatoryPhoto2','animatoryPhoto3','animatoryPhoto4','showPhoto1','showPhoto2','showPhoto3','showPhoto4']) {
       const file = inputFiles.get(key);
       if (file) nextContent[key] = `/uploads/${file.filename}`;
       nextContent[`${key}PositionX`] = number(req.body[`${key}PositionX`], previous[`${key}PositionX`] ?? 50);

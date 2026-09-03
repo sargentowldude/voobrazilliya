@@ -936,6 +936,9 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
 });
 
 document.querySelectorAll('a[href^="tel:"]').forEach(link => link.addEventListener("click", () => metrikaGoal("phone_click")));
+document.querySelectorAll('[data-metrika-goal="messenger_click"]').forEach(link => link.addEventListener("click", () => {
+  metrikaGoal("messenger_click", { messenger:link.dataset.messenger || "unknown" });
+}));
 
 const mediaLightboxDialog = document.querySelector("[data-media-lightbox]");
 const mediaLightboxContent = document.querySelector("[data-media-lightbox-content]");
