@@ -120,6 +120,7 @@ const trackThankYouLead = () => {
     const form = window.sessionStorage.getItem(leadSuccessStorageKey);
     if (!form) return;
     window.sessionStorage.removeItem(leadSuccessStorageKey);
+    metrikaGoal("/spasibo/", { form });
     metrikaGoal("form_submit", { form });
   } catch {}
 };
