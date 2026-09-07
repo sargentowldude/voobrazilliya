@@ -282,6 +282,15 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 3px rgba(249, 26, 122, .16);
 }
 .admin-field select { cursor: pointer; }
+.admin-field__hint {
+  margin-top: -2px;
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
 .admin-check {
   display: inline-flex;
   align-items: center;

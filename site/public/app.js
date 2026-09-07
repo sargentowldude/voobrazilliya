@@ -448,9 +448,11 @@ if (heroCart) {
   const money = value => new Intl.NumberFormat("ru-RU").format(Number(value || 0)) + " ₽";
   const currentHero = () => cartHeroes.find(hero => hero.id === state.primaryId);
   const secondOptions = [...cartForm.querySelectorAll("[data-cart-second-option]")];
+  const primaryLabel = cartForm.querySelector("[data-cart-primary-label]");
   const primaryName = cartForm.querySelector("[data-cart-primary-name]");
   const primaryPrice = cartForm.querySelector("[data-cart-primary-price]");
   const secondItem = cartForm.querySelector("[data-cart-second-item]");
+  const secondLabel = cartForm.querySelector("[data-cart-second-label]");
   const secondName = cartForm.querySelector("[data-cart-second-name]");
   const secondPrice = cartForm.querySelector("[data-cart-second-price]");
   const total = cartForm.querySelector("[data-cart-total]");
@@ -460,16 +462,49 @@ if (heroCart) {
   const secondToolbar = cartForm.querySelector("[data-cart-second-toolbar]");
   const secondHint = cartForm.querySelector("[data-cart-second-hint]");
   const clearSecond = cartForm.querySelector("[data-cart-clear-second]");
-  const secondHeroPrice = Number(heroCart.dataset.secondHeroPrice || 0);
+  const secondHeroDiscountPercent = Math.max(1, Math.min(90, Math.round(Number(heroCart.dataset.secondHeroDiscountPercent || 28))));
   const mobileStepper = setupMobileCartStepper(cartForm);
+  const standardHeroPrice = hero => Number(hero?.[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] || 0);
+  const discountedHeroPrice = hero => {
+    const basePrice = Number(hero?.weekdayPrice || 0);
+    return Math.round(basePrice * (100 - secondHeroDiscountPercent) / 100);
+  };
+  const pricingForPair = (primaryHero, secondaryHero) => {
+    if (!primaryHero) return null;
+    if (!secondaryHero) {
+      const price = standardHeroPrice(primaryHero);
+      return { primaryPrice:price, secondaryPrice:0, total:price, fullHero:primaryHero, promoHero:null };
+    }
+    const primaryRegularPrice = standardHeroPrice(primaryHero);
+    const secondaryRegularPrice = standardHeroPrice(secondaryHero);
+    const primaryBasePrice = Number(primaryHero.weekdayPrice || 0);
+    const secondaryBasePrice = Number(secondaryHero.weekdayPrice || 0);
+    const primaryGetsDiscount = primaryRegularPrice < secondaryRegularPrice || (primaryRegularPrice === secondaryRegularPrice && primaryBasePrice <= secondaryBasePrice);
+    const primaryPrice = primaryGetsDiscount ? discountedHeroPrice(primaryHero) : primaryRegularPrice;
+    const secondaryPrice = primaryGetsDiscount ? secondaryRegularPrice : discountedHeroPrice(secondaryHero);
+    return {
+      primaryPrice,
+      secondaryPrice,
+      total:primaryPrice + secondaryPrice,
+      fullHero:primaryGetsDiscount ? secondaryHero : primaryHero,
+      promoHero:primaryGetsDiscount ? primaryHero : secondaryHero
+    };
+  };
 
   const syncSecondHeroOptions = () => {
     secondOptions.forEach(option => {
       const isPrimary = option.dataset.cartSecondOption === state.primaryId;
       const isSelected = option.dataset.cartSecondOption === state.secondaryId;
+      const optionHero = cartHeroes.find(hero => hero.id === option.dataset.cartSecondOption);
       option.hidden = isPrimary;
       option.classList.toggle("is-selected", isSelected);
       option.setAttribute("aria-pressed", String(isSelected));
+      const optionPrice = option.querySelector("[data-cart-second-option-price]");
+      const optionPricing = optionHero ? pricingForPair(currentHero(), optionHero) : null;
+      if (optionPrice && optionPricing) {
+        const optionGetsDiscount = optionPricing.promoHero?.id === optionHero.id;
+        optionPrice.textContent = optionGetsDiscount ? `по акции ${money(optionPricing.secondaryPrice)}` : `полная цена ${money(optionPricing.secondaryPrice)}`;
+      }
     });
     const secondHero = cartHeroes.find(item => item.id === state.secondaryId && item.id !== state.primaryId);
     if (secondOptionsWrap) secondOptionsWrap.hidden = !state.secondPickerOpen;
@@ -492,18 +527,20 @@ if (heroCart) {
   const updateCart = () => {
     const hero = currentHero();
     const dayLabel = state.day === "weekend" ? "Выходные" : "Будни";
-    const basePrice = hero ? hero[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] : 0;
     const secondHero = cartHeroes.find(item => item.id === state.secondaryId && item.id !== state.primaryId);
     const hasSecond = Boolean(secondHero);
+    const pricing = pricingForPair(hero, secondHero);
 
     primaryName.textContent = hero?.name || "Выберите героя";
-    primaryPrice.textContent = hero ? money(basePrice) : "—";
+    primaryPrice.textContent = pricing ? money(pricing.primaryPrice) : "—";
+    if (primaryLabel) primaryLabel.textContent = !hasSecond ? "Главный герой" : pricing.promoHero?.id === hero.id ? `Герой по акции · скидка ${secondHeroDiscountPercent}%` : "Герой по полной цене";
     if (secondItem) secondItem.hidden = !hasSecond;
     if (hasSecond) {
       secondName.textContent = secondHero.name;
-      secondPrice.textContent = `+ ${money(secondHeroPrice)}`;
+      secondPrice.textContent = `+ ${money(pricing.secondaryPrice)}`;
+      if (secondLabel) secondLabel.textContent = pricing.promoHero?.id === secondHero.id ? `Герой по акции · скидка ${secondHeroDiscountPercent}%` : "Герой по полной цене";
     }
-    total.textContent = hero ? money(basePrice + (hasSecond ? secondHeroPrice : 0)) : "—";
+    total.textContent = pricing ? money(pricing.total) : "—";
     summary.textContent = !hero
       ? "Выберите героя."
       : hasSecond
@@ -512,8 +549,13 @@ if (heroCart) {
 
     cartForm.dataset.primaryHeroName = hero?.name || "";
     cartForm.dataset.secondHeroName = hasSecond ? secondHero.name : "";
+    cartForm.dataset.fullHeroName = pricing?.fullHero?.name || "";
+    cartForm.dataset.fullHeroPrice = String(pricing?.fullHero ? (pricing.fullHero.id === hero?.id ? pricing.primaryPrice : pricing.secondaryPrice) : 0);
+    cartForm.dataset.promoHeroName = pricing?.promoHero?.name || "";
+    cartForm.dataset.promoHeroPrice = String(pricing?.promoHero ? (pricing.promoHero.id === hero?.id ? pricing.primaryPrice : pricing.secondaryPrice) : 0);
     cartForm.dataset.dayLabel = dayLabel;
-    cartForm.dataset.total = String(basePrice + (hasSecond ? secondHeroPrice : 0));
+    cartForm.dataset.secondHeroDiscountPercent = String(secondHeroDiscountPercent);
+    cartForm.dataset.total = String(pricing?.total || 0);
     cartForm.dataset.ready = String(Boolean(hero));
     cartCards.forEach(card => card.classList.toggle("is-in-cart", card.dataset.heroId === state.primaryId));
     syncSecondHeroOptions();
@@ -866,12 +908,17 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
         return;
       }
       const secondHero = form.dataset.secondHeroName;
+      const fullHero = form.dataset.fullHeroName;
+      const fullHeroPrice = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.fullHeroPrice || 0)) + " ₽";
+      const promoHero = form.dataset.promoHeroName;
+      const promoHeroPrice = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.promoHeroPrice || 0)) + " ₽";
+      const secondHeroDiscountPercent = form.dataset.secondHeroDiscountPercent || "";
       const total = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.total || 0)) + " ₽";
       form.elements.service.value = `Аниматоры · ${form.dataset.primaryHeroName}${secondHero ? ` + ${secondHero}` : ""}`;
       form.elements.message.value = [
-        `Главный герой: ${form.dataset.primaryHeroName}`,
+        secondHero ? `Герой по полной цене: ${fullHero} — ${fullHeroPrice}` : `Главный герой: ${form.dataset.primaryHeroName}`,
         `День: ${form.dataset.dayLabel}`,
-        secondHero ? `Второй герой по акции: ${secondHero}` : "",
+        secondHero ? `Герой по акции (скидка ${secondHeroDiscountPercent}%): ${promoHero} — ${promoHeroPrice}` : "",
         `Итого: ${total}`
       ].filter(Boolean).join(". ") + ".";
       const comment = form.querySelector('[name="comment"]')?.value.trim();

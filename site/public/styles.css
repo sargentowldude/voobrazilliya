@@ -6663,6 +6663,9 @@ color: var(--hero-cta-text);
 }
 .hero-cart__mini-card::after { content: ""; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(26, 24, 30, .78)); }
 .hero-cart__mini-card > span:not(.hero-cart__mini-placeholder) { position: relative; z-index: 1; padding: 10px; color: #fffaf2; font-size: 12px; font-weight: 800; line-height: 1.15; }
+.hero-cart__mini-card-copy { display: grid; gap: 4px; }
+.hero-cart__mini-card-copy b { font: inherit; }
+.hero-cart__mini-card-copy small { color: rgba(255, 249, 242, .78); font-size: 9px; font-weight: 800; letter-spacing: .035em; }
 .hero-cart__mini-placeholder { height: 100%; display: grid; place-items: center; color: #625a1e; font-size: 35px; }
 .hero-cart__total {
   padding: 16px 18px;
