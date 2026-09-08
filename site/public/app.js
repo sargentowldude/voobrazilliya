@@ -444,10 +444,17 @@ if (heroCart) {
     if (scrollHint) optionsWrap.append(scrollHint);
     optionsWrap.append(animatorMiniGrid);
   }
-  const state = { primaryId: "", secondaryId: "", day: "weekday", secondPickerOpen: false };
+  const state = { primaryId: "", secondaryId: "", showId: "", day: "weekday", secondPickerOpen: false, showPickerOpen: false };
   const money = value => new Intl.NumberFormat("ru-RU").format(Number(value || 0)) + " ₽";
   const currentHero = () => cartHeroes.find(hero => hero.id === state.primaryId);
   const secondOptions = [...cartForm.querySelectorAll("[data-cart-second-option]")];
+  const showOptions = [...cartForm.querySelectorAll("[data-cart-show-option]")];
+  const cartShows = showOptions.map(option => ({
+    id: option.dataset.cartShowOption,
+    name: option.dataset.cartShowName,
+    price: Number(option.dataset.cartShowPrice || 0)
+  }));
+  const currentShow = () => cartShows.find(show => show.id === state.showId);
   const primaryLabel = cartForm.querySelector("[data-cart-primary-label]");
   const primaryName = cartForm.querySelector("[data-cart-primary-name]");
   const primaryPrice = cartForm.querySelector("[data-cart-primary-price]");
@@ -462,6 +469,12 @@ if (heroCart) {
   const secondToolbar = cartForm.querySelector("[data-cart-second-toolbar]");
   const secondHint = cartForm.querySelector("[data-cart-second-hint]");
   const clearSecond = cartForm.querySelector("[data-cart-clear-second]");
+  const showItem = cartForm.querySelector("[data-cart-show-item]");
+  const showName = cartForm.querySelector("[data-cart-show-name]");
+  const showPrice = cartForm.querySelector("[data-cart-show-price]");
+  const showMenu = cartForm.querySelector("[data-cart-show-menu]");
+  const showToggle = cartForm.querySelector("[data-cart-toggle-show]");
+  const clearShow = cartForm.querySelector("[data-cart-clear-show]");
   const secondHeroDiscountPercent = Math.max(1, Math.min(90, Math.round(Number(heroCart.dataset.secondHeroDiscountPercent || 28))));
   const mobileStepper = setupMobileCartStepper(cartForm);
   const standardHeroPrice = hero => Number(hero?.[state.day === "weekend" ? "weekendPrice" : "weekdayPrice"] || 0);
@@ -524,12 +537,33 @@ if (heroCart) {
     if (clearSecond) clearSecond.hidden = !secondHero;
   };
 
+  const syncShowOptions = () => {
+    const selectedShow = currentShow();
+    showOptions.forEach(option => {
+      const selected = option.dataset.cartShowOption === state.showId;
+      option.classList.toggle("is-selected", selected);
+      option.setAttribute("aria-pressed", String(selected));
+    });
+    if (showMenu) showMenu.hidden = !state.showPickerOpen;
+    if (showToggle) {
+      showToggle.classList.toggle("is-selected", Boolean(selectedShow));
+      showToggle.setAttribute("aria-expanded", String(state.showPickerOpen));
+      const title = showToggle.querySelector("strong");
+      const price = showToggle.querySelector(":scope > b");
+      if (title) title.textContent = selectedShow ? selectedShow.name : "Добавить шоу";
+      if (price) price.textContent = selectedShow ? `+ ${money(selectedShow.price)}` : price.dataset.defaultLabel || price.textContent;
+    }
+    if (clearShow) clearShow.hidden = !selectedShow;
+  };
+
   const updateCart = () => {
     const hero = currentHero();
     const dayLabel = state.day === "weekend" ? "Выходные" : "Будни";
     const secondHero = cartHeroes.find(item => item.id === state.secondaryId && item.id !== state.primaryId);
     const hasSecond = Boolean(secondHero);
     const pricing = pricingForPair(hero, secondHero);
+    const selectedShow = currentShow();
+    const showAddonPrice = Number(selectedShow?.price || 0);
 
     primaryName.textContent = hero?.name || "Выберите героя";
     primaryPrice.textContent = pricing ? money(pricing.primaryPrice) : "—";
@@ -540,12 +574,15 @@ if (heroCart) {
       secondPrice.textContent = `+ ${money(pricing.secondaryPrice)}`;
       if (secondLabel) secondLabel.textContent = pricing.promoHero?.id === secondHero.id ? `Герой по акции · скидка ${secondHeroDiscountPercent}%` : "Герой по полной цене";
     }
-    total.textContent = pricing ? money(pricing.total) : "—";
+    if (showItem) showItem.hidden = !selectedShow;
+    if (selectedShow) {
+      showName.textContent = selectedShow.name;
+      showPrice.textContent = `+ ${money(showAddonPrice)}`;
+    }
+    total.textContent = pricing ? money(pricing.total + showAddonPrice) : "—";
     summary.textContent = !hero
       ? "Выберите героя."
-      : hasSecond
-        ? `${dayLabel} · два героя.`
-        : `${dayLabel} · один герой.`;
+      : `${dayLabel} · ${hasSecond ? "два героя" : "один герой"}${selectedShow ? " + шоу" : ""}.`;
 
     cartForm.dataset.primaryHeroName = hero?.name || "";
     cartForm.dataset.secondHeroName = hasSecond ? secondHero.name : "";
@@ -553,14 +590,18 @@ if (heroCart) {
     cartForm.dataset.fullHeroPrice = String(pricing?.fullHero ? (pricing.fullHero.id === hero?.id ? pricing.primaryPrice : pricing.secondaryPrice) : 0);
     cartForm.dataset.promoHeroName = pricing?.promoHero?.name || "";
     cartForm.dataset.promoHeroPrice = String(pricing?.promoHero ? (pricing.promoHero.id === hero?.id ? pricing.primaryPrice : pricing.secondaryPrice) : 0);
+    cartForm.dataset.showName = selectedShow?.name || "";
+    cartForm.dataset.showPrice = String(showAddonPrice);
     cartForm.dataset.dayLabel = dayLabel;
     cartForm.dataset.secondHeroDiscountPercent = String(secondHeroDiscountPercent);
-    cartForm.dataset.total = String(pricing?.total || 0);
+    cartForm.dataset.total = String((pricing?.total || 0) + showAddonPrice);
     cartForm.dataset.ready = String(Boolean(hero));
     cartCards.forEach(card => card.classList.toggle("is-in-cart", card.dataset.heroId === state.primaryId));
     syncSecondHeroOptions();
+    syncShowOptions();
     mobileStepper.update({
-      summary: hero ? `${hero.name}${hasSecond ? ` + ${secondHero.name}` : ""} · ${dayLabel}` : "Выберите аниматоров",
+      summary: hero ? `${hero.name}${hasSecond ? ` + ${secondHero.name}` : ""}${selectedShow ? ` + ${selectedShow.name}` : ""} · ${dayLabel}` : "Выберите аниматоров",
+      total: pricing ? money(pricing.total + showAddonPrice) : "—",
       ready: Boolean(hero)
     });
   };
@@ -574,34 +615,26 @@ if (heroCart) {
   const clearCartSelection = () => {
     state.primaryId = "";
     state.secondaryId = "";
+    state.showId = "";
     state.secondPickerOpen = false;
+    state.showPickerOpen = false;
     updateCart();
   };
 
-  const openQuickHeroLead = () => {
-    const hero = currentHero();
-    if (!hero || !dialog) return;
-    const service = `Аниматор ${hero.name}`;
-    const message = `Хочу заказать аниматора ${hero.name}.`;
+  const openHeroCart = ({ chooseSecond = false, chooseShow = false } = {}) => {
     heroChoice?.close();
-    clearCartSelection();
-    dialog.querySelector('[name="service"]').value = service;
-    dialog.querySelector('[name="message"]').value = message;
-    const comment = dialog.querySelector('[name="comment"]');
-    if (comment) comment.value = message;
-    if (!dialog.open) dialog.showModal();
-    dialog.querySelector('[name="name"]')?.focus();
-    metrikaGoal("form_open", { form: "dialog" });
-  };
-
-  const openHeroCart = () => {
-    heroChoice?.close();
-    state.secondPickerOpen = true;
+    state.secondPickerOpen = chooseSecond;
+    state.showPickerOpen = chooseShow;
     mobileStepper.reset();
     updateCart();
     hydrateDeferredImages(heroCart);
     if (!heroCart.open) heroCart.showModal();
-    (secondOptions.find(option => !option.hidden) || cartForm.querySelector('[data-cart-day="weekday"]'))?.focus();
+    const target = chooseSecond
+      ? secondOptions.find(option => !option.hidden)
+      : chooseShow
+        ? showOptions[0]
+        : cartForm.querySelector('[data-cart-day="weekday"]');
+    target?.focus();
   };
 
   const openHeroChoice = heroId => {
@@ -609,7 +642,7 @@ if (heroCart) {
     const hero = currentHero();
     if (!hero) return;
     if (!heroChoice) {
-      openQuickHeroLead();
+      openHeroCart();
       return;
     }
     heroChoice.querySelector("[data-choice-hero-name]").textContent = hero.name;
@@ -645,8 +678,23 @@ if (heroCart) {
     state.secondaryId = "";
     updateCart();
   });
-  heroChoice?.querySelector("[data-choice-no]")?.addEventListener("click", openQuickHeroLead);
-  heroChoice?.querySelector("[data-choice-yes]")?.addEventListener("click", openHeroCart);
+  showOptions.forEach(option => option.addEventListener("click", () => {
+    const showId = option.dataset.cartShowOption || "";
+    state.showId = state.showId === showId ? "" : showId;
+    state.showPickerOpen = false;
+    updateCart();
+  }));
+  showToggle?.addEventListener("click", () => {
+    state.showPickerOpen = !state.showPickerOpen;
+    updateCart();
+    if (state.showPickerOpen) showOptions[0]?.focus();
+  });
+  clearShow?.addEventListener("click", () => {
+    state.showId = "";
+    updateCart();
+  });
+  heroChoice?.querySelector("[data-choice-no]")?.addEventListener("click", () => openHeroCart());
+  heroChoice?.querySelector("[data-choice-yes]")?.addEventListener("click", () => openHeroCart({ chooseSecond:true }));
   heroChoice?.querySelector("[data-close-hero-choice]")?.addEventListener("click", () => {
     heroChoice.close();
     clearCartSelection();
@@ -913,12 +961,15 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
       const promoHero = form.dataset.promoHeroName;
       const promoHeroPrice = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.promoHeroPrice || 0)) + " ₽";
       const secondHeroDiscountPercent = form.dataset.secondHeroDiscountPercent || "";
+      const selectedShow = form.dataset.showName;
+      const selectedShowPrice = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.showPrice || 0)) + " ₽";
       const total = new Intl.NumberFormat("ru-RU").format(Number(form.dataset.total || 0)) + " ₽";
-      form.elements.service.value = `Аниматоры · ${form.dataset.primaryHeroName}${secondHero ? ` + ${secondHero}` : ""}`;
+      form.elements.service.value = `Аниматоры · ${form.dataset.primaryHeroName}${secondHero ? ` + ${secondHero}` : ""}${selectedShow ? ` + шоу ${selectedShow}` : ""}`;
       form.elements.message.value = [
         secondHero ? `Герой по полной цене: ${fullHero} — ${fullHeroPrice}` : `Главный герой: ${form.dataset.primaryHeroName}`,
         `День: ${form.dataset.dayLabel}`,
         secondHero ? `Герой по акции (скидка ${secondHeroDiscountPercent}%): ${promoHero} — ${promoHeroPrice}` : "",
+        selectedShow ? `Шоу: ${selectedShow} — ${selectedShowPrice}` : "Без шоу",
         `Итого: ${total}`
       ].filter(Boolean).join(". ") + ".";
       const comment = form.querySelector('[name="comment"]')?.value.trim();
