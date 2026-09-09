@@ -515,6 +515,18 @@ const breadcrumbSchema = items => ({
   '@type':'BreadcrumbList',
   itemListElement:items.map((item, index) => ({ '@type':'ListItem', position:index + 1, name:item.name, item:absoluteUrl(item.path) }))
 });
+const itemListSchema = ({ name, items }) => ({
+  '@type':'ItemList',
+  name,
+  numberOfItems:items.length,
+  itemListElement:items.map((item, index) => ({
+    '@type':'ListItem',
+    position:index + 1,
+    name:item.name,
+    url:absoluteUrl(item.path),
+    ...(item.image ? { image:absoluteUrl(item.image) } : {})
+  }))
+});
 const faqSchema = items => ({
   '@type':'FAQPage',
   mainEntity:items.map(item => ({ '@type':'Question', name:item.question, acceptedAnswer:{ '@type':'Answer', text:item.answer } }))
@@ -558,18 +570,20 @@ const normalizeFaqs = source => Array.isArray(source)
   : [];
 const pageFaqs = (content, key) => Array.isArray(content?.faqs?.[key]) ? normalizeFaqs(content.faqs[key]) : staticFaqDefaults[key];
 const faqSchemas = items => items.length ? [faqSchema(items)] : [];
-const pageMeta = ({ title, description, path = '/', image = defaultSocialImage, robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', schemas = [] }) => ({
+const pageMeta = ({ title, description, path = '/', image = defaultSocialImage, imageAlt = '', pageType = 'WebPage', robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', schemas = [] }) => ({
   title: brandText(title || `${brandName} — детские праздники в Кемерово`),
   description: description || 'Аниматоры и шоу для детских праздников в Кемерово.',
   canonical: absoluteUrl(path),
   image: absoluteUrl(image),
+  imageAlt: imageAlt || title || brandName,
+  pageType,
   robots,
   schemas
 });
 const structuredData = meta => [
   { '@context':'https://schema.org', '@type':'WebSite', '@id':`${siteUrl}/#website`, name:brandName, url:`${siteUrl}/`, inLanguage:'ru-RU', publisher:{ '@id':`${siteUrl}/#organization` } },
   { '@context':'https://schema.org', ...organizationSchema() },
-  { '@context':'https://schema.org', '@type':'WebPage', '@id':`${meta.canonical}#webpage`, url:meta.canonical, name:meta.title, description:meta.description, inLanguage:'ru-RU', isPartOf:{ '@id':`${siteUrl}/#website` }, about:{ '@id':`${siteUrl}/#organization` } },
+  { '@context':'https://schema.org', '@type':meta.pageType || 'WebPage', '@id':`${meta.canonical}#webpage`, url:meta.canonical, name:meta.title, description:meta.description, inLanguage:'ru-RU', isPartOf:{ '@id':`${siteUrl}/#website` }, about:{ '@id':`${siteUrl}/#organization` } },
   ...meta.schemas.map(schema => ({ '@context':'https://schema.org', ...schema }))
 ].map(schema => `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`).join('');
 
@@ -591,7 +605,7 @@ const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-
 const performanceAssetVersion = '20260908-animator-show-upsell-v2';
 const layout = (meta, body, pageClass = '') => {
   const floatingCtaHref = body.includes('id="zayavka"') ? '#zayavka' : '/#zayavka';
-  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=${performanceAssetVersion}"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=${performanceAssetVersion}" defer></script></body></html>`;
+  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta property="og:image:alt" content="${escapeAttr(meta.imageAlt)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}"><meta name="twitter:image:alt" content="${escapeAttr(meta.imageAlt)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=${performanceAssetVersion}"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=${performanceAssetVersion}" defer></script></body></html>`;
 };
 
 const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
@@ -656,6 +670,76 @@ const pageHeroCopy = (content, key) => {
   return {
     lines: title.split(/\r?\n/).map(line => line.trim()).filter(Boolean),
     intro: String(content[`${key}HeroIntro`] || fallback.intro).trim()
+  };
+};
+
+const animatorPageDefaults = {
+  heroTag:'Аниматоры на праздник · Кемерово',
+  heroImageAlt:'Детский аниматор проводит праздник в Кемерово',
+  catalogTitle:'Выберите аниматора на праздник',
+  metaTitle:'Аниматоры в Кемерово на детский праздник — цены | ВообразилЛиЯ',
+  metaDescription:'Заказать детского аниматора в Кемерово с выездом на дом, в кафе, детский сад или школу. Герои, программы, цены и свободные даты.',
+  seoEyebrow:'Условия и цены',
+  seoTitle:'Детские аниматоры с выездом по Кемерово',
+  seoParagraph1:'Аниматор проведёт день рождения или другой детский праздник на вашей площадке. Подберём персонажа по возрасту ребёнка и формату компании, привезём игровой реквизит и заранее согласуем программу.',
+  seoParagraph2:'Для каждого героя указаны продолжительность и цены на будни и выходные. Вы можете заказать одного аниматора, добавить второго героя или дополнить праздник шоу.',
+  seoBenefits:['программа для детей 3–12 лет','выезд домой, в кафе, детский сад или школу','понятная стоимость до отправки заявки','подбор героя под возраст и интересы ребёнка'],
+  seoPrimaryLinkLabel:'Выбрать аниматора',
+  seoSecondaryLinkLabel:'Уточнить свободную дату',
+  introNoteEnabled:true,
+  introNoteEyebrow:'Честно о нас',
+  introNoteTitle:'Мы только начинаем.',
+  introNoteAccent:'Поэтому особенно стараемся.',
+  introNoteParagraph1:'«ВообразилЛиЯ» только начинает свою историю агентства — и нам особенно важно, чтобы каждый первый праздник стал поводом рекомендовать нас друзьям.',
+  introNoteParagraph2:'Поэтому мы внимательно готовимся к каждому выезду, привозим игровую программу и реквизит, учитываем возраст ребёнка и предлагаем доступные стартовые цены. Доверьте нам праздник — своё имя мы хотим заслужить не обещаниями, а счастливыми детскими эмоциями.',
+  introNoteSignature:'Команда «ВообразилЛиЯ»'
+};
+const textOr = (value, fallback) => String(value ?? '').trim() || fallback;
+const textListOr = (value, fallback) => {
+  const source = Array.isArray(value) ? value : String(value ?? '').split(/\r?\n/);
+  const items = source.map(item => String(item || '').trim()).filter(Boolean);
+  return items.length ? items : [...fallback];
+};
+const animatorPageTextSettings = content => ({
+  heroTag:textOr(content.animatoryHeroTag, animatorPageDefaults.heroTag),
+  heroImageAlt:textOr(content.animatoryHeroImageAlt, animatorPageDefaults.heroImageAlt),
+  catalogTitle:textOr(content.animatoryCatalogTitle, animatorPageDefaults.catalogTitle),
+  metaTitle:textOr(content.animatorySeoTitle, animatorPageDefaults.metaTitle),
+  metaDescription:textOr(content.animatorySeoDescription, animatorPageDefaults.metaDescription),
+  seoEyebrow:textOr(content.animatorySeoEyebrow, animatorPageDefaults.seoEyebrow),
+  seoTitle:textOr(content.animatorySeoHeading, animatorPageDefaults.seoTitle),
+  seoParagraph1:textOr(content.animatorySeoParagraph1, animatorPageDefaults.seoParagraph1),
+  seoParagraph2:textOr(content.animatorySeoParagraph2, animatorPageDefaults.seoParagraph2),
+  seoBenefits:textListOr(content.animatorySeoBenefits, animatorPageDefaults.seoBenefits),
+  seoPrimaryLinkLabel:textOr(content.animatorySeoPrimaryLinkLabel, animatorPageDefaults.seoPrimaryLinkLabel),
+  seoSecondaryLinkLabel:textOr(content.animatorySeoSecondaryLinkLabel, animatorPageDefaults.seoSecondaryLinkLabel),
+  introNoteEnabled:content.animatoryIntroNoteEnabled !== false,
+  introNoteEyebrow:textOr(content.animatoryIntroNoteEyebrow, animatorPageDefaults.introNoteEyebrow),
+  introNoteTitle:textOr(content.animatoryIntroNoteTitle, animatorPageDefaults.introNoteTitle),
+  introNoteAccent:textOr(content.animatoryIntroNoteAccent, animatorPageDefaults.introNoteAccent),
+  introNoteParagraph1:textOr(content.animatoryIntroNoteParagraph1, animatorPageDefaults.introNoteParagraph1),
+  introNoteParagraph2:textOr(content.animatoryIntroNoteParagraph2, animatorPageDefaults.introNoteParagraph2),
+  introNoteSignature:textOr(content.animatoryIntroNoteSignature, animatorPageDefaults.introNoteSignature)
+});
+
+const heroDetailTextSettings = item => {
+  const name = textOr(item.name, 'герой');
+  const label = `Аниматор ${name}`;
+  const pageH1 = textOr(item.pageH1, `${label} на праздник в Кемерово`);
+  return {
+    pageH1,
+    eyebrow:textOr(item.pageEyebrow, 'Аниматор на праздник · Кемерово'),
+    lead:textOr(item.pageLead, item.description || `${label} проведёт детский праздник на вашей площадке.`),
+    intro:textOr(item.pageIntro, `${item.duration || 40} минут игры, тематический реквизит и герой, который вовлечёт детей в приключение.`),
+    ctaLabel:textOr(item.ctaLabel, 'Заказать аниматора'),
+    imageAlt:textOr(item.imageAlt, `${label} на детском празднике в Кемерово`),
+    seoEyebrow:textOr(item.seoEyebrow, 'Программа аниматора'),
+    seoHeading:textOr(item.seoHeading, `${label} на праздник в Кемерово`),
+    seoParagraph1:textOr(item.seoParagraph1, `${name} проведёт активную игровую программу на вашей площадке. Герой вовлекает детей в задания, поддерживает общий сюжет и помогает каждому участнику стать частью приключения.`),
+    seoParagraph2:textOr(item.seoParagraph2, `Перед бронированием согласуем возраст ребёнка, количество гостей, адрес и время начала. Продолжительность программы — ${item.duration || 40} минут.`),
+    seoBenefits:textListOr(item.seoBenefits, ['тематический герой и костюм','игровая программа','реквизит для заданий','выезд на согласованную площадку']),
+    metaTitle:textOr(item.seoTitle, `${label} в Кемерово — заказать на праздник | ${brandName}`),
+    metaDescription:textOr(item.seoDescription, item.pageLead || item.description || `${label} на детский праздник в Кемерово. Программа, цена и выезд на вашу площадку.`)
   };
 };
 
@@ -941,7 +1025,7 @@ const renderHome = async () => {
   const body = [
     heroBlock({ tag:'Детские праздники · Кемерово', lines:homeHeroLines, intro:content.heroIntro || 'Организация детских праздников в Кемерово: аниматоры и шоу на вашей площадке.', photo:photoFromContent(content, 'photo1'), photoAlt:'Детский праздник с аниматором в Кемерово', service:'Праздник в Кемерово', pageClass:'hero--home' }),
     homeTicker,
-    animatorIntroNote(),
+    animatorIntroNote(animatorPageTextSettings(content)),
     `<section class="services"><div class="section-heading section-heading--home-formats"><span class="mono-tag">Аниматоры и шоу</span><h2>Выберите программу</h2></div><div class="service-grid service-grid--home">${directionCards}</div></section>`,
     homePulse,
     homeMosaic,
@@ -974,7 +1058,7 @@ const heroCartDialog = (heroes, settings, showSettings = { enabled:false, offers
 
 const heroChoiceDialog = settings => settings.enabled ? `<dialog class="hero-choice-dialog" data-hero-choice><button class="dialog-close" type="button" data-close-hero-choice aria-label="Закрыть">×</button><div class="hero-choice"><span class="mono-tag">Акция к празднику</span><h2>${escapeHtml(settings.promoTitle)}</h2><p><strong data-choice-hero-name></strong> уже в программе. ${escapeHtml(settings.promoDescription)}</p><section class="hero-choice__offer"><div class="hero-choice__price"><span>Второй герой<br>по акции</span><strong>−${settings.secondHeroDiscountPercent}%</strong><small>скидка автоматически на более доступного героя</small></div><ul class="hero-choice__benefits"><li>Больше игр и внимания каждому ребёнку</li><li>Два персонажа в одной истории</li></ul></section><div class="hero-choice__actions"><button class="hero-choice__no" type="button" data-choice-no>Оставить<br>одного героя</button><button class="hero-choice__yes" type="button" data-choice-yes>Выбрать<br>второго героя</button></div></div></dialog>` : '';
 
-const animatorIntroNote = () => `<section class="animator-intro-note" aria-labelledby="animator-intro-title"><div class="animator-intro-note__lead"><span class="mono-tag">Честно о нас</span><h2 id="animator-intro-title">Мы только начинаем.<em>Поэтому особенно стараемся.</em></h2></div><div class="animator-intro-note__copy"><p>«ВообразилЛиЯ» только начинает свою историю агенства — и нам особенно важно, чтобы каждый первый праздник стал поводом рекомендовать нас друзьям.</p><p>Поэтому мы внимательно готовимся к каждому выезду, привозим игровую программу и реквизит, учитываем возраст ребёнка и предлагаем доступные стартовые цены. Доверьте нам праздник — своё имя мы хотим заслужить не обещаниями, а счастливыми детскими эмоциями.</p><span class="animator-intro-note__signature">Команда «ВообразилЛиЯ»</span></div></section>`;
+const animatorIntroNote = (settings = animatorPageTextSettings({})) => settings.introNoteEnabled ? `<section class="animator-intro-note" aria-labelledby="animator-intro-title"><div class="animator-intro-note__lead"><span class="mono-tag">${escapeHtml(settings.introNoteEyebrow)}</span><h2 id="animator-intro-title">${escapeHtml(settings.introNoteTitle)}<em>${escapeHtml(settings.introNoteAccent)}</em></h2></div><div class="animator-intro-note__copy"><p>${escapeHtml(settings.introNoteParagraph1)}</p><p>${escapeHtml(settings.introNoteParagraph2)}</p><span class="animator-intro-note__signature">${escapeHtml(settings.introNoteSignature)}</span></div></section>` : '';
 
 const animatorShowUpsellSection = settings => {
   if (!settings.enabled) return '';
@@ -990,12 +1074,14 @@ const renderAnimators = async () => {
   const [content, heroItems, reviewItems, showItems] = await Promise.all([loadContent(), loadCatalog('heroes'), loadCatalog('reviews'), loadCatalog('shows')]);
   const heroes = orderedCatalogItems(heroItems.filter(visible));
   const heroCopy = pageHeroCopy(content, 'animatory');
+  const pageText = animatorPageTextSettings(content);
   const cartSettings = heroCartSettings(content);
   const showUpsellSettings = animatorShowUpsellSettings(content, showItems);
   const animatorFaq = pageFaqs(content, 'animatory');
-  const animatorSeo = `${seoCopySection({ eyebrow:'Условия и цены', title:'Детские аниматоры с выездом по Кемерово', paragraphs:['Аниматор проведёт день рождения или другой детский праздник на вашей площадке. Подберём персонажа по возрасту ребёнка и формату компании, привезём игровой реквизит и заранее согласуем программу.','Для каждого героя указаны продолжительность и цены на будни и выходные. Вы можете заказать одного аниматора или добавить второго героя.'], items:['программа для детей 3–12 лет','выезд домой, в кафе, детский сад или школу','понятная стоимость до отправки заявки','подбор героя под возраст и интересы ребёнка'], links:[{ href:'#hero-catalog', label:'Выбрать героя' },{ href:'#zayavka', label:'Уточнить свободную дату' }] })}${faqSection(animatorFaq)}`;
-  const body = `${heroBlock({ tag:'Аниматоры на праздник · Кемерово', lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'animatoryPhoto1'), photoAlt:'Детский аниматор на празднике в Кемерово', mascot:'/assets/mascot-peek-animator.png', service:'Подбор аниматора', pageClass:'afisha-hero' })}${animatorIntroNote()}<section class="hero-catalog" id="hero-catalog"><div class="hero-catalog__heading"><h2>Выберите своего героя</h2><aside class="hero-filter" aria-label="Фильтр героев"><span class="hero-filter__label">Фильтр героев</span><div class="hero-filter__options" role="group" aria-label="Категория героя"><button class="hero-filter__button is-active" type="button" data-hero-filter="all" aria-pressed="true">Все герои</button><button class="hero-filter__button" type="button" data-hero-filter="boys" aria-pressed="false">Для мальчиков</button><button class="hero-filter__button" type="button" data-hero-filter="girls" aria-pressed="false">Для девочек</button><button class="hero-filter__button" type="button" data-hero-filter="costume" aria-pressed="false">Ростовые костюмы</button></div></aside></div><div class="hero-program-grid">${heroes.map(heroCard).join('')}</div><p class="hero-filter__empty" data-hero-empty hidden>В этой категории герои скоро появятся.</p></section>${animatorShowUpsellSection(showUpsellSettings)}${reviews(reviewItems, { compact:true })}${animatorSeo}${heroChoiceDialog(cartSettings)}${heroCartDialog(heroes, cartSettings, showUpsellSettings)}${partyForm()}`;
-  return layout(pageMeta({ title:'Аниматоры в Кемерово на детский праздник — цены | ТЕМА', description:'Заказать детского аниматора в Кемерово с выездом на дом, в кафе, сад или школу. Герои, программы на день рождения и актуальные цены.', path:'/animatory/', schemas:[serviceSchema({ name:'Аниматоры на детский праздник в Кемерово', description:'Детские аниматоры с игровой программой и выездом на площадку заказчика.', path:'/animatory/', price:minimumPriceValue(heroes.map(hero => ({ price:heroPrices(hero).weekday }))) }), ...faqSchemas(animatorFaq)] }), body, 'page--animatory');
+  const animatorSeo = `${seoCopySection({ eyebrow:pageText.seoEyebrow, title:pageText.seoTitle, paragraphs:[pageText.seoParagraph1,pageText.seoParagraph2], items:pageText.seoBenefits, links:[{ href:'#hero-catalog', label:pageText.seoPrimaryLinkLabel },{ href:'#zayavka', label:pageText.seoSecondaryLinkLabel }] })}${faqSection(animatorFaq)}`;
+  const body = `${heroBlock({ tag:pageText.heroTag, lines:heroCopy.lines, intro:heroCopy.intro, photo:photoFromContent(content,'animatoryPhoto1'), photoAlt:pageText.heroImageAlt, mascot:'/assets/mascot-peek-animator.png', service:'Подбор аниматора', pageClass:'afisha-hero' })}${animatorIntroNote(pageText)}<section class="hero-catalog" id="hero-catalog"><div class="hero-catalog__heading"><h2>${escapeHtml(pageText.catalogTitle)}</h2><aside class="hero-filter" aria-label="Фильтр героев"><span class="hero-filter__label">Фильтр героев</span><div class="hero-filter__options" role="group" aria-label="Категория героя"><button class="hero-filter__button is-active" type="button" data-hero-filter="all" aria-pressed="true">Все герои</button><button class="hero-filter__button" type="button" data-hero-filter="boys" aria-pressed="false">Для мальчиков</button><button class="hero-filter__button" type="button" data-hero-filter="girls" aria-pressed="false">Для девочек</button><button class="hero-filter__button" type="button" data-hero-filter="costume" aria-pressed="false">Ростовые костюмы</button></div></aside></div><div class="hero-program-grid">${heroes.map(heroCard).join('')}</div><p class="hero-filter__empty" data-hero-empty hidden>В этой категории герои скоро появятся.</p></section>${animatorShowUpsellSection(showUpsellSettings)}${reviews(reviewItems, { compact:true })}${animatorSeo}${heroChoiceDialog(cartSettings)}${heroCartDialog(heroes, cartSettings, showUpsellSettings)}${partyForm()}`;
+  const heroItemsSchema = itemListSchema({ name:pageText.catalogTitle, items:heroes.map(hero => ({ name:`Аниматор ${hero.name}`, path:`/animatory/${hero.slug}/`, image:hero.image })) });
+  return layout(pageMeta({ title:pageText.metaTitle, description:pageText.metaDescription, path:'/animatory/', image:photoFromContent(content,'animatoryPhoto1').image || defaultSocialImage, imageAlt:pageText.heroImageAlt, pageType:'CollectionPage', schemas:[serviceSchema({ name:heroCopy.lines.join(' '), description:pageText.metaDescription, path:'/animatory/', price:minimumPriceValue(heroes.map(hero => ({ price:heroPrices(hero).weekday }))) }), heroItemsSchema, ...faqSchemas(animatorFaq)] }), body, 'page--animatory');
 };
 
 const showHeroChoiceDialog = () => `<dialog class="hero-choice-dialog show-hero-choice-dialog" data-show-hero-choice><button class="dialog-close" type="button" data-close-show-hero-choice aria-label="Закрыть">×</button><div class="hero-choice show-hero-choice" data-show-choice-badge="+2"><span class="mono-tag">Дополнение к шоу</span><h2 data-show-choice-title>Добавим<br>аниматоров?</h2><p data-show-choice-description>К этому шоу можно добавить любимых персонажей.</p><section class="show-hero-choice__note"><strong data-show-choice-limit>До двух аниматоров</strong><span>Вы сами увидите каждого в составе заказа и общую сумму до отправки заявки.</span></section><div class="hero-choice__actions"><button class="hero-choice__no" type="button" data-show-choice-no>Только<br>шоу</button><button class="hero-choice__yes" type="button" data-show-choice-yes>Выбрать<br>аниматоров</button></div></div></dialog>`;
@@ -1074,27 +1160,35 @@ const renderServiceDetail = ({ item, type, showCart = '' }) => {
   const isHero = type === 'heroes';
   const name = item.name;
   const label = isHero ? `Аниматор ${name}` : name;
+  const heroText = isHero ? heroDetailTextSettings(item) : null;
   const path = `/${isHero ? 'animatory' : 'show'}/${item.slug}/`;
   const catalogPath = `/${isHero ? 'animatory' : 'show'}/`;
   const isFoam = !isHero && item.slug === 'pennaya-vecherinka-kemerovo';
   const action = isHero
-    ? `<button class="outline-button" data-open-form data-service="${escapeAttr(label)}" data-order-message="Хочу заказать ${escapeAttr(label)}.">ЗАКАЗАТЬ</button>`
+    ? `<button class="outline-button" data-open-form data-service="${escapeAttr(label)}" data-order-message="Хочу заказать ${escapeAttr(label)}.">${escapeHtml(heroText.ctaLabel)}</button>`
     : `<button class="outline-button" type="button" data-select-show data-show-id="${escapeAttr(item.id)}">ВЫБРАТЬ ШОУ</button>`;
   const detailFaq = detailFaqs(item, type);
   const detailSeo = seoCopySection({
-    eyebrow:isHero ? 'Программа аниматора' : 'Условия программы',
-    title:isFoam ? 'Пенная вечеринка для детей и взрослых в Кемерово' : `${label} на праздник в Кемерово`,
+    eyebrow:isHero ? heroText.seoEyebrow : 'Условия программы',
+    title:isHero ? heroText.seoHeading : isFoam ? 'Пенная вечеринка для детей и взрослых в Кемерово' : `${label} на праздник в Кемерово`,
     paragraphs:isHero
-      ? [`${name} проведёт активную игровую программу на вашей площадке. Герой вовлекает детей в задания, поддерживает общий сюжет и помогает каждому участнику стать частью приключения.`,`Перед бронированием согласуем возраст ребёнка, количество гостей, адрес и время начала. Продолжительность программы — ${item.duration || 40} минут.`]
+      ? [heroText.seoParagraph1,heroText.seoParagraph2]
       : isFoam
         ? ['Пенная вечеринка — большой танцевальный формат с музыкой, активностями и облаками пены. Программа подходит для детского дня рождения, выпускного и летнего праздника на согласованной площадке.','До бронирования проверим размер площадки, возможность использования пены, доступ к необходимым коммуникациям и правила проведения. Все условия и итоговую стоимость подтверждаем заранее.']
         : [`${name} проводится на площадке заказчика в Кемерово. Ведущий привозит программу и реквизит, вовлекает гостей в задания и проводит общий финал.`,`До заказа согласуем возраст участников, количество гостей, помещение и технические условия.`],
-    items:isHero ? ['тематический герой и костюм','игровая программа','реквизит для заданий','выезд на согласованную площадку'] : ['ведущий и программа','необходимый реквизит','участие гостей','выезд на согласованную площадку'],
+    items:isHero ? heroText.seoBenefits : ['ведущий и программа','необходимый реквизит','участие гостей','выезд на согласованную площадку'],
     links:isHero ? [{ href:'/animatory/#hero-catalog', label:'Выбрать другого аниматора' },{ href:'#zayavka', label:'Уточнить свободную дату' }] : [{ href:'/show/#show-catalog', label:'Выбрать другое шоу' },{ href:'#zayavka', label:'Уточнить свободную дату' }]
   });
   const crumbItems = [{ name:'Главная', path:'/' },{ name:isHero ? 'Аниматоры' : 'Шоу', path:catalogPath },{ name:label, path }];
-  const body = `${breadcrumbs(crumbItems)}<section class="event-detail seo-service-detail${isHero ? '' : ' seo-service-page--show'}"><a class="event-detail__back" href="${catalogPath}">← НАЗАД В КАТАЛОГ</a><div class="event-detail__layout"><div class="event-detail__media">${image(item, '', { alt:`${label} в Кемерово`, loading:'eager' })}</div><article class="event-detail__copy"><span class="mono-tag">${isHero ? 'Аниматор на праздник' : 'Шоу на праздник'} · Кемерово</span><h1>${escapeHtml(label)} в Кемерово</h1><p class="seo-service-detail__lead">${escapeHtml(item.description)}</p><p>${isHero ? `${escapeHtml(item.duration || 40)} минут игры, тематический реквизит и герой, который вовлечёт детей в приключение.` : 'Программа на вашей площадке: ведущий, реквизит и участие гостей.'}</p>${programMediaGallery(item)}<p><strong>${isHero ? `${escapeHtml(item.duration || 40)} минут · ` : ''}от ${formatPrice(item.price)}</strong></p>${action}</article></div></section>${detailSeo}${faqSection(detailFaq)}${showCart}${partyForm()}`;
-  return layout(pageMeta({ title:item.seoTitle || `${label} в Кемерово | ТЕМА`, description:item.seoDescription || item.description, path, image:item.image || defaultSocialImage, schemas:[serviceSchema({ name:`${label} в Кемерово`, description:item.seoDescription || item.description, path, price:item.price }), breadcrumbSchema(crumbItems), ...faqSchemas(detailFaq)] }), body, isHero ? 'page--animatory' : 'page--show');
+  const detailImageAlt = isHero ? heroText.imageAlt : `${label} в Кемерово`;
+  const detailEyebrow = isHero ? heroText.eyebrow : 'Шоу на праздник · Кемерово';
+  const detailH1 = isHero ? heroText.pageH1 : `${label} в Кемерово`;
+  const detailLead = isHero ? heroText.lead : item.description;
+  const detailIntro = isHero ? heroText.intro : 'Программа на вашей площадке: ведущий, реквизит и участие гостей.';
+  const body = `${breadcrumbs(crumbItems)}<section class="event-detail seo-service-detail${isHero ? '' : ' seo-service-page--show'}"><a class="event-detail__back" href="${catalogPath}">← НАЗАД В КАТАЛОГ</a><div class="event-detail__layout"><div class="event-detail__media">${image(item, '', { alt:detailImageAlt, loading:'eager' })}</div><article class="event-detail__copy"><span class="mono-tag">${escapeHtml(detailEyebrow)}</span><h1>${escapeHtml(detailH1)}</h1><p class="seo-service-detail__lead">${escapeHtml(detailLead)}</p><p>${escapeHtml(detailIntro)}</p>${programMediaGallery(item)}<p><strong>${isHero ? `${escapeHtml(item.duration || 40)} минут · ` : ''}от ${formatPrice(item.price)}</strong></p>${action}</article></div></section>${detailSeo}${faqSection(detailFaq)}${showCart}${partyForm()}`;
+  const metaTitle = isHero ? heroText.metaTitle : item.seoTitle || `${label} в Кемерово | ТЕМА`;
+  const metaDescription = isHero ? heroText.metaDescription : item.seoDescription || item.description;
+  return layout(pageMeta({ title:metaTitle, description:metaDescription, path, image:item.image || defaultSocialImage, imageAlt:detailImageAlt, schemas:[serviceSchema({ name:detailH1, description:metaDescription, path, price:item.price }), breadcrumbSchema(crumbItems), ...faqSchemas(detailFaq)] }), body, isHero ? 'page--animatory' : 'page--show');
 };
 
 const renderEventDetail = event => {
@@ -1103,10 +1197,24 @@ const renderEventDetail = event => {
   return layout(pageMeta({ title:`${event.title} | ТЕМА`, description:event.description || `Афиша события «${event.title}» в Кемерово.`, path:`/afisha/${event.slug}/` }), body, 'page--afisha');
 };
 
-const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260907-second-hero-discount-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260902-home-cards-v1" defer></script></body></html>`);
-const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
+const adminLayout = (title, body, active = 'home') => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escapeHtml(title)} · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260909-animator-seo-v1">${faviconLinks()}</head><body class="admin-page"><header class="admin-header"><a href="/admin/">ТЕМА <span>/ админка</span></a><nav><a href="/" target="_blank" rel="noopener">Открыть главную ↗</a><form action="/admin/logout" method="post"><button type="submit">Выйти</button></form></nav></header><div class="admin-workspace"><aside class="admin-sidebar">${adminTabs(active)}</aside><main class="admin-shell">${body}</main></div><script src="/admin.js?v=20260909-animator-seo-v1" defer></script></body></html>`);
+const adminLogin = error => brandText(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Вход · ТЕМА</title><link rel="stylesheet" href="/admin.css?v=20260909-animator-seo-v1">${faviconLinks()}</head><body class="admin-login"><form class="login-card" method="post" action="/admin/login"><a href="/">ТЕМА</a><h1>Админка</h1><label>Логин<input name="username" autocomplete="username" autofocus required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>${error ? `<p class="admin-error">${escapeHtml(error)}</p>` : ''}<button type="submit">Войти</button></form></body></html>`);
 const adminTabs = active => `<nav class="admin-navigation" aria-label="Разделы админки"><section><span class="admin-navigation__title">Страницы</span><a class="${active === 'home' ? 'is-active' : ''}" href="/admin/">Главная</a><a class="${active === 'birthday' ? 'is-active' : ''}" href="/admin/birthday">День рождения</a><a class="${active === 'animatory-page' ? 'is-active' : ''}" href="/admin/page/animatory">Аниматоры — первый экран</a><a class="${active === 'home-animator' ? 'is-active' : ''}" href="/admin/page/home-animator">Аниматор на дом</a><a class="${active === 'show-page' ? 'is-active' : ''}" href="/admin/page/show">Шоу — первый экран</a><a class="${active === 'faq' ? 'is-active' : ''}" href="/admin/faq">FAQ всех страниц</a></section><section><span class="admin-navigation__title">Каталог</span><a class="${active === 'heroes' ? 'is-active' : ''}" href="/admin/catalog/heroes">Аниматоры</a><a class="${active === 'shows' ? 'is-active' : ''}" href="/admin/catalog/shows">Шоу</a><a class="${active === 'events' ? 'is-active' : ''}" href="/admin/catalog/events">Афиша</a><a class="${active === 'reviews' ? 'is-active' : ''}" href="/admin/reviews">Отзывы</a></section><section><span class="admin-navigation__title">Продажи</span><a class="${active === 'cart' ? 'is-active' : ''}" href="/admin/cart">Акция второго героя</a><a class="${active === 'animator-shows' ? 'is-active' : ''}" href="/admin/sales/animator-shows">Шоу к аниматорам</a><a class="${active === 'show-animators' ? 'is-active' : ''}" href="/admin/sales/show-animators">Аниматоры к шоу</a></section></nav>`;
 const formField = (label, name, value = '', options = {}) => `<label class="admin-field${options.wide ? ' admin-field--wide' : ''}">${escapeHtml(label)}${options.textarea ? `<textarea name="${escapeAttr(name)}" ${options.required ? 'required' : ''}>${escapeHtml(value)}</textarea>` : `<input name="${escapeAttr(name)}" value="${escapeAttr(value)}" ${options.type ? `type="${escapeAttr(options.type)}"` : 'type="text"'} ${options.type === 'range' ? 'min="0" max="200"' : ''} ${options.min !== undefined ? `min="${escapeAttr(options.min)}"` : ''} ${options.max !== undefined ? `max="${escapeAttr(options.max)}"` : ''} ${options.required ? 'required' : ''} ${options.step ? `step="${escapeAttr(options.step)}"` : ''}>`}${options.hint ? `<small class="admin-field__hint">${escapeHtml(options.hint)}</small>` : ''}</label>`;
+const seoFormField = (label, name, value = '', options = {}) => {
+  const maximum = Number(options.maximum || (options.textarea ? 320 : 180));
+  const minimum = Number(options.minimum || 0);
+  const recommended = minimum ? `Рекомендуется ${minimum}–${maximum} знаков` : `До ${maximum} знаков`;
+  const { hint, ...fieldOptions } = options;
+  return formField(label, name, value, { ...fieldOptions, wide:options.wide !== false })
+    .replace(`name="${name}"`, `name="${name}" maxlength="${maximum}" data-seo-counted data-seo-min="${minimum}" data-seo-max="${maximum}"`)
+    .replace('</label>', `<span class="admin-seo-field__meta"><span>${escapeHtml(hint || recommended)}</span><b><i data-seo-count>${String(value || '').length}</i> / ${maximum}</b></span></label>`);
+};
+const searchResultPreview = ({ titleName, descriptionName, title, description, path }) => {
+  const cleanPath = String(path || '/').replace(/^\/+|\/+$/g, '');
+  const displayUrl = `аниматоры-кемерово.рф${cleanPath ? ` › ${cleanPath.split('/').join(' › ')}` : ''}`;
+  return `<aside class="admin-serp-preview" data-serp-preview data-title-name="${escapeAttr(titleName)}" data-description-name="${escapeAttr(descriptionName)}" data-title-fallback="${escapeAttr(title)}" data-description-fallback="${escapeAttr(description)}"><span>Предпросмотр поисковой выдачи</span><div><small>${escapeHtml(displayUrl)}</small><strong data-serp-title>${escapeHtml(title)}</strong><p data-serp-description>${escapeHtml(description)}</p></div><em>Яндекс может изменить заголовок или фрагмент под конкретный запрос. Здесь показан ориентир.</em></aside>`;
+};
 const selectField = (label, name, value, values) => `<label class="admin-field">${escapeHtml(label)}<select name="${escapeAttr(name)}">${values.map(([itemValue, itemLabel]) => `<option value="${escapeAttr(itemValue)}" ${itemValue === value ? 'selected' : ''}>${escapeHtml(itemLabel)}</option>`).join('')}</select></label>`;
 const visibilityField = value => `<label class="admin-check"><input type="checkbox" name="published" ${value !== false ? 'checked' : ''}> Показывать на сайте</label>`;
 const faqEditorRow = (prefix, index, item = {}) => `<fieldset class="admin-faq-row" data-faq-row><legend>Вопрос <span data-faq-number>${Number(index) + 1 || ''}</span></legend><div class="admin-faq-row__fields">${formField('Вопрос', `${prefix}-question-${index}`, item.question || '', { wide:true, required:true })}${formField('Ответ', `${prefix}-answer-${index}`, item.answer || '', { textarea:true, wide:true, required:true })}</div><button class="admin-faq-remove" type="button" data-faq-remove>Убрать вопрос</button></fieldset>`;
@@ -1221,7 +1329,29 @@ const renderPageHeroFields = (config, content) => {
   const titleName = config.hero.key ? `${config.hero.key}HeroTitle` : config.hero.titleName;
   const introName = config.hero.key ? `${config.hero.key}HeroIntro` : config.hero.introName;
   const current = config.hero.key ? pageHeroCopy(content, config.hero.key) : { lines:[content[titleName] || ''], intro:content[introName] || '' };
-  return `<section class="admin-editor-card"><header><span>${escapeHtml(config.hero.title)}</span><h2>Что увидят на первом экране</h2><p>${escapeHtml(config.hero.hint)}</p></header><div class="admin-grid">${formField(config.hero.key ? 'H1 — каждая строка с новой строки' : 'H1', titleName, current.lines.join('\n'), { textarea:Boolean(config.hero.key), wide:true, required:true })}${formField(config.hero.key ? 'Описание под H1' : 'Подзаголовок', introName, current.intro, { textarea:true, wide:true, required:true })}</div></section>`;
+  const isAnimatory = config.hero.key === 'animatory';
+  const pageText = isAnimatory ? animatorPageTextSettings(content) : null;
+  const h1 = isAnimatory
+    ? seoFormField('H1 страницы', titleName, current.lines.join(' '), { maximum:160, required:true, hint:'Одна понятная фраза. Переносы на экране сайт расставит сам.' })
+    : formField(config.hero.key ? 'H1 — каждая строка с новой строки' : 'H1', titleName, current.lines.join('\n'), { textarea:Boolean(config.hero.key), wide:true, required:true });
+  const animatorFields = isAnimatory
+    ? `${formField('Короткая надпись над H1', 'animatoryHeroTag', pageText.heroTag, { wide:true, required:true })}${formField('Заголовок над каталогом (H2)', 'animatoryCatalogTitle', pageText.catalogTitle, { wide:true, required:true })}${formField('Описание главной фотографии (alt)', 'animatoryHeroImageAlt', pageText.heroImageAlt, { wide:true, required:true, hint:'Опишите, что видно на фото. Не перечисляйте ключевые слова.' })}`
+    : '';
+  return `<section class="admin-editor-card"><header><span>${escapeHtml(config.hero.title)}</span><h2>Что увидят на первом экране</h2><p>${isAnimatory ? 'H1 отвечает за главный заголовок страницы, но не за заголовок в поиске. Title для выдачи настраивается ниже отдельно.' : escapeHtml(config.hero.hint)}</p></header><div class="admin-grid">${h1}${formField(config.hero.key ? 'Описание под H1' : 'Подзаголовок', introName, current.intro, { textarea:true, wide:true, required:true })}${animatorFields}</div></section>`;
+};
+const renderAnimatorPageSeoEditor = content => {
+  const settings = animatorPageTextSettings(content);
+  const preview = searchResultPreview({
+    titleName:'animatorySeoTitle',
+    descriptionName:'animatorySeoDescription',
+    title:settings.metaTitle,
+    description:settings.metaDescription,
+    path:'/animatory/'
+  });
+  const searchFields = `${seoFormField('Title — заголовок в поиске', 'animatorySeoTitle', settings.metaTitle, { minimum:45, maximum:80, required:true, hint:'Сначала услуга и город, затем преимущество и бренд.' })}${seoFormField('Description — описание в поиске', 'animatorySeoDescription', settings.metaDescription, { textarea:true, minimum:110, maximum:220, required:true, hint:'Коротко: услуга, география, важные условия и причина перейти.' })}`;
+  const contentFields = `${formField('Надпись над SEO-блоком', 'animatorySeoEyebrow', settings.seoEyebrow, { required:true })}${formField('Заголовок SEO-блока (H2)', 'animatorySeoHeading', settings.seoTitle, { wide:true, required:true })}${formField('Первый абзац', 'animatorySeoParagraph1', settings.seoParagraph1, { textarea:true, wide:true, required:true })}${formField('Второй абзац', 'animatorySeoParagraph2', settings.seoParagraph2, { textarea:true, wide:true, required:true })}${formField('Преимущества — каждое с новой строки', 'animatorySeoBenefits', settings.seoBenefits.join('\n'), { textarea:true, wide:true, required:true })}${formField('Первая кнопка', 'animatorySeoPrimaryLinkLabel', settings.seoPrimaryLinkLabel, { required:true })}${formField('Вторая кнопка', 'animatorySeoSecondaryLinkLabel', settings.seoSecondaryLinkLabel, { required:true })}`;
+  const introFields = `${formField('Надпись над блоком', 'animatoryIntroNoteEyebrow', settings.introNoteEyebrow, { required:true })}${formField('Первая часть заголовка', 'animatoryIntroNoteTitle', settings.introNoteTitle, { required:true })}${formField('Акцентная часть заголовка', 'animatoryIntroNoteAccent', settings.introNoteAccent, { wide:true, required:true })}${formField('Первый абзац', 'animatoryIntroNoteParagraph1', settings.introNoteParagraph1, { textarea:true, wide:true, required:true })}${formField('Второй абзац', 'animatoryIntroNoteParagraph2', settings.introNoteParagraph2, { textarea:true, wide:true, required:true })}${formField('Подпись', 'animatoryIntroNoteSignature', settings.introNoteSignature, { wide:true, required:true })}`;
+  return `<input type="hidden" name="animatorySeoEditorSubmitted" value="1"><section class="admin-editor-card admin-seo-editor"><header><span>Поисковая выдача</span><h2>Как страница выглядит в Яндексе</h2><p>Title, H1 и Description теперь независимы. Canonical создаётся автоматически и всегда ведёт на /animatory/.</p></header><div class="admin-seo-layout"><div class="admin-grid">${searchFields}</div>${preview}</div></section>${catalogEditorSection('Полезный текст страницы', 'Редактируемый блок после каталога и отзывов. Пишите для родителей: условия, формат, цены и выезд.', `<div class="admin-grid">${contentFields}</div>`)}${catalogEditorSection('Блок «Мы только начинаем»', 'Его можно отключить или полностью переписать без правки кода.', `<div class="admin-panel__top"><label class="admin-check"><input type="checkbox" name="animatoryIntroNoteEnabled" ${settings.introNoteEnabled ? 'checked' : ''}> Показывать блок на странице</label></div><div class="admin-grid">${introFields}</div>`, false)}<aside class="admin-seo-note"><strong>FAQ редактируется отдельно</strong><p>Вопросы страницы уже связаны с разметкой FAQPage. После изменения текстов проверьте и их, чтобы информация не противоречила странице.</p><a href="/admin/faq">Открыть FAQ →</a></aside>`;
 };
 const homeDirectionCardColorField = (card, favorites, fieldName = `homeCardColor-${card.id}`) => `<fieldset class="admin-card-color-field admin-field--wide"><legend>Цвет карточки</legend><p>Выберите любой цвет или один из сохранённых. Кнопка автоматически станет на 20% темнее фона.</p><div class="admin-card-color-current"><label class="admin-card-color-picker"><span>Выбрать цвет</span><input type="color" value="${escapeAttr(card.cardColor)}" data-card-color-picker></label><label class="admin-field"><span>HEX</span><input name="${escapeAttr(fieldName)}" value="${escapeAttr(card.cardColor)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" data-card-color-hex></label></div><div class="admin-card-color-favorites"><span>Мои избранные</span><div>${favorites.map(favorite => `<button type="button" data-card-color-favorite="${escapeAttr(favorite.color)}"><i style="--favorite-color:${escapeAttr(favorite.color)}" aria-hidden="true"></i>${escapeHtml(favorite.name)}</button>`).join('')}</div><a href="/admin/card-colors">Настроить мою палитру</a></div></fieldset>`;
 const homeCustomCardMediaEditor = card => {
@@ -1265,8 +1395,9 @@ const renderAdminPage = async (key, query = {}) => {
   const [content, shows] = await Promise.all([loadContent(), key === 'birthday' ? loadCatalog('shows') : Promise.resolve([])]);
   const homeCardsEditor = key === 'home' ? renderHomeDirectionCardEditor(content) : '';
   const birthdayFormatsEditor = key === 'birthday' ? renderBirthdayFormatsEditor(content, shows) : '';
+  const animatorSeoEditor = key === 'animatory' ? renderAnimatorPageSeoEditor(content) : '';
   const homeCardActionForms = key === 'home' ? renderHomeCardActionForms(content) : '';
-  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}${homeCardActionForms}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}${homeCardsEditor}${birthdayFormatsEditor}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
+  const body = `<header class="admin-page-head"><div><span>${escapeHtml(config.eyebrow)}</span><h1>${escapeHtml(config.title)}</h1><p>${escapeHtml(config.intro)}</p></div>${adminPreviewLink(config.publicUrl, 'Открыть страницу')}</header>${adminSaveNotice(query)}${homeCardActionForms}<form class="admin-content-form admin-edit-form" method="post" action="/admin/content" enctype="multipart/form-data" data-admin-form><input type="hidden" name="redirectTo" value="${escapeAttr(config.adminUrl)}">${renderPageHeroFields(config, content)}${animatorSeoEditor}${homeCardsEditor}${birthdayFormatsEditor}<section class="admin-edit-guide"><span>Как это работает</span><p>Замените фото при необходимости и сразу проверьте кадрирование в предпросмотре. Сохранение применит только изменения этой страницы.</p></section>${config.photoGroups.map(group => pagePhotoGroup(group, content)).join('')}${adminSaveBar({ previewUrl:config.publicUrl })}</form>`;
   return adminLayout(config.title, body, config.active);
 };
 
@@ -1425,10 +1556,12 @@ const catalogForm = (type, item = {}, favorites = defaultCardColorFavorites) => 
   const event = type === 'events';
   const noun = hero ? 'аниматора' : show ? 'шоу' : 'событие';
   const title = item.name || item.title || '';
+  const heroText = hero ? heroDetailTextSettings({ ...item, name:title || 'Имя героя' }) : null;
   const name = formField('Название', 'name', title, { required:true, wide:true }).replace('name="name"', 'name="name" data-title');
   const slug = formField('Адрес страницы', 'slug', item.slug || '', { wide:true }).replace('name="slug"', 'name="slug" data-slug');
   let basic = name + slug;
   let settings = '';
+  let pageContent = '';
   let seo = '';
 
   if (event) {
@@ -1439,7 +1572,7 @@ const catalogForm = (type, item = {}, favorites = defaultCardColorFavorites) => 
       + formField('Ссылка кнопки (необязательно)', 'buttonUrl', item.buttonUrl || '')
       + catalogColorField(type, item, favorites);
   } else {
-    basic += formField('Описание', 'description', item.description || '', { textarea:true, wide:true });
+    basic += formField(hero ? 'Короткое описание в карточке каталога' : 'Описание', 'description', item.description || '', { textarea:true, wide:true });
     if (hero) {
       settings = formField('Длительность, минут', 'duration', item.duration || 40, { type:'number', step:'1' })
         + selectField('Для кого', 'audience', item.audience || 'all', [['all','Для всех'],['boys','Для мальчиков'],['girls','Для девочек']])
@@ -1447,17 +1580,24 @@ const catalogForm = (type, item = {}, favorites = defaultCardColorFavorites) => 
         + catalogColorField(type, item, favorites)
         + formField('Цена в будни, ₽', 'priceWeekday', item.priceWeekday ?? item.price ?? '', { type:'number', step:'1', required:true })
         + formField('Цена в выходные, ₽', 'priceWeekend', item.priceWeekend ?? item.price ?? '', { type:'number', step:'1', required:true });
+      pageContent = `<div class="admin-seo-content-groups"><section><h3>Первый экран героя</h3><p>Эти тексты видит посетитель после открытия страницы аниматора.</p><div class="admin-grid">${seoFormField('H1 страницы', 'pageH1', heroText.pageH1, { maximum:160, required:true, hint:'Один конкретный заголовок: персонаж, услуга и город.' })}${formField('Короткая надпись над H1', 'pageEyebrow', heroText.eyebrow, { wide:true, required:true })}${formField('Главный продающий абзац', 'pageLead', heroText.lead, { textarea:true, wide:true, required:true })}${formField('Дополнительный абзац', 'pageIntro', heroText.intro, { textarea:true, wide:true, required:true })}${formField('Надпись на кнопке заказа', 'ctaLabel', heroText.ctaLabel, { required:true })}${formField('Описание фотографии (alt)', 'imageAlt', heroText.imageAlt, { wide:true, required:true, hint:'Опишите изображение естественно, без перечня запросов.' })}</div></section><section><h3>Полезный блок ниже</h3><p>Раскройте программу и условия без повторения одинаковых ключевых фраз.</p><div class="admin-grid">${formField('Надпись над блоком', 'seoEyebrow', heroText.seoEyebrow, { required:true })}${formField('Заголовок блока (H2)', 'seoHeading', heroText.seoHeading, { wide:true, required:true })}${formField('Первый абзац', 'seoParagraph1', heroText.seoParagraph1, { textarea:true, wide:true, required:true })}${formField('Второй абзац', 'seoParagraph2', heroText.seoParagraph2, { textarea:true, wide:true, required:true })}${formField('Что входит — каждый пункт с новой строки', 'seoBenefits', heroText.seoBenefits.join('\n'), { textarea:true, wide:true, required:true })}</div></section></div>`;
     } else {
       settings = formField('Цена, ₽', 'price', item.price || '', { type:'number', step:'1', required:true })
         + catalogColorField(type, item, favorites);
     }
-    seo = formField('Заголовок для поиска', 'seoTitle', item.seoTitle || '', { wide:true })
-      + formField('Описание для поиска', 'seoDescription', item.seoDescription || '', { textarea:true, wide:true });
+    if (hero) {
+      const path = `/animatory/${item.slug || slugify(`animator-${title || 'geroy'}-kemerovo`)}/`;
+      const searchFields = `${seoFormField('Title — заголовок в поиске', 'seoTitle', item.seoTitle || '', { minimum:45, maximum:90, hint:'Можно оставить пустым — сайт соберёт заголовок из имени героя.' })}${seoFormField('Description — описание в поиске', 'seoDescription', item.seoDescription || '', { textarea:true, minimum:110, maximum:220, hint:'Можно оставить пустым — будет использован главный абзац страницы.' })}`;
+      seo = `<div class="admin-seo-layout"><div class="admin-grid">${searchFields}</div>${searchResultPreview({ titleName:'seoTitle', descriptionName:'seoDescription', title:heroText.metaTitle, description:heroText.metaDescription, path })}</div>`;
+    } else {
+      seo = formField('Заголовок для поиска', 'seoTitle', item.seoTitle || '', { wide:true })
+        + formField('Описание для поиска', 'seoDescription', item.seoDescription || '', { textarea:true, wide:true });
+    }
   }
 
   const faq = !event ? catalogEditorSection('Вопросы и ответы', 'FAQ этой конкретной программы. Они показываются на её странице и попадают в разметку для поиска.', faqEditor('faq', detailFaqs(item, type)), false) : '';
   const status = item.published !== false ? 'Карточка видна посетителям.' : 'Карточка скрыта: её видите только вы в админке.';
-  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${faq}${seo ? catalogEditorSection('Поисковая выдача', 'Title и meta description для Яндекса. Они не выводятся посетителю в тексте страницы; если оставить их пустыми, сайт подставит название и описание карточки.', `<div class="admin-grid">${seo}</div>`, false) : ''}`;
+  return `<input type="hidden" name="id" value="${escapeAttr(item.id || '')}"><section class="admin-editor-card"><header><span>Карточка каталога</span><h2>${item.id ? `Редактировать: ${escapeHtml(title || noun)}` : `Новая карточка`}</h2><p>${status}</p></header><div class="admin-publish-row">${visibilityField(item.published)}<span>${item.published !== false ? 'На сайте' : 'Скрыто'}</span></div><div class="admin-grid">${basic}</div></section>${settings ? catalogEditorSection('Цена и параметры', 'Данные, которые будут показаны в карточке и используются при заявке.', `<div class="admin-grid">${settings}</div>`) : ''}${pageContent ? catalogEditorSection('Все тексты страницы аниматора', 'H1, первый экран, полезный блок, кнопка и описание изображения настраиваются независимо от карточки каталога.', pageContent) : ''}${catalogEditorSection('Обложка и кадрирование', 'Главное изображение карточки. Сначала загрузите фото, затем настройте положение и масштаб.', mediaEditor(`${type}-${item.id || 'new'}`, item, { poster:event }))}${show ? catalogEditorSection('Фото и видео программы', 'До 8 новых файлов за раз и до 12 материалов в карточке. Фото и видео появятся после сохранения.', galleryEditor(`${type}-${item.id || 'new'}`, item)) : ''}${faq}${seo ? catalogEditorSection('Поисковая выдача', 'Title и Description управляют сниппетом, но Яндекс может выбрать другой фрагмент под конкретный запрос. Canonical и адрес страницы формируются автоматически.', seo, false) : ''}`;
 };
 
 const catalogItemCard = (type, item) => {
@@ -1601,18 +1741,34 @@ const updateCatalogItem = (type, oldItem, body, uploadedFile, galleryFiles = [])
       accent: legacyCardAccent(type, source.accent, 'yellow'),
       cardColor: truthy(body.cardColorReset) ? '' : (normalizeHexColor(body.cardColor) || normalizeHexColor(source.cardColor))
     };
-    if (type === 'heroes') return {
-      ...base, name, slug: uniqueSlug(body.slug || `animator-${name}-kemerovo`, items, base.id),
-      description: String(body.description || '').trim(), duration: Math.max(1, Math.round(number(body.duration, 40))),
-      price: priceNumber(body.priceWeekday, source.priceWeekday ?? source.price ?? 0),
-      priceWeekday: priceNumber(body.priceWeekday, source.priceWeekday ?? source.price ?? 0),
-      priceWeekend: priceNumber(body.priceWeekend, source.priceWeekend ?? source.price ?? 0),
-      audience: ['all','boys','girls'].includes(body.audience) ? body.audience : 'all',
-      format: body.heroFormat === 'costume' ? 'costume' : 'standard', accent: legacyCardAccent(type, source.accent, 'yellow'),
-      position: Math.max(1, Math.round(number(source.position, items.length + 1))),
-      cardColor: truthy(body.cardColorReset) ? '' : (normalizeHexColor(body.cardColor) || normalizeHexColor(source.cardColor)),
-      seoTitle: String(body.seoTitle || '').trim(), seoDescription: String(body.seoDescription || '').trim()
-    };
+    if (type === 'heroes') {
+      const duration = Math.max(1, Math.round(number(body.duration, 40)));
+      const detailDefaults = heroDetailTextSettings({ ...source, name, duration, description:String(body.description || '').trim() });
+      return {
+        ...base, name, slug: uniqueSlug(body.slug || `animator-${name}-kemerovo`, items, base.id),
+        description: String(body.description || '').trim(), duration,
+        price: priceNumber(body.priceWeekday, source.priceWeekday ?? source.price ?? 0),
+        priceWeekday: priceNumber(body.priceWeekday, source.priceWeekday ?? source.price ?? 0),
+        priceWeekend: priceNumber(body.priceWeekend, source.priceWeekend ?? source.price ?? 0),
+        audience: ['all','boys','girls'].includes(body.audience) ? body.audience : 'all',
+        format: body.heroFormat === 'costume' ? 'costume' : 'standard', accent: legacyCardAccent(type, source.accent, 'yellow'),
+        position: Math.max(1, Math.round(number(source.position, items.length + 1))),
+        cardColor: truthy(body.cardColorReset) ? '' : (normalizeHexColor(body.cardColor) || normalizeHexColor(source.cardColor)),
+        pageH1:textOr(body.pageH1, detailDefaults.pageH1).slice(0, 160),
+        pageEyebrow:textOr(body.pageEyebrow, detailDefaults.eyebrow).slice(0, 100),
+        pageLead:textOr(body.pageLead, detailDefaults.lead).slice(0, 700),
+        pageIntro:textOr(body.pageIntro, detailDefaults.intro).slice(0, 700),
+        ctaLabel:textOr(body.ctaLabel, detailDefaults.ctaLabel).slice(0, 80),
+        imageAlt:textOr(body.imageAlt, detailDefaults.imageAlt).slice(0, 180),
+        seoEyebrow:textOr(body.seoEyebrow, detailDefaults.seoEyebrow).slice(0, 100),
+        seoHeading:textOr(body.seoHeading, detailDefaults.seoHeading).slice(0, 180),
+        seoParagraph1:textOr(body.seoParagraph1, detailDefaults.seoParagraph1).slice(0, 1000),
+        seoParagraph2:textOr(body.seoParagraph2, detailDefaults.seoParagraph2).slice(0, 1000),
+        seoBenefits:textListOr(body.seoBenefits, detailDefaults.seoBenefits).slice(0, 8).map(value => value.slice(0, 160)),
+        seoTitle:String(body.seoTitle || '').trim().slice(0, 180),
+        seoDescription:String(body.seoDescription || '').trim().slice(0, 320)
+      };
+    }
     if (type === 'shows') return {
       ...base, name, slug: uniqueSlug(body.slug || `${name}-kemerovo`, items, base.id), description: String(body.description || '').trim(),
       price: priceNumber(body.price, source.price ?? 0), accent: legacyCardAccent(type, source.accent, 'cyan'),
@@ -1847,6 +2003,32 @@ app.post('/admin/content', requireAdmin, upload.any(), async (req, res, next) =>
       const introField = `${key}HeroIntro`;
       if (req.body[titleField] !== undefined) nextContent[titleField] = String(req.body[titleField] || '').trim();
       if (req.body[introField] !== undefined) nextContent[introField] = String(req.body[introField] || '').trim();
+    }
+    if (truthy(req.body.animatorySeoEditorSubmitted)) {
+      const fields = {
+        animatoryHeroTag:100,
+        animatoryHeroImageAlt:180,
+        animatoryCatalogTitle:160,
+        animatorySeoTitle:180,
+        animatorySeoDescription:320,
+        animatorySeoEyebrow:100,
+        animatorySeoHeading:180,
+        animatorySeoParagraph1:1000,
+        animatorySeoParagraph2:1000,
+        animatorySeoPrimaryLinkLabel:80,
+        animatorySeoSecondaryLinkLabel:80,
+        animatoryIntroNoteEyebrow:100,
+        animatoryIntroNoteTitle:180,
+        animatoryIntroNoteAccent:180,
+        animatoryIntroNoteParagraph1:1000,
+        animatoryIntroNoteParagraph2:1000,
+        animatoryIntroNoteSignature:120
+      };
+      for (const [field, limit] of Object.entries(fields)) {
+        if (req.body[field] !== undefined) nextContent[field] = String(req.body[field] || '').trim().slice(0, limit);
+      }
+      nextContent.animatorySeoBenefits = textListOr(req.body.animatorySeoBenefits, animatorPageDefaults.seoBenefits).slice(0, 8).map(value => value.slice(0, 160));
+      nextContent.animatoryIntroNoteEnabled = truthy(req.body.animatoryIntroNoteEnabled);
     }
     const homeCardFieldsSubmitted = homeDirectionCardDefaults.some(card => [
       `homeCardHref-${card.id}`,

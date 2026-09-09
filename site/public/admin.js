@@ -139,6 +139,40 @@ document.querySelectorAll('[data-palette-color-picker]').forEach(picker => {
   });
 })();
 
+/* SEO counters and live search-result preview */
+(() => {
+  const compact = value => String(value || '').replace(/\s+/g, ' ').trim();
+
+  document.querySelectorAll('[data-seo-counted]').forEach(input => {
+    const field = input.closest('.admin-field');
+    const output = field?.querySelector('[data-seo-count]');
+    const sync = () => {
+      const length = input.value.length;
+      const minimum = Number(input.dataset.seoMin || 0);
+      if (output) output.textContent = String(length);
+      field?.classList.toggle('is-seo-short', minimum > 0 && length > 0 && length < minimum);
+      field?.classList.toggle('is-seo-ready', length > 0 && (!minimum || length >= minimum));
+    };
+    input.addEventListener('input', sync);
+    sync();
+  });
+
+  document.querySelectorAll('[data-serp-preview]').forEach(preview => {
+    const form = preview.closest('form');
+    const titleInput = form?.elements.namedItem(preview.dataset.titleName);
+    const descriptionInput = form?.elements.namedItem(preview.dataset.descriptionName);
+    const title = preview.querySelector('[data-serp-title]');
+    const description = preview.querySelector('[data-serp-description]');
+    const sync = () => {
+      if (title) title.textContent = compact(titleInput?.value) || preview.dataset.titleFallback || '';
+      if (description) description.textContent = compact(descriptionInput?.value) || preview.dataset.descriptionFallback || '';
+    };
+    titleInput?.addEventListener('input', sync);
+    descriptionInput?.addEventListener('input', sync);
+    sync();
+  });
+})();
+
 /* Admin overhaul: upload feedback */
 (() => {
   const formatSize = files => (files.reduce((sum, file) => sum + file.size, 0) / 1048576).toFixed(1);
