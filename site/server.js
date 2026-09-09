@@ -47,12 +47,17 @@ const telegramLeadsApiBaseUrl = (() => {
 const yandexMetrikaId = /^\d+$/.test(String(process.env.YANDEX_METRIKA_ID || '').trim())
   ? String(process.env.YANDEX_METRIKA_ID).trim()
   : '';
+const yandexMetrikaOAuthToken = String(process.env.YANDEX_METRIKA_OAUTH_TOKEN || '').trim();
+const yandexMetrikaOfflineTargetValue = String(process.env.YANDEX_METRIKA_OFFLINE_TARGET || 'lead_submitted_offline').trim();
+const yandexMetrikaOfflineTarget = /^[A-Za-z0-9_.-]{1,255}$/.test(yandexMetrikaOfflineTargetValue)
+  ? yandexMetrikaOfflineTargetValue
+  : '';
 const trustProxy = String(process.env.TRUST_PROXY || '').trim() === '1';
 const loginLimit = { maxAttempts:5, windowMs:15 * 60 * 1000 };
 const leadLimit = { maxAttempts:5, windowMs:60 * 60 * 1000 };
 const leadRetentionDays = 90;
 const leadRetentionMs = leadRetentionDays * 24 * 60 * 60 * 1000;
-const privacyPolicyVersion = '22.08.2026, редакция 2';
+const privacyPolicyVersion = '09.09.2026, редакция 3';
 const personalDataConsentVersion = privacyPolicyVersion;
 const analyticsConsentVersion = privacyPolicyVersion;
 const brandName = 'ВообразилЛиЯ';
@@ -74,10 +79,13 @@ const files = {
   shows: path.join(dataDir, 'shows.json'),
   reviews: path.join(dataDir, 'reviews.json'),
   leads: path.join(dataDir, 'leads.jsonl'),
-  leadDeletionLog: path.join(dataDir, 'leads-deletion-log.jsonl')
+  leadDeletionLog: path.join(dataDir, 'leads-deletion-log.jsonl'),
+  offlineConversionsPending: path.join(dataDir, 'offline-conversions-pending.jsonl'),
+  offlineConversionsLog: path.join(dataDir, 'offline-conversions-log.jsonl')
 };
 
 await Promise.all([
+  fs.mkdir(dataDir, { recursive: true }),
   fs.mkdir(uploadsDir, { recursive: true }),
   fs.mkdir(cardImagesDir, { recursive: true })
 ]);
@@ -169,6 +177,108 @@ const purgeExpiredLeads = () => queueLeadStoreOperation(async () => {
 await purgeExpiredLeads();
 setInterval(() => { void purgeExpiredLeads().catch(error => console.error('Не удалось очистить устаревшие заявки:', error.message)); }, 6 * 60 * 60 * 1000).unref();
 const truthy = value => value === true || value === 'true' || value === 'on' || value === '1';
+const normalizeYclid = value => {
+  const yclid = String(value || '').trim();
+  return /^[A-Za-z0-9._~-]{1,512}$/.test(yclid) ? yclid : '';
+};
+const offlineConversionLinkWindowMs = 21 * 24 * 60 * 60 * 1000;
+const offlineConversionRetryIntervalMs = 15 * 60 * 1000;
+let offlineConversionStoreOperation = Promise.resolve();
+let offlineConversionProcessing = false;
+const queueOfflineConversionStoreOperation = task => {
+  const operation = offlineConversionStoreOperation.then(task, task);
+  offlineConversionStoreOperation = operation.catch(() => {});
+  return operation;
+};
+const readJsonLines = async file => {
+  const source = await fs.readFile(file, 'utf8').catch(error => error.code === 'ENOENT' ? '' : Promise.reject(error));
+  return source.split(/\r?\n/).filter(Boolean).flatMap(line => {
+    try { return [JSON.parse(line)]; } catch { return []; }
+  });
+};
+const writeJsonLines = (file, records) => writeTextAtomically(file, records.length ? `${records.map(record => JSON.stringify(record)).join('\n')}\n` : '');
+const enqueueOfflineConversion = lead => queueOfflineConversionStoreOperation(async () => {
+  if (!lead.yclid || !yandexMetrikaOfflineTarget) return false;
+  const dateTime = Math.max(1, Math.floor(Date.parse(lead.createdAt) / 1000) - 2);
+  const record = {
+    id:crypto.randomUUID(),
+    leadId:lead.id,
+    yclid:lead.yclid,
+    target:yandexMetrikaOfflineTarget,
+    dateTime,
+    queuedAt:now(),
+    attempts:0,
+    nextAttemptAt:now()
+  };
+  await fs.appendFile(files.offlineConversionsPending, `${JSON.stringify(record)}\n`, 'utf8');
+  return true;
+});
+const csvField = value => `"${String(value).replaceAll('"', '""')}"`;
+const uploadOfflineConversion = async record => {
+  const csv = `Yclid,Target,DateTime\n${csvField(record.yclid)},${csvField(record.target)},${record.dateTime}\n`;
+  const form = new FormData();
+  form.append('file', new Blob([csv], { type:'text/csv;charset=utf-8' }), 'offline-conversions.csv');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const endpoint = new URL(`https://api-metrika.yandex.net/management/v1/counter/${yandexMetrikaId}/offline_conversions/upload`);
+    endpoint.searchParams.set('type', 'BASIC');
+    endpoint.searchParams.set('comment', `website lead ${record.leadId}`.slice(0, 255));
+    const response = await fetch(endpoint, {
+      method:'POST',
+      headers:{ Authorization:`OAuth ${yandexMetrikaOAuthToken}` },
+      body:form,
+      signal:controller.signal
+    });
+    const responseText = await response.text();
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${responseText.slice(0, 240)}`);
+    const result = JSON.parse(responseText);
+    if (!result?.uploading?.id) throw new Error('Яндекс Метрика не вернула идентификатор загрузки');
+    return { uploadId:result.uploading.id, status:String(result.uploading.status || 'UPLOADED') };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+const updateOfflineConversionRecord = (recordId, update, logRecord) => queueOfflineConversionStoreOperation(async () => {
+  const pending = await readJsonLines(files.offlineConversionsPending);
+  const next = [];
+  for (const record of pending) {
+    if (record.id !== recordId) next.push(record);
+    else if (update) next.push({ ...record, ...update });
+  }
+  await writeJsonLines(files.offlineConversionsPending, next);
+  if (logRecord) await fs.appendFile(files.offlineConversionsLog, `${JSON.stringify(logRecord)}\n`, 'utf8');
+});
+const processOfflineConversions = async () => {
+  if (offlineConversionProcessing || !yandexMetrikaId || !yandexMetrikaOAuthToken || !yandexMetrikaOfflineTarget) return;
+  offlineConversionProcessing = true;
+  try {
+    const pending = await queueOfflineConversionStoreOperation(() => readJsonLines(files.offlineConversionsPending));
+    for (const record of pending.slice(0, 20)) {
+      const currentTime = Date.now();
+      if (Date.parse(record.nextAttemptAt || '') > currentTime) continue;
+      if (currentTime - Number(record.dateTime || 0) * 1000 >= offlineConversionLinkWindowMs) {
+        await updateOfflineConversionRecord(record.id, null, { id:record.id, leadId:record.leadId, finishedAt:now(), status:'expired-after-21-days' });
+        continue;
+      }
+      try {
+        const result = await uploadOfflineConversion(record);
+        await updateOfflineConversionRecord(record.id, null, { id:record.id, leadId:record.leadId, finishedAt:now(), status:'uploaded', ...result });
+      } catch (error) {
+        const attempts = Number(record.attempts || 0) + 1;
+        const delay = Math.min(24 * 60 * 60 * 1000, offlineConversionRetryIntervalMs * (4 ** Math.min(attempts - 1, 4)));
+        await updateOfflineConversionRecord(record.id, { attempts, lastAttemptAt:now(), nextAttemptAt:new Date(Date.now() + delay).toISOString(), lastError:String(error.message || error).slice(0, 500) });
+        console.error(`Не удалось загрузить офлайн-конверсию ${record.id}:`, error.message);
+      }
+    }
+  } catch (error) {
+    console.error('Не удалось обработать очередь офлайн-конверсий:', error.message);
+  } finally {
+    offlineConversionProcessing = false;
+  }
+};
+setTimeout(() => { void processOfflineConversions(); }, 5_000).unref();
+setInterval(() => { void processOfflineConversions(); }, offlineConversionRetryIntervalMs).unref();
 const number = (value, fallback = 50) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.max(0, Math.min(200, parsed)) : fallback;
@@ -593,7 +703,7 @@ const deferredImage = (src, attributes = '') => `<img data-deferred-image data-s
 const nav = () => `<header class="site-header"><a class="wordmark" href="/" aria-label="${brandName}">${mobileLogoPulse}<picture><source media="(max-width: 900px)" srcset="/logo/brand-logo-icon-mobile.webp?v=20260902-mobile-perf-v1" type="image/webp"><img src="/logo/brand-logo-horizontal.png?v=20260828-brand-v2" alt="${brandName}" width="1600" height="489"></picture></a><nav class="site-menu" id="site-menu" aria-label="Основная навигация"><a href="/animatory/">Аниматоры</a><a href="/detskiy-den-rozhdeniya/">День рождения</a><a href="/show/">Шоу</a><a href="/afisha/">Афиша</a></nav><div class="header-contacts" aria-label="Связаться с нами"><a class="header-contact header-phone" href="tel:${publicPhone}" data-metrika-goal="phone_click" aria-label="Позвонить: ${publicPhoneLabel}">${phoneIcon}<span class="header-phone__number">${publicPhoneLabel}</span></a><a class="header-contact header-messenger" href="https://max.ru/u/f9LHodD0cOIRJLSa7d4VRvn920ZcfXNmLCtdobjJSwP_htHZYKv_rKIpH2s" target="_blank" rel="noopener noreferrer" data-metrika-goal="messenger_click" data-messenger="max" aria-label="Написать в MAX"><img class="header-messenger__icon" src="/assets/contact/max.svg" alt=""><span class="header-contact__qr" aria-hidden="true">${deferredImage('/assets/contact/max-qr.png', 'alt="" width="340" height="341"')}<b>MAX</b><small>Сканируйте, чтобы написать</small></span></a><a class="header-contact header-messenger" href="https://t.me/Penna_Dvizh" target="_blank" rel="noopener noreferrer" data-metrika-goal="messenger_click" data-messenger="telegram" aria-label="Написать в Telegram @Penna_Dvizh"><img class="header-messenger__icon" src="/assets/contact/telegram.svg" alt=""><span class="header-contact__qr" aria-hidden="true">${deferredImage('/assets/contact/telegram-qr.png', 'alt="" width="908" height="964"')}<b>Telegram</b><small>@Penna_Dvizh</small></span></a></div><button class="menu-button" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Открыть меню">МЕНЮ +</button></header>`;
 
 const personalDataContacts = () => `<dl class="legal-contacts"><dt>Электронная почта</dt><dd>${personalDataEmail ? `<a href="mailto:${escapeAttr(personalDataEmail)}">${escapeHtml(personalDataEmail)}</a>` : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_EMAIL</span>'}</dd><dt>Почтовый адрес для обращений</dt><dd>${personalDataPostalAddress ? escapeHtml(personalDataPostalAddress) : '<span class="legal-placeholder">укажите в переменной PERSONAL_DATA_POSTAL_ADDRESS</span>'}</dd></dl>`;
-const consentField = () => `<label class="consent"><input required name="consent" type="checkbox"><span>Я даю <a href="/consent/" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и ознакомлен(а) с <a href="/privacy/" target="_blank" rel="noopener">Политикой</a>.</span></label>`;
+const consentField = () => `<div class="consent-group"><label class="consent"><input required name="consent" type="checkbox"><span>Я даю <a href="/consent/" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и ознакомлен(а) с <a href="/privacy/" target="_blank" rel="noopener">Политикой</a>.</span></label><label class="consent consent--analytics"><input name="analyticsConsent" type="checkbox" data-analytics-consent-checkbox><span>Разрешаю использовать аналитические cookies для оценки эффективности рекламы.</span></label></div>`;
 const honeypotField = () => '<input class="form-honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">';
 const footer = () => `<footer class="site-footer"><div class="site-footer__brand"><span class="site-footer__copyright">© ${new Date().getFullYear()} ${brandName}</span><a class="site-footer__developer" href="https://t.me/sergeantowl" target="_blank" rel="noopener noreferrer" aria-label="Сайт разработан @sergeantowl, открыть Telegram"><svg class="site-footer__developer-mark" viewBox="0 0 36 36" fill="none" aria-hidden="true"><rect x="1.25" y="1.25" width="33.5" height="33.5" rx="11.75" fill="url(#footer-developer-gradient)"/><path d="m13.3 12.5-4.1 5.5 4.1 5.5M22.7 12.5l4.1 5.5-4.1 5.5M20.2 10.8l-4.4 14.4" stroke="#FFF9FC" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="footer-developer-gradient" x1="4" y1="3.5" x2="32" y2="33" gradientUnits="userSpaceOnUse"><stop stop-color="#F91A7A"/><stop offset="1" stop-color="#841543"/></linearGradient></defs></svg><span>Сайт разработан <b>@sergeantowl</b></span><svg class="site-footer__developer-arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 12.5 12.5 3.5M6 3.5h6.5V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div><nav class="site-footer__legal" aria-label="Правовая информация"><a href="/privacy/">Политика конфиденциальности</a><a href="/consent/">Согласие на обработку данных</a><button class="cookie-settings" type="button" data-cookie-settings>Настроить cookies</button></nav></footer>`;
 
@@ -602,7 +712,7 @@ const mediaLightbox = () => `<dialog class="media-lightbox" data-media-lightbox 
 
 const cookieConsentBanner = () => yandexMetrikaId ? `<section class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-consent-title" hidden><div class="cookie-consent-banner__copy"><h2 id="cookie-consent-title">Настройки cookies</h2><p>С вашего согласия подключим Яндекс Метрику, чтобы понимать посещаемость сайта и делать его удобнее.</p><a href="/privacy/">Подробнее в Политике конфиденциальности</a></div><div class="cookie-consent-banner__actions"><button class="cookie-consent-banner__decline" type="button" data-cookie-choice="denied">Не согласен</button><button class="cookie-consent-banner__accept" type="button" data-cookie-choice="granted">Согласен</button></div></section>` : '';
 const faviconLinks = () => '<link rel="icon" href="/favicon.ico?v=20260828-mask-v2" sizes="16x16 32x32 48x48 64x64 128x128 256x256"><link rel="icon" href="/favicon-32x32.png?v=20260828-mask-v2" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-16x16.png?v=20260828-mask-v2" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260828-mask-v2" sizes="180x180"><link rel="manifest" href="/site.webmanifest?v=20260828-pink-brand-v1"><meta name="theme-color" content="#121311">';
-const performanceAssetVersion = '20260908-animator-show-upsell-v2';
+const performanceAssetVersion = '20260909-yandex-offline-conversions-v1';
 const layout = (meta, body, pageClass = '') => {
   const floatingCtaHref = body.includes('id="zayavka"') ? '#zayavka' : '/#zayavka';
   return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(meta.title)}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="${escapeAttr(meta.robots)}"><link rel="canonical" href="${escapeAttr(meta.canonical)}"><meta property="og:locale" content="ru_RU"><meta property="og:site_name" content="${brandName}"><meta property="og:title" content="${escapeAttr(meta.title)}"><meta property="og:description" content="${escapeAttr(meta.description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escapeAttr(meta.canonical)}"><meta property="og:image" content="${escapeAttr(meta.image)}"><meta property="og:image:alt" content="${escapeAttr(meta.imageAlt)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeAttr(meta.title)}"><meta name="twitter:description" content="${escapeAttr(meta.description)}"><meta name="twitter:image" content="${escapeAttr(meta.image)}"><meta name="twitter:image:alt" content="${escapeAttr(meta.imageAlt)}">${structuredData(meta)}<link rel="stylesheet" href="/styles.css?v=${performanceAssetVersion}"><link rel="stylesheet" href="/legal.css?v=20260828-pink-brand-v1">${faviconLinks()}</head><body class="${pageClass}" data-yandex-metrika-id="${yandexMetrikaId}" data-analytics-consent-version="${analyticsConsentVersion}"><a class="skip-link" href="#main-content">Перейти к содержанию</a>${nav()}<main id="main-content">${brandText(body)}</main>${footer()}<a class="floating-party-cta" href="${floatingCtaHref}">ЗАКАЗАТЬ ПРАЗДНИК</a>${leadDialog()}${mediaLightbox()}${cookieConsentBanner()}<script src="/app.js?v=${performanceAssetVersion}" defer></script></body></html>`;
@@ -611,7 +721,7 @@ const layout = (meta, body, pageClass = '') => {
 const dataStorageSection = () => `<section><h2>3.1. Размещение, доступ и сроки хранения</h2><p>Сервер, резервные копии, SMTP-сервис и используемая Яндекс Метрика находятся на территории Российской Федерации. Оператор не осуществляет трансграничную передачу персональных данных. Доступ к заявкам, почтовому ящику с заявками и административному разделу имеет только Оператор.</p><p>Заявка, по которой не заключён договор, хранится 90 календарных дней с момента получения. После этого она автоматически удаляется; в журнале удаления остаются только её идентификатор и даты создания, истечения срока и удаления. Если по заявке заключён договор, данные хранятся в течение срока, установленного договором и законодательством.</p></section>`;
 const cookiesSection = () => {
   if (!yandexMetrikaId) return `${dataStorageSection()}<section><h2>4. Cookies и аналитика</h2><p>На дату публикации Политики сайт не подключает рекламные или аналитические сервисы, получающие данные посетителей. При подключении такого сервиса Оператор обновит Политику и запросит отдельное согласие до его загрузки.</p></section>`;
-  return `${dataStorageSection()}<section><h2>4. Cookies и Яндекс Метрика</h2><p>Только после отдельного согласия пользователя сайт подключает Яндекс Метрику для подсчёта посещаемости, анализа источников переходов, работы страниц и форм, а также улучшения сайта. До согласия тег Метрики не загружается. Данные, введённые в формы заявок, в Метрику не передаются.</p><table><thead><tr><th>Категория</th><th>Какие данные и зачем</th><th>Срок</th></tr></thead><tbody><tr><td>Настройки согласия сайта</td><td>Выбор «согласен» или «не согласен», версия Политики и дата выбора — чтобы сохранить настройку и не загружать Метрику без согласия.</td><td>12 месяцев</td></tr><tr><td>Яндекс Метрика</td><td>Идентификаторы cookie и localStorage, IP-адрес, тип устройства и браузера, дата и время визита, адреса просмотренных страниц, источник перехода, клики, прокрутка и запись сессии Вебвизора — для статистики и улучшения сайта.</td><td>Cookie и локальное хранилище — от сессии до 2 лет; срок зависит от конкретного технического файла Метрики.</td></tr></tbody></table><p>Сведения передаются сервису Яндекс Метрика как лицу, которому поручена обработка технических данных для указанной цели. Пользователь может изменить выбор в подвале сайта; после отказа тег Метрики отключается, а доступные сайту cookies и localStorage Метрики удаляются.</p></section>`;
+  return `${dataStorageSection()}<section><h2>4. Cookies, yclid и Яндекс Метрика</h2><p>Только после отдельного согласия пользователя сайт подключает Яндекс Метрику для подсчёта посещаемости, анализа источников переходов, работы страниц и форм, а также улучшения сайта. До согласия тег Метрики не загружается. Имя, телефон и текст комментария в Метрику не передаются.</p><table><thead><tr><th>Категория</th><th>Какие данные и зачем</th><th>Срок</th></tr></thead><tbody><tr><td>Настройки согласия сайта</td><td>Выбор «согласен» или «не согласен», версия Политики и дата выбора — чтобы сохранить настройку и не загружать Метрику без согласия.</td><td>12 месяцев</td></tr><tr><td>Яндекс Метрика</td><td>Идентификаторы cookie и localStorage, IP-адрес, тип устройства и браузера, дата и время визита, адреса просмотренных страниц, источник перехода, клики, прокрутка и запись сессии Вебвизора — для статистики и улучшения сайта.</td><td>Cookie и локальное хранилище — от сессии до 2 лет; срок зависит от конкретного технического файла Метрики.</td></tr><tr><td>Метка yclid</td><td>Идентификатор перехода из Яндекс Директа, время и факт успешной отправки формы — для привязки заявки к рекламному переходу и оценки эффективности рекламы. Метка сохраняется вместе с заявкой только при отдельном согласии и передаётся в Яндекс Метрику как офлайн-конверсия.</td><td>В заявке — не более 90 дней; очередь передачи — не более 21 дня.</td></tr></tbody></table><p>Сведения передаются сервису Яндекс Метрика как лицу, которому поручена обработка технических данных для указанной цели. Пользователь может изменить выбор в подвале сайта; после отказа тег Метрики отключается, а доступные сайту cookies и localStorage Метрики удаляются.</p></section>`;
 };
 
 const thankYouPage = () => layout(
@@ -622,7 +732,7 @@ const thankYouPage = () => layout(
 
 const privacyPage = () => layout(
   pageMeta({ title:'Политика конфиденциальности — ТЕМА', description:'Политика в отношении обработки персональных данных.', path:'/privacy/', robots:'noindex, follow' }),
-  `<article class="legal-page"><span class="mono-tag">Версия от ${privacyPolicyVersion}</span><h1>Политика в отношении обработки персональных данных</h1><p class="legal-page__lead">Настоящая политика определяет порядок обработки и защиты персональных данных пользователей сайта «ТЕМА».</p><section><h2>1. Общие положения</h2><p>Оператор персональных данных: <strong>физическое лицо Аничков Артём Вячеславович</strong> (далее — Оператор).</p>${personalDataContacts()}<p>Политика применяется к данным, которые Оператор получает через сайт «ТЕМА» по адресу <a href="${escapeAttr(siteUrl)}">${escapeHtml(siteUrl)}</a>, включая формы заявок. Она подготовлена в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».</p></section><section><h2>2. Цели, состав и основания обработки</h2><table><thead><tr><th>Цель</th><th>Данные</th><th>Основание</th></tr></thead><tbody><tr><td>Принять и обработать заявку, связаться с заявителем, подобрать и оказать услугу</td><td>Имя, номер телефона, выбранная услуга, дата, район, пожелания и иные сведения, добровольно указанные в комментарии</td><td>Согласие субъекта персональных данных; при заключении договора — его исполнение</td></tr><tr><td>Подобрать формат детского праздника</td><td>Возраст ребёнка, если его указывает родитель или иной законный представитель</td><td>Согласие заявителя</td></tr><tr><td>Защитить формы и административный вход от спама и перебора пароля</td><td>IP-адрес, дата и время обращения, количество запросов и результат попытки входа</td><td>Законный интерес Оператора в обеспечении безопасности сайта</td></tr></tbody></table><p>Оператор не запрашивает и не обрабатывает специальные категории персональных данных и биометрические персональные данные. Пожалуйста, не указывайте в комментарии сведения о здоровье, документах, убеждениях и иную чувствительную информацию.</p></section><section><h2>3. Порядок и условия обработки</h2><p>Данные предоставляются пользователем добровольно через форму заявки. Оператор обрабатывает их автоматизированным способом: собирает, записывает, систематизирует, хранит, уточняет, использует для связи и удаления.</p><p>Для доставки новой заявки Оператор направляет указанные в ней сведения через настроенный почтовый SMTP-сервис. Такой сервис обрабатывает только необходимые данные по поручению Оператора для доставки сообщения.</p><p>Персональные данные не распространяются и не предоставляются третьим лицам без основания, установленного законом, согласия субъекта либо договора поручения обработки.</p><p>Для защиты сайта от спама и перебора пароля технические сведения об IP-адресах и попытках обращений хранятся только в памяти сервера: для заявок — до 1 часа, для входа в административный раздел — до 15 минут.</p><p>Оператор обеспечивает запись, систематизацию, накопление, хранение, уточнение и извлечение персональных данных граждан Российской Федерации с использованием баз данных, находящихся на территории Российской Федерации. Если потребуется подключить сервис, предусматривающий передачу данных за пределы Российской Федерации, Оператор сначала выполнит требования законодательства о трансграничной передаче и обновит настоящую Политику.</p><p>Данные хранятся только до достижения цели обработки, отзыва согласия или истечения законного срока хранения. После этого они уничтожаются или обезличиваются, если их сохранение не требуется законодательством Российской Федерации.</p></section>${cookiesSection()}<section><h2>5. Согласие и данные детей</h2><p>Отмечая чекбокс и отправляя заявку, пользователь даёт конкретное, информированное и сознательное согласие на обработку данных в объёме и для целей, указанных в <a href="/consent/">Согласии на обработку персональных данных</a>.</p><p>Если в заявке указываются сведения о ребёнке или ином третьем лице, заявитель подтверждает, что является его законным представителем или иным образом вправе передать эти сведения Оператору.</p></section><section><h2>6. Права пользователя</h2><p>Пользователь вправе запросить сведения об обработке своих данных, потребовать их уточнения, блокирования или уничтожения, а также отозвать согласие. Для этого направьте обращение Оператору по контактам, указанным в разделе 1. Отзыв согласия не влияет на законность обработки до его отзыва и может сделать невозможными обработку заявки или оказание услуги.</p><p>Обращение также можно направить в Роскомнадзор или обжаловать действия Оператора в судебном порядке.</p></section><section><h2>7. Защита данных</h2><p>Оператор принимает необходимые правовые, организационные и технические меры: ограничивает доступ к заявкам, использует аутентификацию для административного раздела, защищает учётные данные и контролирует доступ к данным. Доступ к заявкам имеет только Оператор и лица, которым он поручил обработку на законном основании.</p></section><section><h2>8. Изменение Политики</h2><p>Оператор вправе обновлять Политику при изменении сайта, способов обработки или законодательства. Актуальная версия всегда доступна по адресу <a href="/privacy/">${escapeHtml(siteUrl)}/privacy/</a>.</p></section></article>`,
+  `<article class="legal-page"><span class="mono-tag">Версия от ${privacyPolicyVersion}</span><h1>Политика в отношении обработки персональных данных</h1><p class="legal-page__lead">Настоящая политика определяет порядок обработки и защиты персональных данных пользователей сайта «ТЕМА».</p><section><h2>1. Общие положения</h2><p>Оператор персональных данных: <strong>физическое лицо Аничков Артём Вячеславович</strong> (далее — Оператор).</p>${personalDataContacts()}<p>Политика применяется к данным, которые Оператор получает через сайт «ТЕМА» по адресу <a href="${escapeAttr(siteUrl)}">${escapeHtml(siteUrl)}</a>, включая формы заявок. Она подготовлена в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».</p></section><section><h2>2. Цели, состав и основания обработки</h2><table><thead><tr><th>Цель</th><th>Данные</th><th>Основание</th></tr></thead><tbody><tr><td>Принять и обработать заявку, связаться с заявителем, подобрать и оказать услугу</td><td>Имя, номер телефона, выбранная услуга, дата, район, пожелания и иные сведения, добровольно указанные в комментарии</td><td>Согласие субъекта персональных данных; при заключении договора — его исполнение</td></tr><tr><td>Подобрать формат детского праздника</td><td>Возраст ребёнка, если его указывает родитель или иной законный представитель</td><td>Согласие заявителя</td></tr><tr><td>Оценить эффективность рекламы и связать успешную заявку с переходом из Яндекс Директа</td><td>Метка yclid, идентификатор и время заявки, идентификатор цели</td><td>Отдельное необязательное согласие на аналитические cookies</td></tr><tr><td>Защитить формы и административный вход от спама и перебора пароля</td><td>IP-адрес, дата и время обращения, количество запросов и результат попытки входа</td><td>Законный интерес Оператора в обеспечении безопасности сайта</td></tr></tbody></table><p>Оператор не запрашивает и не обрабатывает специальные категории персональных данных и биометрические персональные данные. Пожалуйста, не указывайте в комментарии сведения о здоровье, документах, убеждениях и иную чувствительную информацию.</p></section><section><h2>3. Порядок и условия обработки</h2><p>Данные предоставляются пользователем добровольно через форму заявки. Оператор обрабатывает их автоматизированным способом: собирает, записывает, систематизирует, хранит, уточняет, использует для связи и удаления.</p><p>Для доставки новой заявки Оператор направляет указанные в ней сведения через настроенный почтовый SMTP-сервис. Такой сервис обрабатывает только необходимые данные по поручению Оператора для доставки сообщения.</p><p>Персональные данные не распространяются и не предоставляются третьим лицам без основания, установленного законом, согласия субъекта либо договора поручения обработки.</p><p>Для защиты сайта от спама и перебора пароля технические сведения об IP-адресах и попытках обращений хранятся только в памяти сервера: для заявок — до 1 часа, для входа в административный раздел — до 15 минут.</p><p>Оператор обеспечивает запись, систематизацию, накопление, хранение, уточнение и извлечение персональных данных граждан Российской Федерации с использованием баз данных, находящихся на территории Российской Федерации. Если потребуется подключить сервис, предусматривающий передачу данных за пределы Российской Федерации, Оператор сначала выполнит требования законодательства о трансграничной передаче и обновит настоящую Политику.</p><p>Данные хранятся только до достижения цели обработки, отзыва согласия или истечения законного срока хранения. После этого они уничтожаются или обезличиваются, если их сохранение не требуется законодательством Российской Федерации.</p></section>${cookiesSection()}<section><h2>5. Согласие и данные детей</h2><p>Отмечая чекбокс и отправляя заявку, пользователь даёт конкретное, информированное и сознательное согласие на обработку данных в объёме и для целей, указанных в <a href="/consent/">Согласии на обработку персональных данных</a>. Согласие на аналитические cookies является отдельным и необязательным: отказ не мешает отправить заявку.</p><p>Если в заявке указываются сведения о ребёнке или ином третьем лице, заявитель подтверждает, что является его законным представителем или иным образом вправе передать эти сведения Оператору.</p></section><section><h2>6. Права пользователя</h2><p>Пользователь вправе запросить сведения об обработке своих данных, потребовать их уточнения, блокирования или уничтожения, а также отозвать согласие. Для этого направьте обращение Оператору по контактам, указанным в разделе 1. Отзыв согласия не влияет на законность обработки до его отзыва и может сделать невозможными обработку заявки или оказание услуги.</p><p>Обращение также можно направить в Роскомнадзор или обжаловать действия Оператора в судебном порядке.</p></section><section><h2>7. Защита данных</h2><p>Оператор принимает необходимые правовые, организационные и технические меры: ограничивает доступ к заявкам, использует аутентификацию для административного раздела, защищает учётные данные и контролирует доступ к данным. Доступ к заявкам имеет только Оператор и лица, которым он поручил обработку на законном основании.</p></section><section><h2>8. Изменение Политики</h2><p>Оператор вправе обновлять Политику при изменении сайта, способов обработки или законодательства. Актуальная версия всегда доступна по адресу <a href="/privacy/">${escapeHtml(siteUrl)}/privacy/</a>.</p></section></article>`,
   'legal-body'
 );
 
@@ -1870,6 +1980,8 @@ app.post('/api/leads', async (req, res, next) => {
     const phone = String(req.body.phone || '').trim().slice(0, 60);
     const service = String(req.body.service || '').trim().slice(0, 160);
     const message = String(req.body.message || '').trim().slice(0, 1000);
+    const analyticsConsent = truthy(req.body.analyticsConsent);
+    const yclid = analyticsConsent ? normalizeYclid(req.body.yclid) : '';
     const phoneDigits = phone.replace(/\D/g, '');
     if (!name || phoneDigits.length < 10 || phoneDigits.length > 15 || !truthy(req.body.consent)) return res.status(400).json({ error:'Укажите имя, корректный телефон и согласие на обработку данных.' });
     const consentAt = now();
@@ -1890,9 +2002,18 @@ app.post('/api/leads', async (req, res, next) => {
       consentDocumentUrl:`${siteUrl}/consent/`,
       privacyPolicyVersion,
       privacyPolicyUrl:`${siteUrl}/privacy/`,
-      consentMethod:'required-checkbox'
+      consentMethod:'required-checkbox',
+      analyticsConsent,
+      analyticsConsentAt:analyticsConsent ? consentAt : null,
+      analyticsConsentVersion:analyticsConsent ? analyticsConsentVersion : null,
+      analyticsConsentMethod:analyticsConsent ? 'optional-checkbox' : null,
+      yclid:yclid || null
     };
     await appendLead(lead);
+    if (yclid) {
+      await enqueueOfflineConversion(lead);
+      void processOfflineConversions();
+    }
     void trySendEmail(lead);
     res.status(201).json({
       ok:true,

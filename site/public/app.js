@@ -7,6 +7,8 @@ const cookieBanner = document.querySelector("[data-cookie-banner]");
 const analyticsConsentCookie = "voobrazillia_analytics_consent";
 const analyticsConsentVersionCookie = "voobrazillia_analytics_consent_version";
 const analyticsConsentAtCookie = "voobrazillia_analytics_consent_at";
+const storedYclidKey = "voobrazillia_yclid";
+const storedYclidMaxAge = 21 * 24 * 60 * 60 * 1000;
 const metrikaScriptId = "yandex-metrika-script";
 let metrikaLoaded = false;
 
@@ -26,6 +28,8 @@ document.querySelectorAll(".header-messenger").forEach(link => {
 
 const getMetrikaCounterId = () => Number(document.body?.dataset.yandexMetrikaId);
 const getAnalyticsConsentVersion = () => document.body?.dataset.analyticsConsentVersion || "";
+const normalizeYclid = value => /^[A-Za-z0-9._~-]{1,512}$/.test(String(value || "").trim()) ? String(value).trim() : "";
+const currentPageYclid = normalizeYclid(new URLSearchParams(window.location.search).get("yclid"));
 const getCookie = name => {
   const value = document.cookie.split("; ").find(item => item.startsWith(`${name}=`))?.split("=").slice(1).join("=") || "";
   try {
@@ -33,6 +37,37 @@ const getCookie = name => {
   } catch {
     return value;
   }
+};
+const hasCurrentAnalyticsConsent = () => getCookie(analyticsConsentCookie) === "granted"
+  && getCookie(analyticsConsentVersionCookie) === getAnalyticsConsentVersion();
+const removeStoredYclid = () => {
+  try { window.localStorage.removeItem(storedYclidKey); } catch {}
+};
+const persistCurrentYclid = () => {
+  if (!currentPageYclid) return;
+  try {
+    window.localStorage.setItem(storedYclidKey, JSON.stringify({ value:currentPageYclid, capturedAt:Date.now() }));
+  } catch {}
+};
+const getYclidForLead = () => {
+  if (!hasCurrentAnalyticsConsent()) return "";
+  if (currentPageYclid) return currentPageYclid;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(storedYclidKey) || "null");
+    if (!normalizeYclid(stored?.value) || !Number.isFinite(stored?.capturedAt) || Date.now() - stored.capturedAt >= storedYclidMaxAge) {
+      removeStoredYclid();
+      return "";
+    }
+    return normalizeYclid(stored.value);
+  } catch {
+    removeStoredYclid();
+    return "";
+  }
+};
+const syncAnalyticsConsentCheckboxes = value => {
+  document.querySelectorAll("[data-analytics-consent-checkbox]").forEach(checkbox => {
+    checkbox.checked = value === "granted";
+  });
 };
 const setAnalyticsConsent = value => {
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
@@ -83,8 +118,14 @@ const stopMetrika = () => {
 };
 const applyAnalyticsConsent = value => {
   setAnalyticsConsent(value);
-  if (value === "granted") loadMetrika();
-  else stopMetrika();
+  if (value === "granted") {
+    persistCurrentYclid();
+    loadMetrika();
+  } else {
+    removeStoredYclid();
+    stopMetrika();
+  }
+  syncAnalyticsConsentCheckboxes(value);
   if (cookieBanner) cookieBanner.hidden = true;
   document.dispatchEvent(new CustomEvent("analytics-consent-updated", { detail:{ value } }));
 };
@@ -92,7 +133,10 @@ const applyAnalyticsConsent = value => {
 if (cookieBanner) {
   const consent = getCookie(analyticsConsentCookie);
   const hasCurrentConsentVersion = getCookie(analyticsConsentVersionCookie) === getAnalyticsConsentVersion();
-  if (consent === "granted" && hasCurrentConsentVersion) loadMetrika();
+  if (consent === "granted" && hasCurrentConsentVersion) {
+    persistCurrentYclid();
+    loadMetrika();
+  }
   else if (!(consent === "denied" && hasCurrentConsentVersion)) cookieBanner.hidden = false;
   cookieBanner.querySelectorAll("[data-cookie-choice]").forEach(button => button.addEventListener("click", () => applyAnalyticsConsent(button.dataset.cookieChoice)));
   document.querySelectorAll("[data-cookie-settings]").forEach(button => button.addEventListener("click", () => {
@@ -100,11 +144,16 @@ if (cookieBanner) {
     cookieBanner.querySelector("[data-cookie-choice=\"granted\"]")?.focus();
   }));
 }
+syncAnalyticsConsentCheckboxes(hasCurrentAnalyticsConsent() ? "granted" : "denied");
+document.querySelectorAll("[data-analytics-consent-checkbox]").forEach(checkbox => checkbox.addEventListener("change", () => {
+  applyAnalyticsConsent(checkbox.checked ? "granted" : "denied");
+}));
 
 const metrikaGoal = (goal, params) => {
   const counterId = getMetrikaCounterId();
-  if (!Number.isSafeInteger(counterId) || counterId <= 0 || typeof window.ym !== "function") return;
+  if (!Number.isSafeInteger(counterId) || counterId <= 0 || typeof window.ym !== "function") return false;
   window.ym(counterId, "reachGoal", goal, params);
+  return true;
 };
 const leadSuccessStorageKey = "voobrazillia_lead_success";
 const leadFormKind = form => form.matches("[data-hero-cart-form]")
@@ -119,8 +168,7 @@ const trackThankYouLead = () => {
   try {
     const form = window.sessionStorage.getItem(leadSuccessStorageKey);
     if (!form) return;
-    window.sessionStorage.removeItem(leadSuccessStorageKey);
-    metrikaGoal("form_submit", { form });
+    if (metrikaGoal("form_submit", { form })) window.sessionStorage.removeItem(leadSuccessStorageKey);
   } catch {}
 };
 
@@ -1014,6 +1062,9 @@ document.querySelectorAll("[data-lead-form]").forEach(form => {
     status.textContent = "";
     const payload = Object.fromEntries(new FormData(form));
     payload.consent = form.elements.consent.checked;
+    payload.analyticsConsent = form.elements.analyticsConsent?.checked === true;
+    if (payload.analyticsConsent && !hasCurrentAnalyticsConsent()) applyAnalyticsConsent("granted");
+    payload.yclid = payload.analyticsConsent ? getYclidForLead() : "";
     try {
       const response = await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const result = await response.json();

@@ -1173,7 +1173,7 @@ h1,
   text-transform: uppercase;
 }
 .contact-form--planner .contact-form__planner-intro,
-.contact-form--planner .consent,
+.contact-form--planner .consent-group,
 .contact-form--planner .cream-button,
 .contact-form--planner .form-status {
   grid-column: 1 / -1;
@@ -1237,10 +1237,25 @@ h1,
   line-height: 1.45 !important;
   letter-spacing: 0 !important;
 }
+.consent-group {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+}
+.consent--analytics {
+  padding: 10px 12px;
+  border: 1px solid rgba(37, 36, 42, .14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .46);
+  font-size: 10px !important;
+  color: rgba(37, 36, 42, .78);
+}
 .consent input {
   accent-color: var(--rose);
   width: 18px;
   height: 18px;
+  flex: 0 0 auto;
+  margin-top: 1px;
 }
 .cream-button {
   background: var(--ink);
@@ -6932,7 +6947,8 @@ color: var(--hero-cta-text);
 }
 .hero-cart__fields input:focus { outline: 2px solid #25242a; outline-offset: 1px; }
 .hero-cart__field--wide { grid-column: 1 / -1; }
-.hero-cart__lead .consent { margin: 14px 0 13px; color: #625d5a; }
+.hero-cart__lead .consent-group { margin: 14px 0 13px; }
+.hero-cart__lead .consent { color: #625d5a; }
 .hero-cart__lead .cream-button { width: 100%; }
 .hero-cart--animators .hero-cart__upsell-price,
 .hero-cart--animators .hero-cart__upsell-benefits,
@@ -8012,7 +8028,7 @@ color: var(--hero-cta-text);
   }
   .contact-form__planner-intro p,
   .contact-form__details-label,
-  .contact-form--planner .consent {
+  .contact-form--planner .consent-group {
     overflow-wrap: anywhere;
   }
   .contact-form__details-label input {
